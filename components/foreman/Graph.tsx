@@ -15,8 +15,8 @@ export const STATE: Record<State, { label: string; fill: string; stroke: string;
   flight: { label: "under construction", fill: "#3a2a0e", stroke: "#ffb547", text: "#ffe3b3" },
   ready: { label: "ready to start", fill: "#14110c", stroke: "#f4ecdc", text: "#f4ecdc" },
   blocked: { label: "blocked", fill: "#14110c", stroke: "#4a4338", text: "#8a806e", dash: "4 3" },
-  cut: { label: "on cut list", fill: "#14110c", stroke: "#e2674a", text: "#a0574a", dash: "2 4" },
-  backlog: { label: "backlog", fill: "#0c0a07", stroke: "#2c261c", text: "#5a5244", dash: "1 3" },
+  cut: { label: "on cut list", fill: "#14110c", stroke: "#e2674a", text: "#c96a55", dash: "2 4" },
+  backlog: { label: "backlog", fill: "#0c0a07", stroke: "#2c261c", text: "#857b6a", dash: "1 3" },
 };
 
 /** The longest chain of unfinished features: the order work has to land in before the last one can start. */
@@ -202,7 +202,7 @@ export default function Graph({
                 <text x={p.x + 8} y={p.y + 19} fill={s.text} fontSize={13.5} fontWeight={500}>
                   {f.slug.length > 19 ? `${f.slug.slice(0, 18)}…` : f.slug}
                 </text>
-                <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#e2674a" : s.text} opacity={!shown && f.missed ? 1 : 0.7} fontSize={11}>
+                <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#e2674a" : s.text} fontSize={11}>
                   {(sub || s.label).length > 22 ? `${(sub || s.label).slice(0, 21)}…` : sub || s.label}
                 </text>
                 {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}
