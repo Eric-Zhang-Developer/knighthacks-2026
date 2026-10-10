@@ -1,7 +1,7 @@
 ---
 name: Read a bounded sponsor-brief image through the existing shared AI client
 depends_on: [ai-client]
-owns: [lib/ai/, tests/ai-image-input/, tests/e2e/ai-image-input/]
+owns: [lib/ai/generate.ts, lib/ai/image.ts, tests/ai-image-input/, tests/e2e/ai-image-input/]
 assignee: ""
 ---
 

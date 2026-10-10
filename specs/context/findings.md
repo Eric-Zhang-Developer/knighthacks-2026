@@ -5,7 +5,7 @@ Worker: kiro-agent-1. Baseline `origin/main` **0930b42**; source of truth is can
 features are not automatically release requirements. Main CI was green at this baseline. Audit used two GPT-6 Astra
 subagents with read-only roles; no provider calls, production changes or frontend implementation were part of it.
 
-## What exists and what remains
+## Historical baseline: what existed at 0930b42
 
 | Area | Repository evidence | Remaining work / owner |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ factual dates/points from the source without inventing them. Store the precise b
 Coordination was sent to Claude's #188 and parent issue #189. The final plan PR is the reviewable handoff; details
 in chat are not a substitute for the merged specifications. Freeze and final code-push times are unchanged.
 
-## Refresh: 2026-10-10, main 93f07f5
+## Earlier refresh: 2026-10-10, main 93f07f5
 
 The audit above records the earlier baseline, not current claim status. Rubric UI #188 and corpus release/publication
 #62 and #191 have merged; there is no unresolved corpus claim in this refresh. Main now schedules constellation,
@@ -66,3 +66,14 @@ Claude/Mac must coordinate that mount and resolve sequencing against the merged 
 no dependency on an absent shell spec is added here. Sponsor intake belongs in the contextual decision area on
 desktop and phone (the Decide destination if the shell lands). Backend feature ownership is unchanged.
 This refresh claims neither production verification nor completion of sponsor intake. A person must merge this plan.
+
+## Current refresh: 2026-10-10, main e773216
+
+The historical table is not current pick order. The full 8,409-project corpus, rubric UI, second/third-wave features,
+workspace restore, challenge resume and rehearsal are merged. Corpus classification is Windows PR #285; Mac owns
+interview API #290, build-plan API #292 and galaxy category UI #289. This plan preserves every current milestone
+entry and appends sponsor intake after the newly accepted flow features, before the optional Vultr deployment.
+Image ownership is narrowed to `lib/ai/generate.ts` and a new image helper, avoiding the grounded-search collision.
+The page mount still needs the person's sequencing decision against open experience-shell plan #222; this refresh
+does not claim the overlap resolved. Do not implement sponsor intake before the plan is accepted.
+Current release blockers include main's font build (#226), live comparison (#179) and Anthropic configuration (#61).

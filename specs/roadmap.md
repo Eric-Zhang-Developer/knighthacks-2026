@@ -45,7 +45,7 @@ winning odds, a judge's score or certification of an uploaded brief's authentici
 
 The existing 28-track overlay stays intact and score-free; its UI shipped in Claude/Mac's #188. The addition is
 three separately owned features: `ai-image-input` (Windows shared client), `sponsor-challenges-api` (Windows), then
-`sponsor-challenges-ui` (Claude/Mac). Append them after the accepted third-wave features, before demo-flow.
+`sponsor-challenges-ui` (Claude/Mac). Append them after the currently accepted flow features, before optional Vultr.
 The UI keeps its own component and coordinates its shared app mount with proposed experience-shell #222;
 it belongs in the contextual decision area on desktop and phone, preserving the existing rubric panel.
 This adds no framework, OCR/storage service or dependency, and does not change freeze, cut or hard-stop dates.
