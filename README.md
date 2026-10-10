@@ -24,8 +24,9 @@ pnpm install --frozen-lockfile
 
 Copy `.env.example` to `.env.local` and fill it privately. Use an isolated Neon development database for
 `DATABASE_URL` and a separate test branch for `TEST_DATABASE_URL`; never use production for local verification.
-The server needs `GEMINI_API_KEY`, `GEMINI_MODEL`, `HF_TOKEN` and `EMBED_MODEL=BAAI/bge-m3` for the core AI path.
-Set `AI_PROVIDER=gemini` to prefer Gemini when both providers are configured. Optional `GEMINI_API_KEY_SPARE`
+Semantic retrieval needs `HF_TOKEN` and `EMBED_MODEL=BAAI/bge-m3`; structured generation needs at least one
+configured generation provider. For Gemini, set `GEMINI_API_KEY` and `GEMINI_MODEL`. Gemini is specifically
+required for grounded problem-evidence search. Set `AI_PROVIDER=gemini` to prefer it when both providers are configured. Optional `GEMINI_API_KEY_SPARE`
 is tried after the primary key fails; add it manually because the current example file does not list it.
 `ELEVENLABS_API_KEY` enables microphone transcription. Text input remains the fallback. Optional Anthropic
 configuration is described in `.env.example`; do not assume a configured key has usable quota.
@@ -40,7 +41,10 @@ node --env-file=.env.local scripts/db-sync.mjs
 pnpm dev
 ```
 
-The first command previews missing schema objects without applying them. Follow the
+The first command previews missing schema objects without applying them. For any target other than
+`TEST_DATABASE_URL`, it requires a clean checkout exactly at the freshly fetched `origin/main`; it deliberately
+refuses a feature branch. For a dedicated test branch, privately set `DATABASE_URL` to the same value as
+`TEST_DATABASE_URL` before running the command. Follow the
 [database safeguards](specs/tech-stack.md#shared-database-schema-safety-125) before any application of that plan.
 Existing schema drift needs investigation, not a forced push. Open the local URL printed by Next.js.
 

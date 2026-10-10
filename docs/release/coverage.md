@@ -21,7 +21,7 @@ the integrated release remains pending in the [runbook](README.md).
 | F08 | Before-and-after comparison | No dedicated spec or shipped record; generic candidate comparison does not establish this scenario |
 | F09 | Challenge my idea | [Mapped: challenge API](../../changes/challenge-api.md), [UI](../../changes/challenge-ui.md), [resume](../../changes/challenge-resume-ui.md) |
 | F10 | Save, share and QR | [Mapped: share API](../../changes/share-qr-api.md), [UI](../../changes/share-qr-ui.md), [workspace restore](../../changes/workspace-restore-ui.md); initialization bug #288 remains open |
-| F11 | Rubric and sponsor overlay | [Mapped: fixed-track overlay](../../changes/rubric-overlay-api.md); custom image/text briefs remain unimplemented plan #190 |
+| F11 | Rubric and sponsor overlay | [Mapped: fixed-track API](../../changes/rubric-overlay-api.md) and [UI](../../changes/rubric-overlay-ui.md); custom image/text briefs remain unimplemented plan #190 |
 | F12 | Problem evidence | [Mapped: problem-evidence API](../../changes/problem-evidence-api.md) and [UI](../../changes/problem-evidence-ui.md) |
 | F13 | GitHub/Hugging Face research | [Mapped: research API](../../changes/research-api.md) and [UI](../../changes/research-ui.md) |
 | F14 | Product versus building block | [Mapped within research](../../changes/research-api.md), with provenance and classification |

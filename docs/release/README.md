@@ -39,10 +39,11 @@ Pending bugs include voice token protection (#219/#221), workspace initializatio
    and embedding model. From the checkout run:
 
    ```sh
-   python .agents/scripts/verify.py --slug demo-flow --worktree .
+   python3 .agents/scripts/verify.py --slug demo-flow --worktree .
    ```
 
-   Keep the printed result and masked screenshots. On Windows, `PYTHONUTF8=1` avoids console encoding errors.
+   Keep the printed result and masked screenshots. Use a Python 3.11+ executable (`python3`, or `python`/`py -3.11`
+   on Windows where appropriate). On Windows, `PYTHONUTF8=1` avoids console encoding errors.
    The journey uses the text fallback, two independent browser contexts, private voting and a phone-width share.
 4. After the deployment owner repairs #297 and confirms readiness, run the same command with `DEMO_BASE_URL`
    set to the public deployment. This creates demo workspace data on that deployment; coordinate with its owner.
@@ -54,8 +55,8 @@ Pending bugs include voice token protection (#219/#221), workspace initializatio
 6. Verify the final merged deployment and keep the static snapshot outside the working tree:
 
    ```sh
-   python .agents/scripts/verify_release.py --commit <full-merged-sha>
-   python .agents/scripts/demo_snapshot.py --out <private-evidence-directory>
+   python3 .agents/scripts/verify_release.py --commit <full-merged-sha>
+   python3 .agents/scripts/demo_snapshot.py --out <private-evidence-directory>
    ```
 
    Use real values in place of placeholders. These use `.agents/config.toml`'s release URL. The snapshot saves
@@ -122,10 +123,10 @@ Devpost submission exists.
 
 | Integration | Implemented role | Proof still needed for a release claim |
 |---|---|---|
-| Gemini | Structured idea/evidence/challenge generation; grounded research | Successful deployed run, configured model ID, source/uncertainty explanation |
+| Gemini | Structured generation and grounded problem-evidence search | Successful deployed run, configured model ID, source/uncertainty explanation |
 | Hugging Face | BGE-M3 embeddings; repository/model research | Actual matching corpus/query model and relevance examples; use corpus evaluation receipts |
 | Neon | Corpus vectors and persistent workspaces, revisions, votes and snapshots | Deployment health plus persistence/isolation demonstrated on the released build |
-| ElevenLabs | Push-to-talk transcription through short-lived server-issued tokens | Live human microphone run and token-protection rollout; do not claim cut spoken replies |
+| ElevenLabs | Push-to-talk transcription through single-use server-issued tokens | Live human microphone run and token-protection rollout; do not claim cut spoken replies |
 | Vultr / GoDaddy | Optional deployment/domain work | Actual qualifying running deployment/domain; PR #166 alone is not proof |
 | Databricks | Deferred by the current roadmap | Do not claim an integration |
 

@@ -44,7 +44,7 @@ features, not implied by the renderer being merged.
 ## Boundaries that matter
 
 - **Browser versus server:** database and provider secrets stay on the server. The browser receives only the
-  short-lived speech token needed for transcription, never the ElevenLabs API key.
+  single-use speech token needed for transcription, never the ElevenLabs API key.
 - **One guest versus another:** route handlers authorize the guest workspace before reading or writing its
   private state. Public shares expose stored read-only snapshots, not membership or a workspace session.
 - **One vote versus both votes:** the server withholds the teammate's vote until both vote. Hiding a field in
