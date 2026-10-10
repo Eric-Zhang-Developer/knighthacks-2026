@@ -8,6 +8,6 @@ export const resultSchema = z.object({ criteria: z.array(z.object({ name: z.enum
 export const versionSchema = fieldsSchema.extend({ versionId: z.uuid(), ideaId: z.uuid(), parentId: z.uuid().nullable(), neighborIds: z.array(z.string()).length(5), corpusVersion: z.string(), createdAt: z.string(), x: z.number(), y: z.number(), z: z.number() });
 export const cardSchema = generatedSchema.extend({ projectId: z.string(), excerpt: z.string().min(1), title: z.string(), url: z.url() });
 export const cardsSchema = z.object({ cards: z.array(cardSchema) });
-export const suggestions = z.object({ suggestions: z.array(z.object({ id: z.uuid(), field: z.string(), change: z.string().min(1), reason: z.string().min(1) })).min(1).max(3) });
+export const suggestions = z.object({ suggestions: z.array(z.object({ id: z.uuid(), field: z.string(), change: z.string().min(1), reason: claim.extend({ label: z.literal("inferred"), sourceIds: z.array(z.string()).length(0) }) })).min(1).max(3) });
 export const directions = z.object({ directions: z.array(z.object({ id: z.uuid(), title: z.string().min(1), change: z.string().min(1) })).min(1).max(3) });
 

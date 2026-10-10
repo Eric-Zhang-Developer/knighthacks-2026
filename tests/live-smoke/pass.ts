@@ -11,7 +11,7 @@ import { startServer } from "./server";
 
 type Entry = { provider: string; route: string; status: number | null; latencyMs: number; response?: unknown; error?: string };
 // These are generated prose, not Claim fields; expose the mission-contract gap rather than pretending they are labelled.
-export const unlabelledFields = ["interpret: title, description, audience, problem, workflow, constraints", "revision: field, change, reason", "challenge: question, assumption; answer outcome", "branch: title, change", "compare: uncertainty", "alternative: step", "experiment: procedure, observable"];
+export const unlabelledFields = ["interpret: title, description, audience, problem, workflow, constraints", "revision: field, change", "challenge: question, assumption; answer outcome", "branch: title, change", "compare: uncertainty", "alternative: step", "experiment: procedure, observable"];
 
 export async function runPass(provider: "claude" | "gemini", playwright: { request: APIRequest }, info: TestInfo) {
   const entries: Entry[] = [];
@@ -53,6 +53,7 @@ export async function runPass(provider: "claude" | "gemini", playwright: { reque
     expect(evidence.cards.map((card) => card.projectId)).toEqual(original.neighborIds.slice(0, 3));
     for (const card of evidence.cards) checkClaims({ overlaps: card.overlaps, differences: card.differences, uncertainty: card.uncertainty }, [card.projectId], new Map([[card.projectId, card.excerpt]]));
     const proposal = suggestions.parse(await request("/api/revisions/propose", 200, { versionId: original.versionId, context: "Suggest a concrete change to help a team test this workflow during a hackathon." }));
+    checkClaims(proposal, []);
     const revised = versionSchema.parse(await request(`/api/revisions/${proposal.suggestions[0].id}/accept`, 201));
     expect(revised.parentId).toBe(original.versionId);
     const session = z.object({ sessionId: z.uuid() }).parse(await request("/api/challenge", 201, { versionId: original.versionId, perspective: "judge" }));
