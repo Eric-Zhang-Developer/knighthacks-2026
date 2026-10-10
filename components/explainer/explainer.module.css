@@ -1,0 +1,17 @@
+.panel {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: min(320px, calc(100% - 16px));
+  max-height: calc(100% - 72px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.panel summary { padding: 8px 12px; cursor: pointer; font-size: 14px; }
+.body { padding: 0 12px 12px; display: grid; gap: 8px; }
+.events { list-style: none; color: var(--muted); }
+.events span { color: var(--text); }
