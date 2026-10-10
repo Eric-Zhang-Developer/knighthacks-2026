@@ -9,6 +9,7 @@ export const DESTINATIONS = [
   { id: "talk", label: "Talk" },
   { id: "idea", label: "Idea" },
   { id: "decide", label: "Decide" },
+  { id: "plan", label: "Plan" },
 ] as const;
 type Dest = (typeof DESTINATIONS)[number]["id"];
 const PHONE = "(max-width: 720px)";
