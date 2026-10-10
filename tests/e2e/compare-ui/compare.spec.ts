@@ -30,15 +30,16 @@ test("pick two versions and get a reason and an uncertainty per criterion, with 
   const ids = ((await (await page.request.get(`/api/revisions/trail/${latest.ideaId}`)).json()) as { versionId: string }[]).map((v) => v.versionId);
   await writeFile(
     join(stub!, "compare.json"),
+    // compare-api's compact generation matrix (#243): rows are CRITERIA, columns the requested versions in order.
     JSON.stringify({
-      criteria: CRITERIA.map((name) => ({
-        name,
-        perVersion: ids.map((versionId, i) => ({
-          versionId,
-          reason: { text: `${name} reason for the ${i ? "revised" : "original"} version`, label: "inferred", sourceIds: [] },
-          uncertainty: "Implementation quality and user demand remain unknown",
+      m: CRITERIA.map((name) =>
+        ids.map((_versionId, i) => ({
+          r: `${name} reason for the ${i ? "revised" : "original"} version`,
+          l: "inferred",
+          s: [],
+          u: "Implementation quality and user demand remain unknown",
         })),
-      })),
+      ),
     }),
   );
 
