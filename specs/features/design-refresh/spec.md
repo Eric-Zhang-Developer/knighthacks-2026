@@ -26,9 +26,12 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 2. Layout: the map fills the window. Desktop: a translucent top app bar; the discovery rail and contextual rail are
    floating Material surfaces (corner `large`, 12px from the edges) with an Apple material behind them (backdrop
    blur and saturate); the composer is a floating pill at the bottom centre. Same widths and order as the shell.
+   The reference's single text-and-voice composer is not adopted: the textbox stays in the Idea card
+   (`specs/decisions/experience-shell-composer.md`), and the pill carries push-to-talk only.
 3. Phone: a Material 3 navigation bar (icons with labels, active indicator pill, 80px plus the safe area) for
-   Explore / Talk / Idea / Decide. The open project is a bottom sheet with a drag handle: it tracks the finger
-   1:1, and on release goes up or down by velocity (apple-design §5–6, damping 0.8, response 0.3).
+   Explore / Talk / Idea / Decide / Plan. The open project is a bottom sheet with a drag handle: it rests at a
+   medium detent, tracks the finger 1:1, and on release goes up or down by velocity (apple-design §5–6, damping
+   0.8, response 0.3).
 4. Components: buttons, chips, selects and text fields restyled as Material filled, tonal, outlined and text
    variants through `components/ui/` classes and global element styles. Full-pill buttons, a 48px minimum target
    on the phone, and hover, focus and pressed state layers. A button press scales 0.97 on pointer-down.
@@ -41,7 +44,8 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
   borders. `prefers-reduced-motion`: cross-fades only, no springs.
 - No gradient borders, no purple-on-white, no glow on text, no continuous decorative motion.
 - Each panel's own e2e suite passes unchanged; visual-polish's token check (panels share `--panel`, `--border`,
-  `--heading`) still holds.
+  `--heading`) still holds. Its phone check opens search, a project, the explainer and voice together, so on the
+  phone the project sheet's resting detent must leave the explainer and the push-to-talk bar uncovered.
 
 ## Validation
 1. The map's canvas covers the whole window at 1440x900 and 390x844; the rails, top bar and composer sit over it,
@@ -58,4 +62,5 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 
 ## Defaults
 Hand-written CSS custom properties with Material token names (no `@material/web`, which is maintenance-only and
-needs client-side custom elements); one small spring helper in `components/shell/`, no new dependency.
+needs client-side custom elements); one small spring helper in `components/shell/`; navigation icons as inline SVG
+(Material Symbols outlines, Apache-2.0), no new dependency.
