@@ -58,15 +58,16 @@
   --material-thick: rgba(17, 19, 24, 0.72);
   --material-blur: blur(24px) saturate(160%);
 
-  /* Every panel's existing tokens, now Material roles: panels change without touching their files. */
+  /* Every panel's existing tokens, now Material roles: panels change without touching their files. Literal hex where
+     tests/visual-polish checks contrast from this file; the comment names the role. */
   --font-display: var(--font-sans);
   --bg: #070910;
-  --panel: var(--md-sys-color-surface-container);
+  --panel: #1d2024; /* surface-container */
   --panel-top: var(--md-sys-color-surface-container);
   --border: var(--md-sys-color-outline-variant);
   --rule: rgba(68, 71, 79, 0.6);
   --graticule: rgba(173, 198, 255, 0.06);
-  --text: var(--md-sys-color-on-surface);
+  --text: #e3e2e9; /* on-surface */
   --paper: #f1f0f7;
   --muted: #acafb9;
   --brass: var(--md-sys-color-primary);
@@ -74,7 +75,7 @@
   --history: #c9b6ff; /* revision history */
   --uncertain: #f5c46a; /* uncertainty */
   --live: #7ddc9c; /* current-event projects */
-  --failed: var(--md-sys-color-error);
+  --failed: #ffb4ab; /* error */
 
   --space-1: 4px;
   --space-2: 8px;
