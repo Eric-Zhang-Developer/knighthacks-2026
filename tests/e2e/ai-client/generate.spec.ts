@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test, expect } from "@playwright/test";
 const run = promisify(execFile);
@@ -14,5 +15,7 @@ test("server client returns schema-validated live or explicitly stubbed JSON", a
     expect(result.results.length).toBeGreaterThan(0);
     for (const r of result.results) { expect(r.model).toBeTruthy(); expect(typeof r.data.message).toBe("string"); }
   }
-  await info.attach("ai-client-response", { body: JSON.stringify(result, null, 2), contentType: "application/json" });
+  const body = JSON.stringify(result, null, 2);
+  await writeFile(info.outputPath("ai-client-response.json"), body); // attach() alone stays in the report, not the evidence folder
+  await info.attach("ai-client-response", { body, contentType: "application/json" });
 });

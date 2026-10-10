@@ -21,3 +21,13 @@ marker to its client-import error module. A real negative Next 15.5.4 production
 build also rejected a temporary client component importing the actual
 lib/ai/generate.ts with the expected server-only diagnostic and import trace.
 `checkClaims` checks cited-source membership, not whether citations prove a claim.
+
+## Second provider (#55)
+Claude (`ANTHROPIC_MODEL`) is preferred, Gemini (`GEMINI_MODEL`) is the fallback; `AI_PROVIDER=gemini` swaps them.
+Only PROVIDER_ERROR (network, HTTP error, timeout, refusal) falls through; INVALID_OUTPUT does not, since it points
+at the prompt or schema. Claude attempts have a 60-second timeout (thinking models run longer than Gemini Flash)
+and no SDK retries. The Anthropic zod helper drops JSON Schema keywords structured outputs reject (`minLength`,
+`maximum`...); zod still enforces them on the reply. Options were: Claude only (loses the Gemini prize and
+redundancy), a per-call provider argument (no caller needs it yet), or this. Undo: delete the `anthropic` call in
+`providers()`.
+
