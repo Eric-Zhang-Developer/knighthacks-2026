@@ -18,6 +18,14 @@ describe("Viewport", () => {
     expect(v.zoom).toBeCloseTo(0.9 * 400); // the shorter fit: 400px for 1 unit of height
   });
 
+  it("a resize keeps the relative zoom: a phone isn't left zoomed into a corner", () => {
+    const v = fresh();
+    v.zoomAt(2, 400, 200);
+    v.setBounds(box, 390, 300);
+    expect(v.zoomOverFit).toBeCloseTo(2);
+    expect(v.zoom).toBeCloseTo(2 * 0.9 * 195); // the new fit: 390px for 2 units of width
+  });
+
   it("pans 1:1 with the pointer, y up", () => {
     const v = fresh();
     const a = v.toScreen(0.2, 0.1);

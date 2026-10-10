@@ -32,8 +32,10 @@ export class Viewport {
   // Called whenever the view changes, so a scene that only draws on demand knows to draw.
   onChange: () => void = () => {};
 
-  // The map's extent and the canvas size. The first call also places the view on the whole map.
+  // The map's extent and the canvas size. The first call also places the view on the whole map; later calls (a
+  // resize, a rotated phone) keep how far in you were relative to the whole map, not the raw scale.
   setBounds(box: Box, width: number, height: number) {
+    const over = this.placed ? this.zoomOverFit : 1;
     this.width = Math.max(width, 1);
     this.height = Math.max(height, 1);
     const w = Math.max(box.maxX - box.minX, 1e-6);
@@ -44,9 +46,10 @@ export class Viewport {
       zoom: FIT_MARGIN * Math.min(this.width / w, this.height / h),
     };
     if (!this.placed) {
-      Object.assign(this, { x: this.fitView.x, y: this.fitView.y, zoom: this.fitView.zoom });
+      Object.assign(this, { x: this.fitView.x, y: this.fitView.y });
       this.placed = true;
     }
+    this.zoom = this.fitView.zoom * over;
     this.zoom = this.clampZoom(this.zoom);
     this.onChange();
   }
