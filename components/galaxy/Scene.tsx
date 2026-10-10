@@ -33,9 +33,15 @@ const material = () =>
   });
 
 type Style = { color: readonly number[]; size: number };
+const HIDDEN: Style = { color: STYLE.base.color, size: 0 };
 
-function StarPoints({ positions, styleAt }: { positions: Float32Array; styleAt: (i: number) => Style }) {
+// The e2e reads the live position buffer through this to prove a reveal never moves a star.
+export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number> };
+
+function StarPoints(props: { positions: Float32Array; styleAt: (i: number) => Style; expose?: boolean }) {
+  const { positions, styleAt, expose } = props;
   const dpr = useThree((s) => s.viewport.dpr);
+  const dom = useThree((s) => s.gl.domElement) as StarCanvas;
   const mat = useMemo(material, []);
   const geometry = useMemo(() => {
     const n = positions.length / 3;
@@ -47,6 +53,9 @@ function StarPoints({ positions, styleAt }: { positions: Float32Array; styleAt: 
   }, [positions]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => {
+    if (expose) dom.starPositions = geometry.getAttribute("position").array;
+  }, [expose, dom, geometry]);
   useEffect(() => () => mat.dispose(), [mat]);
   useEffect(() => {
     mat.uniforms.pixelRatio.value = dpr;
@@ -97,8 +106,13 @@ function Controls({ center, radius, locked }: { center: THREE.Vector3; radius: n
 
 export type Hover = { index: number; x: number; y: number } | null;
 
-function Picker(props: { positions: Float32Array; onHover: (h: Hover) => void; onPick: (index: number) => void }) {
-  const { positions, onHover, onPick } = props;
+function Picker(props: {
+  positions: Float32Array;
+  visible: Uint8Array;
+  onHover: (h: Hover) => void;
+  onPick: (index: number) => void;
+}) {
+  const { positions, visible, onHover, onPick } = props;
   const camera = useThree((s) => s.camera);
   const dom = useThree((s) => s.gl.domElement);
 
@@ -109,9 +123,9 @@ function Picker(props: { positions: Float32Array; onHover: (h: Hover) => void; o
       const r = dom.getBoundingClientRect();
       for (let i = 0; i < positions.length / 3; i++) {
         v.set(positions[3 * i], positions[3 * i + 1], positions[3 * i + 2]).project(camera);
-        const visible = v.z >= -1 && v.z <= 1;
-        screen[2 * i] = visible ? ((v.x + 1) / 2) * r.width : NaN;
-        screen[2 * i + 1] = visible ? ((1 - v.y) / 2) * r.height : NaN;
+        const onScreen = visible[i] === 1 && v.z >= -1 && v.z <= 1;
+        screen[2 * i] = onScreen ? ((v.x + 1) / 2) * r.width : NaN;
+        screen[2 * i + 1] = onScreen ? ((1 - v.y) / 2) * r.height : NaN;
       }
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
@@ -142,17 +156,18 @@ function Picker(props: { positions: Float32Array; onHover: (h: Hover) => void; o
       dom.removeEventListener("pointerleave", onLeave);
       dom.removeEventListener("click", onClick);
     };
-  }, [positions, camera, dom, onHover, onPick]);
+  }, [positions, visible, camera, dom, onHover, onPick]);
   return null;
 }
 
 export default function Scene(props: {
   ids: string[];
   positions: Float32Array;
+  visible: Uint8Array;
   onHover: (h: Hover) => void;
   onPick: (index: number) => void;
 }) {
-  const { ids, positions, onHover, onPick } = props;
+  const { ids, positions, visible, onHover, onPick } = props;
   const selectedId = useAppState((s) => s.selectedProjectId);
   const highlightedIds = useAppState((s) => s.highlightedIds);
   const ideaStars = useAppState((s) => s.ideaStars);
@@ -167,8 +182,8 @@ export default function Scene(props: {
 
   const corpusStyle = useMemo(() => {
     const highlighted = new Set(highlightedIds);
-    return (i: number) => styleFor(ids[i], selectedId, highlighted);
-  }, [ids, selectedId, highlightedIds]);
+    return (i: number) => (visible[i] ? styleFor(ids[i], selectedId, highlighted) : HIDDEN);
+  }, [ids, visible, selectedId, highlightedIds]);
 
   const ideaPositions = useMemo(() => new Float32Array(ideaStars.flatMap((s) => [s.x, s.y, s.z])), [ideaStars]);
   const ideaStyle = useMemo(
@@ -179,10 +194,10 @@ export default function Scene(props: {
   return (
     <Canvas camera={{ fov: 60 }} aria-hidden>
       <color attach="background" args={["#07080c"]} />
-      <StarPoints positions={positions} styleAt={corpusStyle} />
+      <StarPoints positions={positions} styleAt={corpusStyle} expose />
       {ideaStars.length > 0 && <StarPoints positions={ideaPositions} styleAt={ideaStyle} />}
       <Controls center={center} radius={radius} locked={selectedId !== null} />
-      <Picker positions={positions} onHover={onHover} onPick={onPick} />
+      <Picker positions={positions} visible={visible} onHover={onHover} onPick={onPick} />
     </Canvas>
   );
 }

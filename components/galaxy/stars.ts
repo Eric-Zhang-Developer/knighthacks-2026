@@ -49,3 +49,14 @@ export function pickNearest(screen: Float32Array, px: number, py: number, radius
   }
   return best;
 }
+
+// `year` is the project's created year, not its event date (changes/corpus-embed.md), so it's always labelled that way.
+export const createdLabel = (year?: number | null) => (year == null ? "date unknown" : `created ${year}`);
+
+export const yearsOf = (stars: { year?: number | null }[]) =>
+  [...new Set(stars.flatMap((s) => (s.year == null ? [] : [s.year])))].sort((a, b) => a - b);
+
+// 1 = shown. No reveal year shows everything; a star with no year is never hidden.
+export function revealMask(stars: { year?: number | null }[], reveal: number | null) {
+  return Uint8Array.from(stars, (s) => (reveal === null || s.year == null || s.year <= reveal ? 1 : 0));
+}

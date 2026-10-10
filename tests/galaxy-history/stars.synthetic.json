@@ -1,0 +1,12 @@
+{
+  "corpus_version": "SYNTHETIC test fixture: made-up coordinates, titles and years, not real projects",
+  "count": 6,
+  "stars": [
+    { "id": "synthetic-center", "x": 0, "y": 0, "z": 0, "title": "Synthetic center star", "event": "Synthetic event", "year": 2019 },
+    { "id": "synthetic-a", "x": 1, "y": 1, "z": 1, "title": "Synthetic star A", "event": "Synthetic event", "year": 2019 },
+    { "id": "synthetic-b", "x": -1, "y": -1, "z": -1, "title": "Synthetic star B", "event": null, "year": 2021 },
+    { "id": "synthetic-c", "x": 1, "y": -1, "z": -1, "title": "Synthetic star C", "event": "Synthetic event", "year": 2021 },
+    { "id": "synthetic-d", "x": -1, "y": 1, "z": 1, "title": "Synthetic star D", "event": "Synthetic event", "year": 2023 },
+    { "id": "synthetic-e", "x": 0.5, "y": -0.5, "z": 0.25, "title": "Synthetic star E", "event": "Synthetic event", "year": null }
+  ]
+}
