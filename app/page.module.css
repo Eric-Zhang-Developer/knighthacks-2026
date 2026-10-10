@@ -1,0 +1,14 @@
+.shell {
+  display: grid;
+  grid-template: "top top" auto "map side" 1fr "bottom bottom" auto / 1fr minmax(320px, 400px);
+  height: 100vh;
+}
+.top { grid-area: top; border-bottom: 1px solid var(--border); padding: 12px 16px; }
+.map { grid-area: map; position: relative; min-height: 0; }
+.side { grid-area: side; border-left: 1px solid var(--border); background: var(--panel); overflow-y: auto; }
+.bottom { grid-area: bottom; border-top: 1px solid var(--border); padding: 12px 16px; }
+
+@media (max-width: 720px) {
+  .shell { grid-template: "top" auto "side" auto "map" 60vh "bottom" auto / 1fr; height: auto; }
+  .side { border-left: 0; }
+}

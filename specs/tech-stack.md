@@ -15,6 +15,7 @@ add-ons sit at the end of `milestones.toml` and must not need changes to the cor
 | Generation | Gemini API via `@google/genai`; the model ID is pinned in one env var |
 | Voice | ElevenLabs: realtime speech-to-text and streaming text-to-speech; the server mints a single-use token per session |
 | Hosting | Vercel for the app, Neon for data. Use no Vercel-only service (KV, Blob, Edge Config), so the Vultr add-on is a redeploy, not a rewrite |
+| Packages (pinned in `package.json`) | next, react, three, @react-three/fiber, drizzle-orm, drizzle-kit, @neondatabase/serverless, @google/genai, @huggingface/inference, @elevenlabs/react (client speech-to-text), @elevenlabs/elevenlabs-js (server token and TTS), zod, qrcode, vitest, @playwright/test |
 | Tests | Vitest (unit), Playwright (verify and end-to-end), pytest (corpus script). Golden test: a committed fixture of real corpus records and the neighbor a fixed query must return |
 
 ## Layout

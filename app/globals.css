@@ -1,0 +1,38 @@
+:root {
+  --bg: #07080c;
+  --panel: #11131a;
+  --border: #22262f;
+  --text: #e6e8ee;
+  --muted: #8b91a0;
+  --idea: #4fd6e8; /* selected idea */
+  --history: #a78bfa; /* revision history */
+  --uncertain: #f5b44a; /* uncertainty */
+  --live: #5ad48a; /* current-event projects */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--idea);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

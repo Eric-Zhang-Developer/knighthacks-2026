@@ -2,3 +2,12 @@ graphify-out/
 .env
 .env.*
 __pycache__/
+!.env.example
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+corpus/data/
+.venv/
