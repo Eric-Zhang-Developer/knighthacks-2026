@@ -26,6 +26,8 @@ MAX_CHARS = 2000  # the opening of a description (inspiration, what it does) car
 BATCH = 16
 REQUEST_TIMEOUT = 60  # seconds without a provider response, per attempt
 SEED = 42
+GROUP_SIZE, GROUPS_MAX = 140, 200  # about 140 projects per system: 60 systems at 8,409
+SPREAD, TIGHTEN = 3.0, 0.2  # systems sit 3x further apart; each shrinks to a fifth of its UMAP size
 
 
 def load_env() -> None:
@@ -82,12 +84,31 @@ def cached_embeddings(records: list[dict]) -> np.ndarray:
     return np.stack([cache[r["content_hash"]] for r in records])
 
 
+def systems(vectors: np.ndarray, xyz: np.ndarray) -> np.ndarray:
+    """Group by meaning, then spread the groups apart and tighten each one, so the galaxy reads as star systems.
+
+    Plain UMAP of this corpus is one continuous cloud: hackathon projects form a continuum, and no UMAP setting
+    separated it (min_dist 0-0.1, n_neighbors 15-80 tried on the 8,409 corpus). Groups come from k-means on the
+    embeddings, not from 3D position, so a system is projects with similar descriptions.
+    """
+    from sklearn.cluster import KMeans
+
+    k = max(1, min(GROUPS_MAX, len(vectors) // GROUP_SIZE))
+    if k == 1:
+        return xyz
+    label = KMeans(k, n_init=3, random_state=SEED).fit_predict(vectors)
+    centre = np.stack([xyz[label == i].mean(0) for i in range(k)])[label]
+    # ponytail: spread and tighten are tuned by eye on the 8,409 corpus; re-render the top view after a big release.
+    return SPREAD * centre + TIGHTEN * (xyz - centre)
+
+
 def project(vectors: np.ndarray) -> np.ndarray:
-    """UMAP to 3D with cosine distance and a fixed seed, scaled into a unit cube centred on 0."""
+    """UMAP to 3D with cosine distance and a fixed seed, grouped into systems, scaled into a unit cube centred on 0."""
     import umap
 
     n = len(vectors)
     xyz = umap.UMAP(n_components=3, metric="cosine", n_neighbors=min(15, n - 1), random_state=SEED).fit_transform(vectors)
+    xyz = systems(vectors, xyz)
     xyz = xyz - (xyz.max(0) + xyz.min(0)) / 2
     return xyz / max(float(np.ptp(xyz, axis=0).max()), 1e-9)
 
