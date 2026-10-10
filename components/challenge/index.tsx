@@ -5,6 +5,8 @@ import { lerpStar, replaceStar, type Suggestion, type Version } from "@/componen
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { post } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
+import { ExperimentList, useExperiments } from "./Experiments";
+import { findFor } from "./experiment";
 import { nextStep, reviseContext, type Outcome, type Perspective, type Round } from "./rounds";
 import styles from "./challenge.module.css";
 
@@ -41,6 +43,7 @@ export default function Challenge() {
   const [error, setError] = useState<string | null>(null);
   const [revising, setRevising] = useState<{ round: number; suggestions: Suggestion[] } | null>(null);
   const [revised, setRevised] = useState<number[]>([]); // rounds whose suggestion was accepted
+  const experiments = useExperiments(active);
 
   if (!active) return null;
   const step = nextStep(rounds);
@@ -76,6 +79,15 @@ export default function Challenge() {
     if (!r) return;
     setRounds((rs) => rs.map((x, i) => (i === rs.length - 1 ? { ...x, answer: text, outcome: r.outcome } : x)));
     setAnswer("");
+  }
+
+  async function prove(round: Round) {
+    if (!sessionId) return;
+    setBusy("prove");
+    setError(null);
+    const r = await experiments.start(sessionId, round.round);
+    setBusy(null);
+    if (!r.ok) setError(r.error);
   }
 
   async function revise(round: Round) {
@@ -154,6 +166,14 @@ export default function Challenge() {
               </p>
             )}
             {revised.includes(r.round) && <p className={styles.meta}>Revised: saved as a new version.</p>}
+            {r.outcome === "test" &&
+              (findFor(experiments.items, sessionId, r.round) ? (
+                <p className={styles.meta}>Experiment below, under Experiments.</p>
+              ) : (
+                <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => prove(r)}>
+                  Prove it in ten minutes
+                </button>
+              ))}
             {r.outcome === "revise" && revising?.round !== r.round && !revised.includes(r.round) && (
               <button type="button" disabled={busy !== null} onClick={() => revise(r)}>
                 Suggest revisions for this
@@ -215,7 +235,9 @@ export default function Challenge() {
       )}
       {busy === "ask" && <PanelState kind="loading" message="The critic is reading your idea…" />}
       {busy === "answer" && <PanelState kind="loading" message="Weighing your answer…" />}
+      {busy === "prove" && <PanelState kind="loading" message="Drafting a ten-minute experiment…" />}
       {error && <PanelState kind="failed" message={error} />}
+      <ExperimentList items={experiments.items} failed={experiments.failed} onChange={experiments.reload} />
     </section>
   );
 }
