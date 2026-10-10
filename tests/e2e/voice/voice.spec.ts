@@ -13,9 +13,12 @@ test("mic denied: a notice shows, no token is spent and nothing reaches the draf
   await talk.focus();
   await page.keyboard.down(" ");
   await expect(bar(page).getByRole("alert")).toHaveText(/Microphone blocked/);
+  await expect(bar(page).locator('[data-panel="voice"]')).toHaveAttribute("data-live-state", "error");
   await page.keyboard.up(" ");
   await expect(bar(page).getByText(/Added to your idea/)).toHaveCount(0);
   await expect(bar(page).getByRole("button", { name: "End voice session" })).toBeVisible();
+  await bar(page).getByRole("button", { name: "Use text" }).click();
+  await expect(page.getByRole("textbox", { name: "Describe your idea" })).toBeFocused();
   expect(tokenRequests).toBe(0);
   await page.screenshot({ path: test.info().outputPath("mic-denied.png") });
 });
@@ -29,6 +32,9 @@ test("provider down: a notice shows and the bar stays usable", async ({ page }) 
   const talk = bar(page).getByRole("button", { name: "Hold to talk" });
   await talk.dispatchEvent("pointerdown");
   await expect(bar(page).getByRole("alert")).toHaveText(/Voice is unavailable/);
+  await bar(page).getByRole("button", { name: "Retry" }).click();
+  await expect(bar(page).locator('[data-panel="voice"]')).toHaveAttribute("data-live-state", "idle");
+  await expect(bar(page).getByRole("alert")).toHaveCount(0);
   await expect(bar(page).getByText(/Added to your idea/)).toHaveCount(0);
   await expect(talk).toBeEnabled();
 });

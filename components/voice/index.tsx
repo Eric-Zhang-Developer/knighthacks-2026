@@ -5,6 +5,7 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { getState, setState } from "@/lib/store";
 import { appendUtterance } from "@/lib/voice/draft";
 import { PanelState } from "@/components/ui";
+import { LIVE_TALK_COPY, liveTalkState } from "./state";
 import styles from "./voice.module.css";
 
 const MIC_DENIED = "Microphone blocked. Type your idea instead.";
@@ -60,6 +61,14 @@ export default function Voice() {
     scribe.mute();
   }
 
+  function interrupt() {
+    holdingRef.current = false;
+    setHolding(false);
+    scribe.clearTranscripts();
+    if (scribe.isConnected) scribe.mute();
+    setAdded(null);
+  }
+
   function fail(message: string) {
     holdingRef.current = false;
     setHolding(false);
@@ -73,9 +82,33 @@ export default function Voice() {
     if (!down) stop();
   };
 
+  const phase = liveTalkState({
+    notice,
+    holding,
+    status: scribe.status,
+    partialTranscript: scribe.partialTranscript,
+  });
+  const stateCopy = LIVE_TALK_COPY[phase];
+
+  function useText() {
+    const workspace = document.querySelector<HTMLDetailsElement>("#workspace details");
+    if (workspace) workspace.open = true;
+    requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe your idea"]')?.focus());
+  }
+
   return (
-    <div className={`ui-panel ${styles.bar}`} data-panel="voice">
-      <h2 className="ui-heading">Speak your idea</h2>
+    <div className={`ui-panel ${styles.bar}`} data-panel="voice" data-live-state={phase}>
+      <div className={styles.identity}>
+        <span className={styles.liveMark} data-state={phase} aria-hidden>
+          {stateCopy.glyph}
+        </span>
+        <span>
+          <h2 className="ui-heading">Live AI Talk</h2>
+          <span className={styles.state} role="status" aria-live="polite">
+            <strong>{stateCopy.label}</strong> · {stateCopy.detail}
+          </span>
+        </span>
+      </div>
       <button
         type="button"
         className={styles.talk}
@@ -86,8 +119,13 @@ export default function Voice() {
         onKeyDown={(e) => key(e, true)}
         onKeyUp={(e) => key(e, false)}
       >
-        {holding ? "Listening… release to add" : "Hold to talk"}
+        {holding ? "Release to add" : "Hold to talk"}
       </button>
+      {holding && (
+        <button type="button" className={styles.interrupt} onClick={interrupt}>
+          Cancel
+        </button>
+      )}
       {holding && scribe.partialTranscript ? (
         <p className={styles.transcript} aria-live="polite">
           {scribe.partialTranscript}
@@ -97,10 +135,21 @@ export default function Voice() {
           Added to your idea: {added}
         </p>
       ) : null}
-      {notice && <PanelState kind="failed" message={notice} />}
-      <button type="button" className={styles.end} disabled={!scribe.isConnected} onClick={() => scribe.disconnect()}>
-        End voice session
-      </button>
+      {notice && <PanelState kind="failed" message={notice} onRetry={() => setNotice(null)} />}
+      <div className={styles.utility}>
+        <button type="button" className={styles.text} onClick={useText}>
+          Use text
+        </button>
+        <button
+          type="button"
+          className={styles.end}
+          aria-label="End voice session"
+          disabled={!scribe.isConnected}
+          onClick={() => scribe.disconnect()}
+        >
+          End session
+        </button>
+      </div>
     </div>
   );
 }
