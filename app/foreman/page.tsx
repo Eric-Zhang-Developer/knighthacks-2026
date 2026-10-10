@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
+import BuildUp from "@/components/foreman/BuildUp";
+import CrewTimeline from "@/components/foreman/CrewTimeline";
 import { DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
 import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
 import Since from "@/components/foreman/Since";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
+import { buildUp, timeline, type BuildUp as BuildUpData, type Timeline } from "@/lib/foreman/charts";
 import { readRaw, REPO } from "@/lib/foreman/collect";
 import { clock } from "@/lib/foreman/time";
 
@@ -80,14 +83,14 @@ export default async function ForemanPage() {
           </p>
         </div>
       )}
-      <Sections board={board} now={snapshot} />
+      <Sections board={board} now={snapshot} build={buildUp(board, snapshot)} crew={timeline(raw.prs, snapshot)} />
     </main>
   );
 }
 
 const NeedsPrs = ({ what }: { what: string }) => <p className={styles.needsPrs}>{what} needs PR data, missing from this snapshot (see above).</p>;
 
-function Sections({ board, now }: { board: Board; now: number }) {
+function Sections({ board, now, build, crew }: { board: Board; now: number; build: BuildUpData | null; crew: Timeline | null }) {
   const latest = board.replay.slice(-12).reverse();
   const blocking = board.asks.filter((a) => a.kind !== "review");
   const reviews = board.asks.filter((a) => a.kind === "review");
@@ -142,6 +145,9 @@ function Sections({ board, now }: { board: Board; now: number }) {
           Will we make it? <small>countdown to each milestone · cells = its features</small>
         </h2>
         <Milestones now={now} milestones={board.milestones} features={board.features} prsKnown={board.prsKnown} />
+        <div className={styles.panel} style={{ marginTop: 14 }}>
+          {build ? <BuildUp data={build} /> : <NeedsPrs what="The build-up chart" />}
+        </div>
       </section>
 
       <section className={styles.section} aria-labelledby="ask">
@@ -251,9 +257,17 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
       <section className={styles.section} aria-labelledby="crew">
         <h2 id="crew" className={`${styles.h2} ${styles.stencil}`}>
-          The crew <small>open PRs by worker at the snapshot, as each describes itself · dot = CI</small>
+          The crew{" "}
+          <small>
+            {crew ? `every PR on its worker's row · up to ${crew.peak.n} open at once · ` : ""}then what each has open at the snapshot · dot = CI
+          </small>
         </h2>
         {!board.prsKnown && <NeedsPrs what="The crew" />}
+        {crew && (
+          <div className={styles.panel} style={{ marginBottom: 14 }}>
+            <CrewTimeline data={crew} />
+          </div>
+        )}
         <div className={styles.crew}>
           {board.lanes.map((l) => (
             <article key={l.worker} className={`${styles.panel} ${styles.lane}`} aria-label={`Worker ${l.worker}`}>
