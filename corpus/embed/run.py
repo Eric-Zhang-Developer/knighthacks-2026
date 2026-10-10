@@ -27,7 +27,7 @@ BATCH = 16
 REQUEST_TIMEOUT = 60  # seconds without a provider response, per attempt
 SEED = 42
 GROUP_SIZE, GROUPS_MAX = 140, 200  # about 140 projects per system: 60 systems at 8,409
-SPREAD, TIGHTEN = 3.0, 0.2  # systems sit 3x further apart; each shrinks to a fifth of its UMAP size
+SPREAD, TIGHTEN = 3.0, 0.3  # systems sit 3x further apart; each shrinks to under a third of its UMAP size
 
 
 def load_env() -> None:
