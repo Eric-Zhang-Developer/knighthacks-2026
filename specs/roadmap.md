@@ -20,6 +20,10 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   with a QR code (F25, F16, F29, F32, F10). Then the add-ons, last in order: deploy the same app on Vultr, and a
   GoDaddy domain. Freeze from Sun 06:00; fixes and docs only from 09:00. Humans submit to Devpost by 09:45
   (hard deadline 10:00). Final code push: 11:00.
+- **submission, second wave** (added Sat 12:15 once the first wave was done): a live run of every AI route
+  (live-smoke), the rubric and sponsor overlay (F11), strongest alternative (F26), prove it in ten minutes (F27),
+  meaningful combinations (F28), what would change your mind (F23) and show me the moment (F30). Each is split into a
+  Windows API half and a Mac UI half that renders inside a finished panel.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
 Beside the product: `/foreman`, an unlisted build-status page (countdowns, what needs a person, the feature
