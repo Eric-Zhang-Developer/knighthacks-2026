@@ -19,8 +19,10 @@ import shutil
 import sys
 
 from lib import gh_json, parser, root_from
+from superseded_checks import current_checks
 
 FIELDS = "number,url,state,isDraft,mergeable,reviewDecision,statusCheckRollup"
+FIELDS += ",headRefOid"
 THREADS = """query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) { pullRequest(number: $number) {
     reviewThreads(first: 100) { nodes { isResolved } } } } }"""
@@ -65,6 +67,7 @@ def verdict(root, pr: dict) -> tuple[int, str]:
     if open_threads:
         return 6, f"{open_threads} unresolved review thread(s): answer or resolve them"
     checks = pr.get("statusCheckRollup") or []
+    checks = current_checks(root, pr, checks, PASS)
     for code, kind in ((7, "fail"), (8, "pending")):
         if hit := [c.get("name") or c.get("context") or "?" for c in checks if check_state(c) == kind]:
             return code, f"{'failing' if kind == 'fail' else 'pending'} checks: {', '.join(hit)}"
