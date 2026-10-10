@@ -5,6 +5,7 @@ import { lerpStar, replaceStar, type Suggestion, type Version } from "@/componen
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { post } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
+import ChangeMind from "./ChangeMind";
 import { ExperimentList, useExperiments } from "./Experiments";
 import { findFor } from "./experiment";
 import { nextStep, reviseContext, type Outcome, type Perspective, type Round } from "./rounds";
@@ -238,6 +239,7 @@ export default function Challenge() {
       {busy === "prove" && <PanelState kind="loading" message="Drafting a ten-minute experiment…" />}
       {error && <PanelState kind="failed" message={error} />}
       <ExperimentList items={experiments.items} failed={experiments.failed} onChange={experiments.reload} />
+      <ChangeMind key={active} versionId={active} />
     </section>
   );
 }
