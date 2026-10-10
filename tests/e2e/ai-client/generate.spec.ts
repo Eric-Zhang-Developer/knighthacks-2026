@@ -1,12 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { test, expect } from "@playwright/test";
 const run = promisify(execFile);
 test.use({ trace: "off" });
 test("server client returns schema-validated live or explicitly stubbed JSON", async ({}, info) => {
   test.setTimeout(75000);
-  const { stdout } = await run(process.execPath, [fileURLToPath(new URL("./runner.mjs", import.meta.url))], { timeout: 70000, env: process.env });
+  const { stdout } = await run(process.execPath, [join(__dirname, "runner.mjs")], { timeout: 70000, env: process.env });
   const result = JSON.parse(stdout);
   expect(["live", "stub"]).toContain(result.mode);
   expect(typeof result.data.message).toBe("string");
