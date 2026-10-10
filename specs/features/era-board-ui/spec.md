@@ -11,9 +11,10 @@ Frontend: Mac workers. A simple board, as the user asked: was a project started 
 became common?
 
 ## Plan
-1. Inside "What am I looking at?": a table with groups "Started through 2022", "2023–2024", "2025 onward" and "Start
-   date unknown". Each row shows its project count and its `dev_tools` counts (reported, reported non-use,
-   unknown) from `classes.json`.
+1. Inside "What am I looking at?": a board with groups "Started through 2022", "2023–2024", "2025 onward" and "Start
+   date unknown". Each group shows its project count and its `dev_tools` counts (reported, reported non-use,
+   unknown) from `classes.json`. One compact block per group, not a wide table: the explainer opens about 208px wide
+   over the discovery rail (experience-shell).
 2. Under the table, a dated line of tool releases as context: Copilot technical preview (2021), ChatGPT (Nov 2022),
    Claude Code (2025). Each links to its source.
 
