@@ -38,14 +38,17 @@ test("saved card follows accepted revisions and older selections without replaci
   await versions.nth(1).click();
   await expect(card).toHaveAttribute("data-version-id", revised.versionId);
 
-  const held: Route[] = [];
-  const delayReads = async (route: Route) => { held.push(route); };
+  const held: { route: Route; release: () => void }[] = [];
+  const delayReads = async (route: Route) => {
+    await new Promise<void>((release) => { held.push({ route, release }); });
+  };
   async function releaseReads() {
-    await page.unroute("**/api/ideas", delayReads);
-    await Promise.all(held.splice(0).map(async (route) => {
+    await Promise.all(held.splice(0).map(async ({ route, release }) => {
       await route.fulfill({ json: [revised] });
+      release();
       await (await route.request().response())?.finished();
     }));
+    await page.unroute("**/api/ideas", delayReads);
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   }
   await page.route("**/api/ideas", delayReads);
