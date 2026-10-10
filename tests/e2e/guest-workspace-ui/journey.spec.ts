@@ -92,7 +92,7 @@ test("A's first visit makes a workspace; B joins it only by choosing Join", asyn
   await pageC.goto(new URL(inviteUrl).pathname);
   const reusedLink = await join(pageC);
   expect(reusedLink.status()).toBe(410);
-  await expect(pageC.getByRole("alert")).toContainText("invite is unavailable");
+  await expect(pageC.getByRole("region", { name: "Invite" }).getByRole("alert")).toContainText("invite is unavailable");
   await expect(pageC.getByText("You joined workspace")).toHaveCount(0);
 
   await pageA.screenshot({ path: test.info().outputPath("workspace-a.png") }); // the link is spent by now
@@ -123,7 +123,7 @@ test("an expired invite shows unavailable on Join", async ({ browser }) => {
   await pageB.goto(new URL(inviteUrl).pathname);
   const res = await join(pageB);
   expect(res.status()).toBe(410);
-  await expect(pageB.getByRole("alert")).toContainText("invite is unavailable");
+  await expect(pageB.getByRole("region", { name: "Invite" }).getByRole("alert")).toContainText("invite is unavailable");
   expect(await sessionCookie(b)).toBeUndefined();
   evidence("expired.json", { redeem: res.status(), body: await res.json() });
   await Promise.all([a.close(), b.close()]);
