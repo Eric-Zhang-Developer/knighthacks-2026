@@ -19,6 +19,12 @@ shared pieces each builds its own. The colour tokens already exist in `app/globa
 2. Panel base styles in `app/globals.css`: a solid readable panel over the canvas, one heading scale, one spacing
    scale, focus rings.
 3. Apply them to the finished panels: search, drawer, explainer and voice. Behaviour stays the same.
+4. One look for the whole page, after user feedback on 2026-10-10 that the frontend "looks like ass" (it was
+   system fonts, flat grey boxes, a galaxy that filled a third of its area): a star chart. Ink, paper and brass
+   tokens; engraved serif headings (Cormorant Garamond), IBM Plex Sans for reading, IBM Plex Mono for the chart's
+   annotations, loaded with `next/font`. The side column numbers each panel that appears as a step (01, 02, …),
+   so the demo path reads in order. Voice floats as a pill over the map. The map shows a faint graticule and glow
+   behind a transparent galaxy canvas. Panels stay solid, and behaviour stays the same.
 
 ## Requirements
 - Text on panels meets WCAG AA contrast (4.5:1) against the panel colour; the unit test computes it from the
@@ -37,4 +43,5 @@ shared pieces each builds its own. The colour tokens already exist in `app/globa
    still pass.
 
 ## Defaults
-Keep the existing tokens; add new ones only for states. No new dependency.
+The chart palette in `app/globals.css` replaces the first tokens (Plan 4); add new ones only for states. No new
+dependency: fonts come through `next/font`, which ships with Next.

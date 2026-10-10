@@ -1,14 +1,75 @@
 .shell {
   display: grid;
-  grid-template: "top top" auto "map side" 1fr "bottom bottom" auto / 1fr minmax(320px, 400px);
+  grid-template: "top top" auto "map side" 1fr / 1fr minmax(380px, 460px);
   height: 100vh;
 }
-.top { grid-area: top; border-bottom: 1px solid var(--border); padding: 12px 16px; }
-.map { grid-area: map; position: relative; min-height: 0; }
-.side { grid-area: side; border-left: 1px solid var(--border); background: var(--panel); overflow-y: auto; }
-.bottom { grid-area: bottom; border-top: 1px solid var(--border); padding: 12px 16px; }
+
+.top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  /* Leaves room for the fixed workspace badge on the right. */
+  padding-right: 340px;
+  border-bottom: 1px solid var(--rule);
+}
+.brand { display: grid; line-height: 1; flex: none; }
+.wordmark {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 30px;
+  letter-spacing: 0.01em;
+  color: var(--paper);
+}
+.tagline {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-top: 4px;
+}
+.search { flex: 1; max-width: 560px; }
+
+/* The map is a chart: a faint graticule and a nebula glow behind a transparent canvas. */
+.map {
+  grid-area: map;
+  position: relative;
+  min-height: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 50%, rgba(79, 214, 232, 0.12), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 64% 38%, rgba(217, 178, 111, 0.09), transparent 70%),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 119px, var(--graticule) 119px 120px),
+    linear-gradient(transparent calc(50% - 0.5px), var(--graticule) 0 calc(50% + 0.5px), transparent 0),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), var(--graticule) 0 calc(50% + 0.5px), transparent 0),
+    var(--bg);
+}
+
+.side {
+  grid-area: side;
+  border-left: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+  overflow-y: auto;
+  counter-reset: step;
+  padding-bottom: var(--space-5);
+}
+
+/* Voice floats over the chart instead of taking a full-width bar. */
+.bottom {
+  grid-area: map;
+  align-self: end;
+  justify-self: center;
+  z-index: 2;
+  /* Above the explainer and the indexed count, which share the chart's bottom edge. */
+  margin-bottom: 64px;
+}
 
 @media (max-width: 720px) {
   .shell { grid-template: "top" auto "side" auto "map" 60vh "bottom" auto / 1fr; height: auto; }
+  .top { flex-wrap: wrap; padding-right: var(--space-4); padding-top: 72px; }
+  .search { flex-basis: 100%; max-width: none; }
   .side { border-left: 0; }
+  .bottom { grid-area: bottom; justify-self: stretch; margin: var(--space-3); }
 }
