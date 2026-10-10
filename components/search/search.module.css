@@ -44,7 +44,7 @@
 .bar .input { flex: 1; min-width: 0; }
 .filter select {
   height: 100%;
-  max-width: 190px;
+  max-width: 140px;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
