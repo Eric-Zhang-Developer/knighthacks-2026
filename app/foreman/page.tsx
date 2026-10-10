@@ -53,7 +53,7 @@ export default async function ForemanPage() {
     <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
       <header className={styles.header}>
         <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
-        <span className={styles.sub}>
+        <span className={styles.sub} data-sha={board?.sha}>
           site office · <a href={`https://github.com/${REPO}`}>{REPO}</a>
           {board && ` · main @ ${board.sha.slice(0, 7)}`}
         </span>

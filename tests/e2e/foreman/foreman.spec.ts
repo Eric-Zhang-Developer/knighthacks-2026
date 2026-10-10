@@ -1,14 +1,27 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 // Live check: the page reads GitHub at request time, so this compares it with GitHub and the checkout directly.
 const REPO = "Eric-Zhang-Developer/knighthacks-2026";
 const headers: Record<string, string> = process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
-const specs = readdirSync("specs/features").filter((d) => !d.startsWith("_"));
-const milestones = [...readFileSync("specs/milestones.toml", "utf8").matchAll(/^name = "([^"]+)"/gm)].map((m) => m[1]);
+
+// Compare with the exact commit the page rendered (it shows it in data-sha): main moves while tests run, and a spec
+// merged between the page load and a local checkout would otherwise fail a correct page.
+async function atRenderedSha(page: Page, request: APIRequestContext) {
+  const sha = await page.locator("[data-sha]").getAttribute("data-sha");
+  const tree = (await (await request.get(`https://api.github.com/repos/${REPO}/git/trees/${sha}?recursive=1`, { headers })).json()) as {
+    tree: { path: string }[];
+  };
+  const specs = tree.tree
+    .map((t) => /^specs\/(?:features|shipped\/[^/]+)\/([^/_][^/]*)\/spec\.md$/.exec(t.path)?.[1])
+    .filter((s): s is string => Boolean(s));
+  const toml = await (await request.get(`https://raw.githubusercontent.com/${REPO}/${sha}/specs/milestones.toml`)).text();
+  return { specs, milestones: [...toml.matchAll(/^name = "([^"]+)"/gm)].map((m) => m[1]) };
+}
 
 test("milestones, one graph node per spec, and every human ask from GitHub", async ({ page, request }) => {
   await page.goto("/foreman");
+  const { specs, milestones } = await atRenderedSha(page, request);
+  expect(specs.length).toBeGreaterThan(0);
   for (const m of milestones) await expect(page.getByRole("article", { name: `Milestone ${m}` })).toBeVisible();
   await expect(page.getByTestId(`clock-${milestones[0]}`)).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
 
