@@ -29,8 +29,8 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   grounding (F12). Demo rehearsal (F18) is in the next wave.
 - **submission, infrastructure and polish** (added Sat 13:30 at the person's request): `db-sync` first, an
   additive-only schema sync with health reporting missing tables, because production lost two tables within an hour
-  of #113. Then polish where the demo is weakest: the camera flies to the idea and its neighbors, a reload keeps the
-  chosen idea, snapshots and share links (revocable later), search filters by event and year. Then demo rehearsal
+  of #113. Then polish where the demo is weakest: a reload keeps the chosen idea, snapshots and share links
+  (revocable later), and search filters by event and year. (Camera flight belongs to experience-shell, #222.) Then demo rehearsal
   (F18): a pitch from what is actually built and three judge questions.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
