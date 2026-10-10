@@ -10,7 +10,10 @@ assignee: ""
 ## Plan
 1. `corpus/embed/` script: read `projects.jsonl`; embed `title + tagline + description` with `BAAI/bge-m3`
    (dense, normalized).
-2. UMAP to 3D (cosine metric, fixed seed); scale to a unit cube.
+2. UMAP to 3D (cosine metric, fixed seed). Group the records by k-means on their embeddings (about 140 per group,
+   at most 200 groups, fixed seed); spread the groups apart and tighten each one so the galaxy shows separate
+   systems instead of one cloud. Scale to a unit cube. Similarity is unaffected: search and neighbours use the
+   embeddings, never the coordinates.
 3. `db/schema/corpus.ts`: table `projects` (record fields + `embedding vector(1024)`, `x`, `y`, `z`,
    `corpus_version`) with an HNSW `vector_cosine_ops` index. Upsert all rows.
 4. Write `public/corpus/stars.json`: `{"corpus_version", "count", "stars": [{"id", "x", "y", "z", "title",
