@@ -66,8 +66,8 @@ test("A's first visit makes a workspace; B joins it only by choosing Join", asyn
   await pageB.goto(new URL(inviteUrl).pathname);
   await expect(pageB.getByRole("button", { name: "Join" })).toBeVisible();
   await pageB.waitForLoadState("networkidle");
-  expect(trafficB.posts, "opening the invite must not create or redeem").toEqual([]);
-  expect(await sessionCookie(b)).toBeUndefined();
+  const beforeJoin = { posts: [...trafficB.posts], cookieSet: [...trafficB.setCookies], cookie: (await sessionCookie(b)) ?? null };
+  expect(beforeJoin, "opening the invite must not create or redeem").toEqual({ posts: [], cookieSet: [], cookie: null });
 
   const redeemed = await join(pageB);
   expect(redeemed.status()).toBe(201);
@@ -101,7 +101,7 @@ test("A's first visit makes a workspace; B joins it only by choosing Join", asyn
     cookieA: { name: cookieA!.name, httpOnly: cookieA!.httpOnly, secure: cookieA!.secure, sameSite: cookieA!.sameSite, path: cookieA!.path },
     identityA: meA,
     identityB: meB,
-    beforeJoin: { posts: [], cookie: null },
+    beforeJoin,
     redeem: redeemed.status(),
     reuse: reusedLink.status(),
   });
