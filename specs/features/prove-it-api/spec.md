@@ -16,8 +16,9 @@ stays unclaimed for 15 minutes. It picks up a challenge round whose outcome is `
    `{"hypothesis", "procedure", "observable"}`; the procedure fits in ten minutes.
 2. `PATCH /api/experiments/:id` edits those three fields, or records `{"result": "confirmed" | "refuted" |
    "inconclusive", "note"}`.
-3. `GET /api/experiments?versionId=` lists the version's experiments: `{"id", "assumption", "hypothesis",
-   "procedure", "observable", "result": ... | null, "note"}`.
+3. `GET /api/experiments?versionId=` lists the version's experiments: `{"id", "sessionId", "round", "assumption",
+   "hypothesis": Claim, "procedure", "observable", "result": ... | null, "note"}`. The hypothesis is a `Claim`
+   labelled `unverified` (it is untested by definition).
 
 ## Requirements
 - Every experiment has hypothesis, procedure and observable before it can take a result.
