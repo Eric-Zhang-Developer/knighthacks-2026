@@ -50,4 +50,6 @@ challenge panel is done (challenge-ui, prove-it-ui, change-mind-ui, constellatio
 "Check again" never polls on its own.
 Accepting a revision inside the challenge keeps the session on the new version (see
 `specs/decisions/challenge-resume-ui-followed-version.md`). The panel's buttons wait until the version's session has
-been read; if the read fails, the panel works as before and says the resume couldn't load.
+been read; if the read fails, the panel works as before and says the resume couldn't load. At round 3 a stuck session shows the
+ended message, "Start over" and "Check again", without "Still working"; only the newest round of a stuck session
+omits "This round didn't finish".

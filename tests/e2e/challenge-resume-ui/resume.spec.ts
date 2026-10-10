@@ -121,6 +121,8 @@ test("a stuck session: unfinished round renders, live lease refuses, expired lea
   await expect(panel(page)).toContainText("This challenge ended before its last round finished.", { timeout: 30_000 });
   await expect(panel(page).getByRole("button", { name: "Start over" })).toBeVisible();
   await expect(panel(page).getByRole("button", { name: "Skip to the next round" })).toHaveCount(0);
+  await expect(panel(page).getByText("Still working on this round.")).toHaveCount(0); // ended, not waiting
+  await expect(rounds(page).nth(1)).toContainText("This round didn't finish."); // earlier unfinished rounds still say so
   await panel(page).scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("stuck.png") });
 });

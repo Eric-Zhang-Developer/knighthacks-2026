@@ -216,7 +216,7 @@ export default function Challenge() {
                 )}
               </p>
             )}
-            {(r.unfinished || !r.source) && step !== "stuck" && <p className={styles.meta}>This round didn&apos;t finish.</p>}
+            {(r.unfinished || !r.source) && !(step === "stuck" && r.round === rounds.length) && <p className={styles.meta}>This round didn&apos;t finish.</p>}
             {r.answer && (
               <p>
                 <span className={styles.label}>Your answer:</span> {r.answer}
@@ -289,7 +289,7 @@ export default function Challenge() {
       )}
       {step === "stuck" && (
         <>
-          <PanelState kind="loading" message="Still working on this round." />
+          {rounds.length < MAX_ROUNDS && <PanelState kind="loading" message="Still working on this round." />}
           <div className={styles.row}>
             <button type="button" disabled={blocked} onClick={() => load(active)}>
               Check again
