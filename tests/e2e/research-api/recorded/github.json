@@ -1,0 +1,45 @@
+{
+ "total_count": 12977,
+ "items": [
+  {
+   "id": 319167362,
+   "full_name": "mealie-recipes/mealie",
+   "html_url": "https://github.com/mealie-recipes/mealie",
+   "description": "Mealie is a self hosted recipe manager and meal planner with a RestAPI backend and a reactive frontend application built in Vue for a pleasant user experience for the whole family. Easily add recipes into your database by providing the url and mealie will automatically import the relevant data or add a family recipe with the UI editor",
+   "stargazers_count": 13503,
+   "updated_at": "2026-10-10T17:19:27Z"
+  },
+  {
+   "id": 1190598050,
+   "full_name": "ulsklyc/yuvomi",
+   "html_url": "https://github.com/ulsklyc/yuvomi",
+   "description": "Self-hosted family planner - tasks, calendars, shopping, meals, budget. Your data, your server.",
+   "stargazers_count": 1670,
+   "updated_at": "2026-10-10T11:01:45Z"
+  },
+  {
+   "id": 114309633,
+   "full_name": "arimai/meal-planner",
+   "html_url": "https://github.com/arimai/meal-planner",
+   "description": "A web application to plan what you eat daily in accordance to dietary needs ",
+   "stargazers_count": 84,
+   "updated_at": "2026-08-10T09:29:18Z"
+  },
+  {
+   "id": 164374373,
+   "full_name": "julianpoy/RecipeSage",
+   "html_url": "https://github.com/julianpoy/RecipeSage",
+   "description": "A Collaborative Recipe Keeper, Meal Planner, and Shopping List Organizer in PWA form.",
+   "stargazers_count": 972,
+   "updated_at": "2026-10-08T12:54:39Z"
+  },
+  {
+   "id": 667602884,
+   "full_name": "myselfshravan/AI-Meal-Planner",
+   "html_url": "https://github.com/myselfshravan/AI-Meal-Planner",
+   "description": "This project is a meal planning app that generates personalized meal plans based on a user's caloric needs and Personal Information. It utilizes natural language processing to generate creative meal ideas using ingredients selected by the greedy algorithm.",
+   "stargazers_count": 59,
+   "updated_at": "2026-10-02T12:31:16Z"
+  }
+ ]
+}
