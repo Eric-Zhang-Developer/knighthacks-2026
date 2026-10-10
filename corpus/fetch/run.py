@@ -16,6 +16,7 @@ of the run; a second 429, or any 403, stops the run. Rerunning resumes: work alr
 import argparse
 import hashlib
 import json
+import math
 import sys
 import time
 import urllib.error
@@ -51,7 +52,7 @@ def retry_after(headers, now=None) -> int:
         seconds = int(value)
     except (TypeError, ValueError):
         try:
-            seconds = int((parsedate_to_datetime(value) - (now or datetime.now(timezone.utc))).total_seconds())
+            seconds = math.ceil((parsedate_to_datetime(value) - (now or datetime.now(timezone.utc))).total_seconds())
         except (TypeError, ValueError):
             return BACKOFF_DEFAULT
     return min(max(seconds, 1), BACKOFF_MAX)
@@ -75,6 +76,8 @@ class Fetcher:
             wait = self.last + self.min_interval - self.clock()
             if wait > 0:
                 self.sleep(wait)
+            if self.deadline and datetime.now(timezone.utc) >= self.deadline:
+                raise Stop("deadline")  # pacing or a backoff can carry us past it; never request after it
             self.last = self.clock()
             try:
                 with self.open(urllib.request.Request(url, headers=HEADERS)) as r:

@@ -205,7 +205,9 @@ def test_rps_above_the_ceiling_is_refused():
 def test_release_still_parses_the_stop_line(tmp_path, monkeypatch, capsys):
     """corpus/release/run.py fullmatches the stop line; summaries must not change it."""
     import importlib.util
-    spec = importlib.util.spec_from_file_location("release_run", Path(__file__).parents[1] / "release" / "run.py")
+    release_dir = Path(__file__).parents[1] / "release"
+    monkeypatch.syspath_prepend(str(release_dir))  # release/run.py imports its siblings
+    spec = importlib.util.spec_from_file_location("release_run", release_dir / "run.py")
     release = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(release)
     _sources(tmp_path, monkeypatch)
@@ -234,6 +236,7 @@ def test_retry_after_as_an_http_date():
     from datetime import datetime, timezone
     now = datetime(2026, 10, 21, 7, 27, 30, tzinfo=timezone.utc)
     assert run.retry_after({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, now) == 30
+    assert run.retry_after({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, now.replace(microsecond=900000)) == 30
 
 
 def test_backoff_that_would_pass_the_deadline_stops_instead():
@@ -244,3 +247,13 @@ def test_backoff_that_would_pass_the_deadline_stops_instead():
     with pytest.raises(run.Stop, match="deadline"):
         f.get(URL)
     assert 120 not in c.slept
+
+
+def test_no_request_after_the_deadline_even_when_pacing_crosses_it():
+    from datetime import datetime, timedelta, timezone
+    c = Clock()
+    f = run.Fetcher(rps=0.5, sleep=c.sleep, clock=c, opener=opener([200, 200]))
+    f.get(URL)
+    f.deadline = datetime.now(timezone.utc) - timedelta(seconds=1)
+    with pytest.raises(run.Stop, match="deadline"):
+        f.get(URL)
