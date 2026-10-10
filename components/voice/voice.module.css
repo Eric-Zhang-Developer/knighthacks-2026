@@ -1,0 +1,17 @@
+.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.talk, .end {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+.talk[aria-pressed="true"] { border-color: var(--idea); color: var(--idea); }
+.end:disabled { opacity: 0.5; cursor: default; }
+.transcript { flex: 1; min-width: 12ch; color: var(--muted); font-style: italic; }
+.added { flex: 1; min-width: 12ch; color: var(--text); }
+.notice { color: var(--uncertain); }
