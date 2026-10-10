@@ -1,6 +1,6 @@
 ---
 name: One end-to-end run of the judge's demo path, locally and against production
-depends_on: [voice, guest-workspace-ui, challenge-ui, branches-ui, team-vote-ui, share-qr-ui]
+depends_on: [voice, guest-workspace-ui, neighbor-evidence-ui, challenge-ui, branches-ui, team-vote-ui, share-qr-ui]
 owns: [tests/demo-flow/, tests/e2e/demo-flow/]
 assignee: ""
 ---
@@ -20,7 +20,8 @@ Functionality is scored on "works end to end, reliably" (`specs/context/event.md
    `demo_snapshot.py` for the fallback. Setting `[release].url` is a `contract:` PR (frozen config).
 
 ## Requirements
-- Live model calls only when run against production; locally, model calls use the `lib/ai/` test stub.
+- Model calls are live in every run: `lib/ai/`'s stub works only under `NODE_ENV=test`, not in the production build
+  the verifier starts, and the demo path should prove real output. The done note records which provider answered.
 - The test fails on a wrong result at any step (wrong star count, an unlabelled claim, an early vote reveal,
   a share page that sets a workspace cookie), not only on a crash.
 - No invite link, share token or cookie value in saved evidence.
