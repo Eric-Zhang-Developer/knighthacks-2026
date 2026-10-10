@@ -79,8 +79,11 @@ test("the replay scrubs the graph back to the first PR and returns to live", asy
 
 test("demo keys: a number jumps to its section, space starts the replay", async ({ page }) => {
   await page.goto("/foreman");
-  await page.keyboard.press("5");
-  await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport();
+  // The handler attaches at hydration, which can land after goto resolves: retry the first press until it does.
+  await expect(async () => {
+    await page.keyboard.press("5");
+    await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport({ timeout: 1000 });
+  }).toPass();
   await page.keyboard.press("2");
   await expect(page.getByRole("heading", { name: /needs a person/i })).toBeInViewport();
   await page.keyboard.press(" ");
