@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { counts, keyOf, matches, MIXED, NEUTRAL, PALETTE, parseClasses, UNCLEAR, wins, colourOf } from "@/lib/classes";
+import { colourOf, counts, keyOf, matches, MIXED, NEUTRAL, PALETTE, parseClasses, type PrizeFilter, UNCLEAR, wins } from "@/lib/classes";
 import fixture from "./fixtures/classes.json";
 
 const ready = (() => {
@@ -33,9 +33,15 @@ describe("classes.json loader", () => {
     expect(Object.fromEntries(byKey)).toEqual({ health: 2, education: 1, [MIXED]: 1, [UNCLEAR]: 1 });
     expect([...byKey.values()].reduce((a, b) => a + b, 0)).toBe(ids.length);
     expect(prizes).toBe(2);
-    expect(ids.filter((id) => matches(ready, id, { key: "health", prizes: false }))).toEqual(["a", "b"]);
-    expect(ids.filter((id) => matches(ready, id, { key: null, prizes: true }))).toEqual(["a", "c"]);
-    expect(ids.filter((id) => matches(ready, id, { key: "health", prizes: true }))).toEqual(["a"]);
+    const f = (key: string | null, prize: PrizeFilter = "", event: string | null = null) => ids.filter((id) => matches(ready, id, { key, prize, event }));
+    expect(f("health")).toEqual(["a", "b"]);
+    expect(f(null, "win")).toEqual(["a", "c"]);
+    expect(f("health", "win")).toEqual(["a"]);
+    expect(f(null, "1")).toEqual(["a"]);
+    expect(f(null, "2")).toEqual([]);
+    expect(f(null, "sponsor")).toEqual(["c"]);
+    expect(f(null, "win", "Hack B")).toEqual(["c"]); // with an event filter, only that event's prizes count
+    expect(counts(ready, ids, () => true, "Hack B").prizes).toBe(1);
   });
 });
 
