@@ -4,7 +4,7 @@
   --ink: #0c0a07;
   --panel: #14110c;
   --line: #2c261c;
-  --dim: #6f6656;
+  --dim: #958a78; /* 5.6:1 on --panel: WCAG AA for the small text it carries */
   --text: #e9dfcc;
   --amber: #ffb547;
   --amber-glow: rgba(255, 181, 71, 0.35);
