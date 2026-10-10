@@ -18,32 +18,63 @@ import styles from "./page.module.css";
 export default function Home() {
   return (
     <div className={styles.shell}>
-      <div className={styles.top}>
-        <p className={styles.brand}>
-          <span className={styles.wordmark}>Uncharted</span>
-          <span className={styles.tagline}>a star chart of hackathon ideas</span>
-        </p>
-        <header className={styles.search} aria-label="Search">
+      <header className={styles.rail} aria-label="Discovery">
+        <div className={styles.brand}>
+          <span className={styles.mark} aria-hidden>
+            U
+          </span>
+          <span>
+            <strong>Uncharted</strong>
+            <small>Map the field</small>
+          </span>
+        </div>
+        <nav className={styles.nav} aria-label="Primary">
+          <a href="#galaxy">Galaxy</a>
+          <a href="#workspace">Idea</a>
+          <a href="#live-talk">Talk</a>
+        </nav>
+        <div className={styles.discovery}>
+          <p className={styles.eyebrow}>Discover</p>
+          <h1>Explore what has already been built.</h1>
+          <p>Search real projects, inspect their sources, then place your idea among its nearest neighbors.</p>
+        </div>
+        <div className={styles.search} aria-label="Search">
           <Search />
-        </header>
-      </div>
-      <main className={styles.map} aria-label="Galaxy">
+        </div>
+        <p className={styles.railNote}>Distance on this map is approximate. Evidence stays in the source panels.</p>
+      </header>
+      <main className={styles.map} id="galaxy" aria-label="Galaxy" tabIndex={-1}>
+        <div className={styles.mapTitle} aria-hidden>
+          <span>Project galaxy</span>
+          <span>Drag to explore · Select a star for evidence</span>
+        </div>
         <Galaxy />
         <Explainer />
       </main>
-      <aside className={styles.side} aria-label="Idea and evidence">
-        <Idea />
-        <Drawer />
-        <Evidence />
-        <Revisions />
-        <Challenge />
-        <Branches />
-        <Compare />
-        <Votes />
-        <Snapshot />
-        <Share />
+      <aside className={styles.side} id="workspace" aria-label="Idea and evidence">
+        <details className={styles.sheet} open>
+          <summary>
+            <span>
+              <strong>Idea &amp; evidence</strong>
+              <small>Claims stay labelled by confidence</small>
+            </span>
+            <span className={styles.sheetAction}>Show / hide</span>
+          </summary>
+          <div className={styles.sideScroll}>
+            <Idea />
+            <Drawer />
+            <Evidence />
+            <Revisions />
+            <Challenge />
+            <Branches />
+            <Compare />
+            <Votes />
+            <Snapshot />
+            <Share />
+          </div>
+        </details>
       </aside>
-      <footer className={styles.bottom} aria-label="Voice">
+      <footer className={styles.bottom} id="live-talk" aria-label="Voice">
         <Voice />
       </footer>
     </div>

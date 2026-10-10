@@ -1,8 +1,8 @@
 .workspace {
-  /* Sits in the header row, right of the search box, so it never covers the side panels. */
+  /* A compact utility over the map, clear of both permanent rails. */
   position: fixed;
-  top: var(--space-3);
-  right: var(--space-4);
+  top: 16px;
+  right: 428px;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -50,10 +50,15 @@
 .card { width: min(420px, 100%); padding: var(--space-4); display: grid; gap: var(--space-3); }
 
 @media (max-width: 720px) {
-  .workspace { position: static; justify-content: space-between; margin: var(--space-2) var(--space-4) 0; }
-  .identity { text-align: left; }
+  .workspace { top: 120px; right: 12px; gap: 0; }
+  .identity { display: none; }
+  .workspace > .button { padding: 5px 9px; background: var(--panel); font-size: 11px; }
 }
-.status { position: fixed; top: var(--space-2); right: var(--space-4); z-index: 20; max-width: 340px; }
+.status { position: fixed; top: 16px; right: 428px; z-index: 20; max-width: 340px; box-shadow: var(--elevation-float); }
+@media (max-width: 1120px) and (min-width: 721px) {
+  .workspace,
+  .status { right: 368px; }
+}
 @media (max-width: 720px) {
-  .status { position: static; max-width: none; margin: var(--space-2) var(--space-4) 0; }
+  .status { top: 120px; right: 12px; left: 12px; max-width: none; margin: 0; }
 }
