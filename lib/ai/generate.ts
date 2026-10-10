@@ -21,7 +21,7 @@ export class AiError extends Error {
 }
 export type AiPrompt = string | { text: string; stubKey?: string };
 
-async function fixture(directory: string, key: string | undefined): Promise<string> {
+export async function fixture(directory: string, key: string | undefined): Promise<string> {
   if ((process.env.NODE_ENV !== "test" && process.env.AI_STUB_ALLOW !== "1") || process.env.VERCEL || !key || !/^[a-zA-Z0-9_-]{1,80}$/.test(key)) throw new AiError("STUB_UNAVAILABLE");
   try {
     const root = await realpath(directory);
