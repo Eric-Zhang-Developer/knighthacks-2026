@@ -1,6 +1,6 @@
 ---
 name: Colour the galaxy by domain, ring prize winners, and filter by both
-depends_on: [corpus-classify, galaxy, search-filters-ui]
+depends_on: [galaxy, search-filters-ui]
 owns: [components/classes/, lib/classes/, components/galaxy/Scene.tsx, components/galaxy/stars.ts, components/search/, components/drawer/, tests/galaxy-classes-ui/, tests/e2e/galaxy-classes-ui/]
 assignee: ""
 ---
@@ -8,8 +8,10 @@ assignee: ""
 # Category galaxy (#269)
 
 Frontend: Mac workers. The user's first screen: stars grouped by colour, each colour a category, with winners
-marked. It reads `public/classify/classes.json` (corpus-classify). Build and test against a fixture under
-`tests/galaxy-classes-ui/` until that file lands.
+marked. It reads `public/classify/classes.json` (corpus-classify). It doesn't wait for that feature: build and test
+against a fixture under `tests/galaxy-classes-ui/` with the #269 contract. Once the real file lands, the loader picks it
+up with no code change. The done note says whether the real file was on main at merge time. Visual direction:
+`docs/design-references/` (desktop, phone, video frames). Their names and numbers are illustrative, never data.
 
 ## Plan
 1. `lib/classes/`: load and validate `classes.json`. When it's missing or its `corpus_version` doesn't match
@@ -24,6 +26,14 @@ marked. It reads `public/classify/classes.json` (corpus-classify). Build and tes
    ranking itself never uses the category.
 6. Drawer and list: the domain (labelled `inferred`), each prize with its event, the kind and place, and the
    sponsor.
+7. Idea focus (design reference: video frames): while an idea version is active, draw a line from the idea star to
+   each of its `neighborIds` (stored neighbours only, no other edges). Neighbours keep their colour; other stars dim.
+   Clearing the idea restores the map. With reduced motion, there's no animated transition.
+8. Region labels: put a domain's name and count at its stars' centroid only when that domain is compact (the median
+   distance of its stars to their centroid is under 0.6 × the median distance of all stars to the corpus centre).
+   Otherwise the legend alone names it. Labels never cover the idea star.
+9. Universe summary for the shell's discovery rail: projects, events and categories, all counted from the loaded
+   files.
 
 ## Requirements
 - Counts come from the loaded file, never typed in. Map, list and legend counts agree under any combination of
@@ -38,7 +48,9 @@ marked. It reads `public/classify/classes.json` (corpus-classify). Build and tes
 2. Click a domain → only its stars and list items remain, and the count matches. Reset → all return.
 3. Turn on "Prize winners" → only ringed stars remain. Open one → the drawer shows its prize text, event, kind and
    place.
-4. `tests/e2e/galaxy-classes-ui/` covers 1–3 with a fixture. Keep desktop and phone screenshots.
+4. With a fixture idea whose `neighborIds` are known → exactly that many lines, and non-neighbour stars dimmed.
+   Clear it → back to normal.
+5. `tests/e2e/galaxy-classes-ui/` covers 1–4 with a fixture. Keep desktop and phone screenshots.
 
 ## Defaults
 Palette: 14 distinguishable muted hues on the dark map, checked for contrast against the background. Mount the

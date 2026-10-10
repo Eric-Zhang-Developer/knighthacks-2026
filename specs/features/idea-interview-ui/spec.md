@@ -1,6 +1,6 @@
 ---
 name: Answer the assistant's questions before the idea is saved
-depends_on: [idea-interview-api, idea-create-ui]
+depends_on: [idea-create-ui]
 owns: [components/interview/, components/idea/, tests/idea-interview-ui/, tests/e2e/idea-interview-ui/]
 assignee: ""
 ---
@@ -8,7 +8,10 @@ assignee: ""
 # Idea interview: UI (#269)
 
 Frontend: Mac workers. After the user types or speaks an idea and it's interpreted, the composer asks the
-interview's questions before saving version 1.
+interview's questions before saving version 1. It doesn't wait for idea-interview-api: build against a stubbed
+`POST /api/ideas/questions` using that spec's contract. When the route is missing (404), the panel skips the
+interview silently and saves as today. Design reference: the phone "Live with Uncharted" screen in
+`docs/design-references/` (chat bubbles, suggestion chips, mic).
 
 ## Plan
 1. After `interpret`, show the questions from `/api/ideas/questions`, one per row, each with its `why` and a text
