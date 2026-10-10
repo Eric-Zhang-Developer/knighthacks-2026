@@ -17,11 +17,18 @@ Frontend half: Mac workers only (user decision 2026-10-10). Build against the re
 - Nothing saves until the user presses Save; the interpretation is a preview.
 - A Gemini failure keeps the typed text and lets the user fill fields by hand.
 - Reload restores the star from `GET /api/ideas`.
+- The saved card follows `activeIdeaVersionId` after revision acceptance or branch selection, including older
+  versions from the selected idea's revision trail. Follow-up reads do not change the global selection.
+- A late version read cannot replace a newer selection or an unsaved draft/interpretation. A failed read shows
+  an error alongside the last loaded saved version.
 
 ## Validation
 1. Type an idea -> fields appear; edit one; Save -> a cyan star appears with its neighbors highlighted.
 2. Reload -> same star, same position.
 3. `tests/e2e/idea-create-ui/` covers 1–2 (Gemini stubbed in the test only). Keep a screenshot.
+4. Accept a revision -> the saved card's version and position match it. Select its earlier version from the
+   branch trail -> the card follows without resetting selection. Delay a version read, then select another
+   version or start a new idea -> the late response does not overwrite that choice or draft.
 
 ## Defaults
 Cyan for the active idea, per the galaxy spec.
