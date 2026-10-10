@@ -32,7 +32,7 @@ test("type an idea, see evidence, challenge, revise, branch, vote as two, choose
     await expect(a.locator("[data-star-count]")).not.toHaveAttribute("data-star-count", "0", { timeout: 30_000 });
     await a.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals around everyone's dietary constraints.");
     await a.getByRole("button", { name: "Interpret" }).click();
-    await region(a, "Your idea").getByRole("button", { name: "Save" }).click({ timeout: 90_000 });
+    await region(a, "Your idea").getByRole("button", { name: "Save", exact: true }).click({ timeout: 90_000 });
     await expect(region(a, "Revisions")).toHaveAttribute("data-trail-length", "1", { timeout: 60_000 });
     // Saved and placed: the idea is a star at its embedded position.
     await expect(region(a, "Your idea")).toHaveAttribute("data-position", /\S/);
@@ -108,19 +108,40 @@ test("type an idea, see evidence, challenge, revise, branch, vote as two, choose
     await b.waitForTimeout(5000);
     await expect(region(b, "Team vote")).not.toContainText(concern);
     await expect(region(b, "Team vote").getByRole("status", { name: "Vote result" })).toHaveCount(0);
+    const concealed = await ctxB.request.get("/api/votes");
+    expect(concealed.status()).toBe(200);
+    expect(await concealed.json()).toEqual({ mine: null, theirs: null, revealed: false });
+    const teammateChoice = await region(b, "Team vote").getByRole("combobox", { name: "Preferred version" }).inputValue();
     await region(b, "Team vote").getByRole("button", { name: "Vote" }).click();
     for (const page of [a, b]) {
       const result = region(page, "Team vote").getByRole("status", { name: "Vote result" });
       await expect(result).toContainText(/You agree\.|You picked different versions\./, { timeout: 15_000 });
       await expect(result.locator('[data-vote="Teammate"]')).toBeVisible();
     }
+    const revealed = await ctxB.request.get("/api/votes");
+    expect(revealed.status()).toBe(200);
+    expect(await revealed.json()).toMatchObject({
+      mine: { versionId: teammateChoice, concern: null },
+      theirs: { versionId: chosen, concern },
+      revealed: true,
+      agreement: teammateChoice === chosen,
+    });
   });
 
   let title = "";
+  let frozenSnapshot: unknown;
   await step("snapshot", a, async () => {
+    await expect(region(a, "Decision")).toHaveAttribute("data-active-version", chosen);
     await region(a, "Decision").getByRole("button", { name: /Choose (this|the current) version/ }).click();
     const snapshot = a.getByRole("article", { name: "Decision snapshot" });
     await expect(snapshot).toBeVisible({ timeout: 30_000 });
+    await expect(snapshot).toHaveAttribute("data-version-id", chosen);
+    const snapshotId = await snapshot.getAttribute("data-snapshot-id");
+    expect(snapshotId).toBeTruthy();
+    const stored = await ctxA.request.get(`/api/snapshots/${snapshotId}`);
+    expect(stored.status()).toBe(200);
+    frozenSnapshot = await stored.json();
+    expect(frozenSnapshot).toMatchObject({ versionId: chosen });
     await snapshot.scrollIntoViewIfNeeded();
     title = (await snapshot.getByRole("heading", { level: 3 }).innerText()).trim();
     expect(title).not.toBe("");
@@ -132,7 +153,12 @@ test("type an idea, see evidence, challenge, revise, branch, vote as two, choose
     await region(a, "Share").getByRole("button", { name: "Create a read-only link" }).click();
     const link = a.locator("[data-share-url]");
     await expect(link).toHaveText(/\/s\/[^/]+$/);
+    const sharedResponse = visitor.waitForResponse((response) =>
+      new URL(response.url()).pathname.startsWith("/api/shares/") && response.request().method() === "GET");
     await visitor.goto(new URL((await link.textContent())!).pathname);
+    const shared = await sharedResponse;
+    expect(shared.status()).toBe(200);
+    expect(await shared.json()).toEqual(frozenSnapshot);
     await expect(visitor.getByRole("article", { name: "Shared decision" }).getByRole("heading", { level: 1 })).toHaveText(title, { timeout: 30_000 });
     await visitor.waitForLoadState("networkidle");
     expect(await phone.cookies(), "the share page must not set a workspace cookie").toEqual([]);
