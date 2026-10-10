@@ -12,7 +12,7 @@ async function versionFor(workspaceId: string, versionId: string): Promise<Versi
   return result.rows[0] as Version;
 }
 async function stored(workspaceId: string, versionId: string, order: string[]): Promise<Card[]> {
-  const result = await db().execute(sql`select c.project_id as "projectId", c.url, c.title, c.excerpt, c.overlaps, c.differences, c.uncertainty
+  const result = await db().execute(sql`select c.project_id as "projectId", c.url, c.title, c.excerpt, c."overlaps", c.differences, c.uncertainty
     from evidence_cards c join idea_versions v on v.id = c.version_id join ideas i on i.id = v.idea_id
     where c.version_id = ${versionId}::uuid and i.workspace_id = ${workspaceId}::uuid`);
   const cards = result.rows as Card[];
@@ -55,9 +55,9 @@ export async function createEvidence(workspaceId: string, versionId: string, all
   }
   // One statement commits the entire requested batch. Stable lock order avoids
   // deadlocks between concurrent top-three/all requests; conflicts never UPDATE.
-  await db().execute(sql`insert into evidence_cards(version_id, project_id, url, title, excerpt, overlaps, differences, uncertainty)
-    select ${versionId}::uuid, c."projectId", c.url, c.title, c.excerpt, c.overlaps, c.differences, c.uncertainty
-    from jsonb_to_recordset(${JSON.stringify(cards)}::jsonb) as c("projectId" text, url text, title text, excerpt text, overlaps jsonb, differences jsonb, uncertainty jsonb)
+  await db().execute(sql`insert into evidence_cards(version_id, project_id, url, title, excerpt, "overlaps", differences, uncertainty)
+    select ${versionId}::uuid, c."projectId", c.url, c.title, c.excerpt, c."overlaps", c.differences, c.uncertainty
+    from jsonb_to_recordset(${JSON.stringify(cards)}::jsonb) as c("projectId" text, url text, title text, excerpt text, "overlaps" jsonb, differences jsonb, uncertainty jsonb)
     where exists (select 1 from idea_versions v join ideas i on i.id = v.idea_id where v.id = ${versionId}::uuid and i.workspace_id = ${workspaceId}::uuid)
     order by c."projectId" on conflict (version_id, project_id) do nothing`);
   const saved = await stored(workspaceId, versionId, version.neighborIds);
