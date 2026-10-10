@@ -3,7 +3,7 @@
 ## Where it lives
 `corpus/classify/run.py`, `corpus/classify/review.py`, `public/classify/classes.json`, `specs/decisions/corpus-classify-review.md`, `tests/corpus-classify/`.
 ## How to check it
-verify: `node scripts/verify.mjs corpus-classify /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-classify/20261010T232642Z` pass at 4f8ac79; `run.py --check` printed "verified 8409 records, version 2026-10-10-8409". Typecheck, lint and 392 app tests passed (2 skipped).
+verify: `node scripts/verify.mjs corpus-classify /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-classify/20261010T232716Z` pass at 41a14d5; `run.py --check` printed "verified 8409 records, version 2026-10-10-8409". Typecheck, lint and 392 app tests passed (2 skipped).
 ## Gaps
 - The corpus growth release (#262) will change `corpus_version` and the project ids. Classification has to be re-run on the new version before that release reaches production; otherwise the galaxy refuses this file ("classes.json is for another corpus"). The cache is keyed per 25-record batch, so a new version reuses little of it.
 - This review is agent-reviewed only; nobody has checked these labels by hand.
