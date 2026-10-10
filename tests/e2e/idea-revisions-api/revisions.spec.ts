@@ -27,7 +27,10 @@ test("propose, reject without a write, accept as a child, and concurrent accepts
   const proposed = await owner.post("/api/revisions/propose", { headers, data: { versionId: v1.versionId, context: "challenge: teams don't order food" } });
   expect(proposed.status()).toBe(200);
   const { suggestions } = await proposed.json();
-  expect(suggestions.map(({ field, change, reason }: Record<string, string>) => ({ field, change, reason }))).toEqual(fixture.suggestions);
+  expect(suggestions.map(({ field, change, reason }: { field: string; change: string; reason: { text: string; label: string; sourceIds: string[] } }) => {
+    expect(reason).toEqual({ text: reason.text, label: "inferred", sourceIds: [] });
+    return { field, change, reason: reason.text };
+  })).toEqual(fixture.suggestions);
   const [first, second, third] = suggestions;
   expect((await stranger.post(`/api/revisions/${first.id}/accept`, { headers })).status(), "another workspace can't accept").toBe(404);
   expect((await stranger.post("/api/revisions/propose", { headers, data: { versionId: v1.versionId } })).status()).toBe(404);

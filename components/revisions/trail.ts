@@ -1,5 +1,8 @@
 // Shapes from idea-revisions-api (lib/revisions/contract.ts) and idea-create-api's version.
+export type ReasonClaim = { text: string; label: "supported" | "inferred" | "unverified"; sourceIds: string[] };
 export type Suggestion = { id: string; field: "audience" | "problem" | "workflow" | "constraints"; change: string; reason: string };
+// Consumers adopt this type before the API rolls out checked Claim reasons.
+export type ClaimSuggestion = Omit<Suggestion, "reason"> & { reason: string | ReasonClaim };
 export type Version = {
   ideaId: string;
   versionId: string;

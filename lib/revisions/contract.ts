@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Claim } from "@/lib/ai/claims";
 export const FIELDS = ["audience", "problem", "workflow", "constraints"] as const;
 export const suggestionsSchema = z.object({
   suggestions: z.array(z.object({
@@ -9,4 +10,5 @@ export const suggestionsSchema = z.object({
 }).strict();
 export const proposeSchema = z.object({ versionId: z.uuid(), context: z.string().max(4000).optional() }).strict();
 export const uuid = z.uuid();
-export type Suggestion = z.infer<typeof suggestionsSchema>["suggestions"][number] & { id: string };
+export type StoredSuggestion = z.infer<typeof suggestionsSchema>["suggestions"][number] & { id: string };
+export type Suggestion = Omit<StoredSuggestion, "reason"> & { reason: Claim };
