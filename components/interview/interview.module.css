@@ -1,0 +1,44 @@
+/* Follow-up questions inside the idea panel: chart annotations (mono, brass) over ink, answers in the panel's inputs. */
+.interview { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.label { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.row { display: grid; gap: var(--space-1); padding-left: var(--space-3); border-left: 1px solid var(--brass); }
+.question { margin: 0; font-family: var(--font-display); font-size: 19px; line-height: 1.2; color: var(--paper); }
+.why { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.field { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); margin-right: var(--space-1); }
+.row input {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  min-height: 44px;
+}
+.row input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.use {
+  justify-self: start;
+  border: 1px solid var(--idea);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--idea);
+  padding: var(--space-1) var(--space-3);
+  min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+.use:disabled { color: var(--muted); border-color: var(--border); cursor: default; }
+.note { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.skip {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  padding: var(--space-1) var(--space-3);
+  min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+.skip:disabled { color: var(--muted); cursor: default; }
