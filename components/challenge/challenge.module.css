@@ -41,3 +41,5 @@
 .result[data-result="confirmed"] { color: var(--live); }
 .result[data-result="refuted"] { color: var(--failed); }
 .result[data-result="inconclusive"] { color: var(--uncertain); }
+.kindGroup { display: grid; gap: var(--space-1); }
+.insufficient { color: var(--uncertain); }

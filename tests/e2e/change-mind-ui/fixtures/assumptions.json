@@ -1,0 +1,5 @@
+{"assumptions":[
+  {"kind":"feasibility","assumption":{"text":"A shared list can be built in one evening.","label":"inferred","sourceIds":[]},"reversal":{"observe":"Build the list screen in two hours","reversesIf":"It is not usable after two hours"},"insufficient":false},
+  {"kind":"need","assumption":{"text":"Teams lose real building time choosing meals.","label":"unverified","sourceIds":[]},"reversal":{"observe":"Ask five teams how long choosing a meal takes","reversesIf":"Most say under five minutes"},"insufficient":false},
+  {"kind":"data","assumption":{"text":"Teammates will enter their dietary needs.","label":"inferred","sourceIds":[]},"reversal":null,"insufficient":true}
+]}
