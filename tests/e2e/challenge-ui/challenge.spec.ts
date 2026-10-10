@@ -15,12 +15,22 @@ async function answer(page: Page, text: string) {
   await panel(page).getByRole("button", { name: "Answer" }).click();
 }
 
-test("three rounds about named assumptions; revise opens suggestions and accepting makes a new version", async ({ page }) => {
+for (const format of ["legacy", "claim"] as const) test(`${format} revision reasons have labels; three rounds and accept still work`, async ({ page }) => {
   test.setTimeout(180_000);
   const stub = process.env.AI_STUB_DIR;
   expect(stub && isAbsolute(stub), "Set AI_STUB_DIR to a fresh absolute temp folder").toBeTruthy();
   for (const f of await readdir(fixtures)) await copyFile(join(fixtures, f), join(stub!, f));
 
+  await page.route("**/api/revisions/propose", async (route) => {
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    const body = await response.json();
+    body.suggestions = body.suggestions.map((s: { reason: string | { text: string; label: string; sourceIds: string[] } }) => {
+      const claim = typeof s.reason === "string" ? { text: s.reason, label: "inferred", sourceIds: [] } : s.reason;
+      return { ...s, reason: format === "legacy" ? claim.text : claim };
+    });
+    await route.fulfill({ response, json: body });
+  });
   await page.goto("/");
   await expect(page.locator("[data-workspace-id]")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals.");
@@ -58,6 +68,10 @@ test("three rounds about named assumptions; revise opens suggestions and accepti
   expect((await proposeRequest).postDataJSON().context).toContain("Assumption: Teammates can agree on a shared meal");
   const suggestions = panel(page).getByRole("list", { name: "Challenge suggestions" }).getByRole("listitem");
   await expect(suggestions).toHaveCount(proposal.suggestions.length);
+  for (const [index, suggestion] of proposal.suggestions.entries()) {
+    await expect(suggestions.nth(index)).toContainText(suggestion.reason);
+    await expect(suggestions.nth(index).locator('[data-label="inferred"]')).toBeVisible();
+  }
   await suggestions.first().getByRole("button", { name: "Accept" }).click();
   await expect(page.getByRole("region", { name: "Revisions" })).toHaveAttribute("data-trail-length", "2", { timeout: 60_000 });
   await expect(rounds(page).first()).toContainText("Revised: saved as a new version.");

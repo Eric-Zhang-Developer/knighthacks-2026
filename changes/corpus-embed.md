@@ -1,8 +1,8 @@
 ## What shipped
-HF BAAI/bge-m3 embeddings, UMAP coordinates and transactional Neon loading; requests now have a 60-second inactivity timeout (one retry), and every completed batch is atomically cached for recovery. Production remains the original 100-record fixture, version 2026-10-10-100.
+8,409 real records, normalized BAAI/bge-m3 vectors and a matching UMAP bundle, version `2026-10-10-8409`; full loads rebuild HNSW within the replacement transaction to preserve golden-search recall.
 ## Where it lives
-`corpus/embed/`, `db/schema/corpus.ts`, `public/corpus/stars.json`, `specs/decisions/corpus-embed-vectors.md`.
+`corpus/embed/`, `db/schema/corpus.ts`, `public/corpus/stars.json`, `specs/decisions/corpus-embed-index-rebuild.md`.
 ## How to check it
-verify: `node scripts/verify.mjs corpus-embed /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-embed/20261010T133706Z` pass at 00619c2 (uncommitted changes) (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-embed/20261010T133706Z). Six checks pass: five live title queries return their fixture records, test-Neon/bundle count is 100, provider timeout/retry and cache recovery work. Historical Python/JS parity: cosine 1.000000 x5.
+verify: `node scripts/verify.mjs corpus-embed /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-embed/20261010T172921Z` pass at abf64d9 (uncommitted changes). All six checks passed against the full test database; five title queries returned their fixture records first, and table/bundle count and version matched.
 ## Gaps
-The 8,409-record full release is unshipped and frozen after idea-create-api merged (#63); HF cost per record is unknown. Recovery verified with a local silent HTTP provider and a real fixture load on the dedicated test database, not a full production rerun. Year is project creation year; schema push still requires explicitly loading .env.local.
+Production publication and deployed-galaxy verification are coordinated by corpus-release (#62), with a saved rollback and no saved-idea replacement. Historical fetch totals and provider cost are unknown; this checkpoint release performs no new discovery. Year is project creation year. Corpus freezes after this one approved publication.

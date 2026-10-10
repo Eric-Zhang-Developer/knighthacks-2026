@@ -29,7 +29,9 @@ export async function neighbors(vector: number[], filters: Filters = {}, k = 10)
     .select({ ...columns, similarity: sql<number>`1 - (${distance})` })
     .from(projects)
     .where(where(filters))
-    .orderBy(distance)
+    // The expression prevents an approximate HNSW scan from dropping the true nearest match.
+    // ponytail: exact scan at 8,409 records; benchmark recall and latency before scaling.
+    .orderBy(sql`(${distance}) + 0`)
     .limit(k);
   return rows.map((r) => ({ ...r, similarity: Number(r.similarity) }));
 }

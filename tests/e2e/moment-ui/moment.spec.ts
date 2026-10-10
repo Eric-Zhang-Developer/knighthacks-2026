@@ -34,7 +34,11 @@ test("choose a version, see three numbered steps; the share link never shows or 
   await expect(page.locator("[data-workspace-id]")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals.");
   await page.getByRole("button", { name: "Interpret" }).click();
+  const saved = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/ideas" && r.request().method() === "POST", { timeout: 60_000 });
   await page.getByRole("region", { name: "Your idea" }).getByRole("button", { name: "Save" }).click();
+  // Choosing a version generates its neighbours' evidence first (#181): one fixture per neighbour, nothing claimed.
+  for (const id of ((await (await saved).json()) as { neighborIds: string[] }).neighborIds)
+    await writeFile(join(stub!, `evidence-${id}.json`), JSON.stringify({ overlaps: [], differences: [], uncertainty: claim("Not stated on the page", "unverified") }));
   await page.getByRole("region", { name: "Decision" }).getByRole("button", { name: "Choose this version" }).click({ timeout: 60_000 });
   await expect(page.getByRole("article", { name: "Decision snapshot" })).toBeVisible({ timeout: 30_000 });
 
@@ -76,6 +80,6 @@ test("choose a version, see three numbered steps; the share link never shows or 
 
   // A reload reads the stored moment without the button (and without a model call: one row, no new fixture needed).
   await page.reload();
-  await expect(page.getByRole("region", { name: "Share" }).locator("ol > li")).toHaveCount(3, { timeout: 30_000 });
+  await expect(page.getByRole("region", { name: "Share" }).getByRole("group", { name: "Show me the moment" }).locator("ol > li")).toHaveCount(3, { timeout: 30_000 });
   expect((await sql`select count(*)::int as n from moments where version_id = ${versionId}::uuid`)[0].n).toBe(1);
 });

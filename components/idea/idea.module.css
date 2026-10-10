@@ -28,3 +28,10 @@
 .secondary { background: none; color: var(--text); justify-self: start; }
 .primary:disabled,
 .secondary:disabled { color: var(--muted); border-color: var(--border); cursor: default; }
+.evidence { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.evidenceTitle { margin: var(--space-2) 0 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.15; color: var(--paper); }
+/* Chart annotation: the group names inside a section. */
+.groupTitle { margin: var(--space-2) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.evidenceList { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.evidenceItem { display: grid; gap: 2px; padding-left: var(--space-3); border-left: 1px solid var(--border); }
+.evidenceItem p { margin: 0; overflow-wrap: anywhere; }

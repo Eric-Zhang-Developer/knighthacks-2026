@@ -48,7 +48,7 @@ alert = ""                       # shell template with {message}; empty = print 
 [release]
 url = "https://knighthacks-2026.vercel.app"   # production origin, https://...
 health_path = "/api/health"      # must return JSON {"commit": "<sha>"}
-smoke_paths = ["/"]
+smoke_paths = ["/", "/api/health/schema"]
 snapshot_paths = ["/"]
 secret_patterns = ["sk-", "sk_live_", "AIza", "ghp_", "github_pat_", "xox", "mongodb+srv://", "postgres://", "-----BEGIN"]
 

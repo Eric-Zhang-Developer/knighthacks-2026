@@ -32,3 +32,10 @@ yet runs the full corpus into production. Without this, the safe demo shows at m
 
 ## Defaults
 If a source stops the run (403/429), release what passed validation and list the stopped source in Gaps.
+
+## Publication decision (2026-10-10)
+The user reopened publication after the idea-create-api freeze. Production preflight found no saved-idea table;
+the 8,409-record checkpoint may use the existing full UMAP projection. Recheck production immediately before
+loading: if saved idea versions now exist, stop publication and record the changed evidence in #63. Never delete
+or rewrite saved ideas. Validate the same prepared records on TEST_DATABASE_URL first, retain the prior database
+and bundle for rollback, publish the matching bundle through fix(corpus-embed), then freeze this corpus again.

@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 
 vi.mock("next/dist/compiled/server-only", () => ({}));
-vi.mock("next/font/google", () => ({ Big_Shoulders_Stencil: () => ({ variable: "s" }), IBM_Plex_Mono: () => ({ variable: "m" }) }));
+vi.mock("next/font/google", () => ({ IBM_Plex_Mono: () => ({ variable: "m" }) }));
+vi.mock("next/font/local", () => ({ default: () => ({ variable: "s" }) }));
 
 const render = async () => {
   const { default: ForemanPage } = await import("@/app/foreman/page");

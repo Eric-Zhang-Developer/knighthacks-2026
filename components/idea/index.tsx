@@ -5,6 +5,8 @@ import { PanelState } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
 import { FIELDS, fromForm, galaxyState, hasText, latest, toForm, type FieldName, type Fields, type Version } from "./fields";
+import ProblemEvidence from "./ProblemEvidence";
+import ResearchSection from "./Research";
 import styles from "./idea.module.css";
 
 type Form = Record<FieldName, string>;
@@ -34,6 +36,7 @@ const postJson = (body: unknown, headers: Record<string, string> = {}) => ({
 });
 
 export default function Idea() {
+  const active = useAppState((s) => s.activeIdeaVersionId);
   const draft = useAppState((s) => s.ideaDraft); // voice appends here too
   const [view, setView] = useState<View>({ step: "write" });
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +51,33 @@ export default function Idea() {
       setView({ step: "saved", version: latest(r.data)! });
     });
   }, []);
+
+  const saved = view.step === "saved" ? view.version : null;
+  useEffect(() => {
+    if (!saved || !active || active === saved.versionId) return;
+    const ideaId = saved.ideaId;
+    let cancelled = false;
+    const stale = () => cancelled || getState().activeIdeaVersionId !== active;
+    setError(null);
+    async function loadSelected() {
+      const ideas = await call<Version[]>("/api/ideas");
+      if (stale()) return;
+      if (!ideas.ok) return setError(`Couldn't load the selected version: ${ideas.error}`);
+      let selected = ideas.data.find((v) => v.versionId === active);
+      // The list contains only each idea's latest version; branch selection can point into this idea's history.
+      if (!selected) {
+        const trail = await call<Version[]>(`/api/revisions/trail/${ideaId}`);
+        if (stale()) return;
+        if (!trail.ok) return setError(`Couldn't load the selected version: ${trail.error}`);
+        selected = trail.data.find((v) => v.versionId === active);
+      }
+      if (!selected) return setError("The selected version is unavailable.");
+      const version = selected;
+      setView((current) => current.step === "saved" ? { step: "saved", version } : current);
+    }
+    void loadSelected();
+    return () => { cancelled = true; };
+  }, [active, saved]);
 
   async function interpret() {
     const text = getState().ideaDraft.trim();
@@ -95,6 +125,14 @@ export default function Idea() {
           Saved as a star among its {v.neighborIds.length} nearest projects, highlighted in the galaxy.
         </p>
         {v.description && <p>{v.description}</p>}
+        {v.problem && (
+          <p>
+            <span className={styles.meta}>Problem:</span> {v.problem}
+          </p>
+        )}
+        <ProblemEvidence key={v.versionId} versionId={v.versionId} />
+        <ResearchSection key={`research-${v.versionId}`} versionId={v.versionId} />
+        {error && <PanelState kind="failed" message={error} />}
         <button type="button" className={styles.secondary} onClick={() => setView({ step: "write" })}>
           New idea
         </button>

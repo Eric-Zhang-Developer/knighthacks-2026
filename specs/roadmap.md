@@ -11,9 +11,9 @@ for is Best Overall (and Best AI). Each milestone keeps a working demo, so the a
 safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLAN.md` §2.
 
 ## Milestones
-- **safe-demo**, ships Sat 14:00 EDT: the bootstrap feature, then a galaxy of real projects you can explore and
+- **safe-demo** (no deadline; picked first): the bootstrap feature, then a galaxy of real projects you can explore and
   search, where every star opens its source page (F01, F19, a short F20 explainer).
-- **core**, ships Sat 23:00: type or speak an idea, see it become a star with neighbor evidence cards, run one
+- **core** (no deadline; picked after safe-demo): type or speak an idea, see it become a star with neighbor evidence cards, run one
   challenge, accept a revision and see the revision trail (F03, F04, F05, F06, F07, F09). Text first, voice right
   after: voice is the Wow factor, so it is core work, not an add-on.
 - **submission**, ships Sun 10:45: branches, comparison, a private team vote, a decision snapshot, and a share link
@@ -26,7 +26,12 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   Windows API half and a Mac UI half that renders inside a finished panel.
 - **submission, third wave** (person's go, Sat 13:20): assumption constellations (F24), GitHub and Hugging
   Face research labelled product versus building block (F13, F14), and problem evidence through Gemini search
-  grounding (F12). Demo rehearsal (F18) waits for a person's call.
+  grounding (F12). Demo rehearsal (F18) is in the next wave.
+- **submission, infrastructure and polish** (added Sat 13:30 at the person's request): `db-sync` first, an
+  additive-only schema sync with health reporting missing tables, because production lost two tables within an hour
+  of #113. Then polish where the demo is weakest: a reload keeps the chosen idea, snapshots and share links
+  (revocable later), and search filters by event and year. (Camera flight belongs to experience-shell, #222.) Then demo rehearsal
+  (F18): a pitch from what is actually built and three judge questions.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
 Beside the product: `/foreman`, an unlisted build-status page (countdowns, what needs a person, the feature

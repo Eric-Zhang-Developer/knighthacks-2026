@@ -1,0 +1,36 @@
+.rehearse { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.heading { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.15; color: var(--paper); }
+.meta { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+/* Chart annotation, as in the idea card's group names. */
+.part { margin: var(--space-2) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.items { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.items li { display: flex; gap: var(--space-2); }
+.items input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pitch, .questions { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.pitch li, .questions li { padding-left: var(--space-3); border-left: 1px solid var(--border); overflow-wrap: anywhere; }
+.questions p { margin: 0; }
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.status[data-status="built"] { color: var(--live); }
+.status[data-status="planned"] { color: var(--uncertain); border-style: dashed; }
+/* Beats the share panel's `.panel button`; its `:disabled` rule still wins while drafting. */
+.actions .primary { border-color: var(--idea); color: var(--idea); }

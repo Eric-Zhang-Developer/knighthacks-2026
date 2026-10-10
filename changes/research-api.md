@@ -1,0 +1,8 @@
+## What shipped
+Research now keeps full GitHub queries while searching Hugging Face IDs with up to two distinct content keywords per query, deduplicating repeated source/term calls. Existing item provenance, classification, partial-source errors, twelve-item cap and stored-result behavior are preserved (#231).
+## Where it lives
+`lib/research/search.ts`, `lib/research/service.ts`, `tests/research-api/`, `tests/e2e/research-api/`, and `specs/features/research-api/spec.md`; routes/schema remain as originally shipped.
+## How to check it
+verify: `node scripts/verify.mjs research-api "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\research-api\20261010T181742Z"` pass at 6add168 (1 recorded HTTP test, 3.0m; exact keyword/call counts, provenance/classification, stored/repeat requests, partial failures and auth). Typecheck/lint and 261 unit tests pass; two explicit live tests skipped in the regular suite. Separate real service validation passed in 20.84s for saved test version `722a8055-d25e-4721-abff-86536c06153f`: queries "public speaking coach", "speech clarity feedback", "presentation practice ai"; GitHub 5, hf-model 7, hf-space 0, hf-dataset 0; source failures: none; allowed URL hosts and stored read confirmed.
+## Gaps
+Live validation used real Gemini, HF embedding, GitHub/HF searches and test Neon persistence at service level; canonical HTTP validation used recorded search/generation responses. The original production schema rollout remains tracked in #113; production behavior and a user trial are not claimed. Keyword length is a bounded heuristic; some terms can be broad and a source can still have no matches. The original GitHub search rate limit still applies.

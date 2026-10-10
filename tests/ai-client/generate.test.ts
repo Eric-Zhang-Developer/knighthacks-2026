@@ -5,7 +5,7 @@ const { call, construct, claude, claudeConstruct } = vi.hoisted(() => ({ call: v
 vi.mock("next/dist/compiled/server-only", () => ({}));
 vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: claude }; constructor(options: unknown) { claudeConstruct(options); } } }));
 vi.mock("@google/genai", () => ({ GoogleGenAI: class { models = { generateContent: call }; constructor(options: unknown) { construct(options); } } }));
-import { AiError, generate } from "@/lib/ai/generate";
+import { AiError, generate, fixture } from "@/lib/ai/generate";
 import { checkClaims, type Claim } from "@/lib/ai/claims";
 const schema = z.object({ message: z.string() });
 beforeEach(() => {
@@ -116,5 +116,18 @@ test.each([
   if (allowed) await expect(result).resolves.toEqual({ message: "AI client fixture verified" });
   else await expect(result).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
   expect(construct).not.toHaveBeenCalled(); expect(claudeConstruct).not.toHaveBeenCalled();
+  expect(call).not.toHaveBeenCalled(); expect(claude).not.toHaveBeenCalled();
+});
+
+test("shared fixture reader preserves production and lookup guards", async () => {
+  const directory = resolve("tests/ai-client/fixtures");
+  expect(JSON.parse(await fixture(directory, "smoke"))).toEqual({ message: "AI client fixture verified" });
+  await expect(fixture(directory, "../smoke")).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
+  vi.stubEnv("NODE_ENV", "production");
+  await expect(fixture(directory, "smoke")).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
+  vi.stubEnv("AI_STUB_ALLOW", "1");
+  expect(JSON.parse(await fixture(directory, "smoke"))).toHaveProperty("message");
+  vi.stubEnv("VERCEL", "1");
+  await expect(fixture(directory, "smoke")).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
   expect(call).not.toHaveBeenCalled(); expect(claude).not.toHaveBeenCalled();
 });

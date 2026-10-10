@@ -13,13 +13,13 @@ start = "2026-10-09T19:00:00-04:00"   # Opening Ceremony, Fri Oct 9 (specs/conte
 
 [[milestone]]
 name = "safe-demo"        # R0: something trustworthy to show, early
-ship = "2026-10-10T14:00:00-04:00"   # unfinished features drop out of pick order after this
+ship = ""                 # no deadline (person, 2026-10-10): order only; the one real deadline is submission's
 features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer", "galaxy-explainer", "corpus-release"]
 cut = []
 
 [[milestone]]
 name = "core"             # R1: what the judges score
-ship = "2026-10-10T23:00:00-04:00"
+ship = ""                 # no deadline (person, 2026-10-10): order only
 features = ["visual-polish", "ai-client", "guest-workspace", "guest-workspace-ui", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui", "galaxy-history"]
 cut = ["voice-replies-api", "voice-replies-ui"]   # person's decision 2026-10-10: push-to-talk input stays
 
@@ -29,6 +29,6 @@ ship = "2026-10-11T10:45:00-04:00"   # 15 min before the 11:00 final code push
 freeze = "4:45"           # from Sun 06:00: no new features
 final = true
 report_before = "1:45"    # from Sun 09:00: fixes, reverts and docs only; Devpost closes 10:00
-features = ["live-smoke", "decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "rubric-overlay-api", "rubric-overlay-ui", "combinations-api", "combinations-ui", "change-mind-api", "change-mind-ui", "moment-api", "moment-ui", "experience-shell", "constellation-ui", "research-api", "problem-evidence-api", "problem-evidence-ui", "demo-flow", "vultr-deploy"]
-cut = ["compare-api", "compare-ui", "vultr-deploy"]   # first to drop if late; rejected once the freeze starts
+features = ["db-sync", "live-smoke", "decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "rubric-overlay-api", "rubric-overlay-ui", "combinations-api", "combinations-ui", "change-mind-api", "change-mind-ui", "moment-api", "moment-ui", "experience-shell", "constellation-ui", "research-api", "research-ui", "challenge-resume-ui", "problem-evidence-api", "problem-evidence-ui", "workspace-restore-api", "workspace-restore-ui", "search-filters-ui", "rehearsal-api", "rehearsal-ui", "demo-flow", "corpus-classify", "idea-interview-api", "galaxy-classes-ui", "idea-interview-ui", "build-plan-api", "build-plan-ui", "idea-scorecard-api", "idea-scorecard-ui", "era-board-ui", "vultr-deploy"]
+cut = ["compare-api", "compare-ui", "vultr-deploy", "era-board-ui", "idea-scorecard-ui", "idea-scorecard-api"]   # first to drop if late; rejected once the freeze starts
 allow = ["foreman"]       # the build-status page (specs/features/foreman): may merge through the freeze

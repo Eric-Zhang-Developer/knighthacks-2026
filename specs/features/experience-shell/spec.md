@@ -1,7 +1,7 @@
 ---
 name: A galaxy-first shell on desktop and a four-screen flow on the phone
 depends_on: [visual-polish, voice, idea-create-ui, galaxy-history]
-owns: [app/page.tsx, app/page.module.css, components/shell/, components/galaxy/, tests/experience-shell/, tests/e2e/experience-shell/]
+owns: [app/page.tsx, app/page.module.css, components/shell/, components/galaxy/index.tsx, components/galaxy/galaxy.module.css, tests/experience-shell/, tests/e2e/experience-shell/]
 assignee: "eric-frontend-agent"
 ---
 
@@ -26,12 +26,20 @@ keeps the tokens, fonts and panel styles; `app/page.module.css` moves here from 
    committed, connected-idle, mic-denied, unavailable, ending. They land in a `fix(voice)` PR that adds them to
    voice's own spec; `components/voice/` stays with voice (and voice-replies-ui), and the shell only places the
    voice bar in the composer.
-4. Phone (720px or narrower): one `100dvh` screen at a time with four destinations, Explore (galaxy, search,
+4. Phone (720px or narrower): one `100dvh` screen at a time with four destinations (five once Plan exists, item 6), Explore (galaxy, search,
    history, projects), Talk (the composer), Idea (idea, revisions, evidence, challenge, branches, compare) and
    Decide (vote, decide, share, event tracks), switched by a fixed bottom navigation that respects the safe area.
    Opening a project pushes a history entry, so the browser's Back closes it.
-5. `components/galaxy/`: only to move its history and project-list controls into the discovery rail; star
-   rendering, picking and the camera are untouched.
+5. `components/galaxy/index.tsx` and `galaxy.module.css` only: move the history and project-list controls into the
+   discovery rail. Star rendering, picking and the camera belong to galaxy-classes-ui (`Scene.tsx`, `stars.ts`).
+6. Plan step (#269): the flow is Explore → Talk → Idea → Decide → **Plan**. On the phone, Plan is a fifth destination.
+   On desktop, Plan opens in the contextual rail once a version is chosen.
+7. Mount slots: the shell mounts each #270 panel once its feature's component exists on main. The category legend
+   and universe summary (`components/classes/`) go in the discovery rail, interview questions (`components/interview/`)
+   in Talk, the scorecard (`components/scorecard/`) in Idea, the plan (`components/plan/`) in Plan, and the era board
+   inside the explainer. A panel whose module isn't on main yet isn't imported, so the build never breaks.
+8. Visual direction: `docs/design-references/` (desktop, phone, video frames), as summarised in #269. Mockup numbers,
+   names, the activity feed, the impact preview and the globe are illustrative and are never shown as data.
 
 ## Requirements
 - Partial voice text never changes the draft; releasing appends once; the text field works in every voice state,

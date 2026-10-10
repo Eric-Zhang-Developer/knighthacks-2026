@@ -40,3 +40,24 @@ export function subscribe(listener: () => void) {
 export function useAppState<T>(select: (s: AppState) => T): T {
   return useSyncExternalStore(subscribe, () => select(state), () => select(initialState));
 }
+
+// The chosen idea version, remembered per workspace in this browser so a reload comes back to it. Storage can be
+// blocked (private windows, settings): every access is guarded, and then the page simply starts on the newest idea.
+const activeKey = (workspaceId: string) => `uncharted:active-version:${workspaceId}`;
+
+export function rememberActive(workspaceId: string, versionId: string | null) {
+  try {
+    if (versionId) localStorage.setItem(activeKey(workspaceId), versionId);
+    else localStorage.removeItem(activeKey(workspaceId));
+  } catch {
+    /* storage blocked: nothing is remembered */
+  }
+}
+
+export function rememberedActive(workspaceId: string): string | null {
+  try {
+    return localStorage.getItem(activeKey(workspaceId));
+  } catch {
+    return null;
+  }
+}
