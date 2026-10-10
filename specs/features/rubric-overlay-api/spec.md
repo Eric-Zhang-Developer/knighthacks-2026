@@ -26,14 +26,16 @@ rubric from `specs/context/event.md`).
 - Every track entry traces to a row of `prizes.md`; no track, prize or requirement is invented.
 - A `stated` claim must contain a verbatim substring of one of the version's fields; `lib/rubric/` checks the
   substring itself (`checkClaims` only checks source IDs). A claim that fails moves to `speculative`.
-- No score, rank or chance of winning (mission: empty space is never presented as chance of winning).
+- No generated score, rank or chance of winning (mission: empty space is never presented as chance of winning).
+  Numbers and identifiers quoted verbatim from `prizes.md` or the idea stay as written.
 - Stored per version; a second `POST` returns it. Additive SQL on the test branch, never `drizzle-kit push` from a
   branch (#125).
 
 ## Validation
 1. Every entry in `tracks.json` matches a `prizes.md` row (a unit test parses the table and compares).
 2. `POST` for a saved version -> one result per track; each `requirement` equals that track's `rewards` in
-   `tracks.json` (or `null` where it is `null`), and no number appears anywhere. A `stated` claim without a
+   `tracks.json` (or `null` where it is `null`), and no generated score, rank or chance-of-winning estimate
+   appears; numbers quoted verbatim from `prizes.md` or the idea's own text are kept as they are. A `stated` claim without a
    verbatim quote of the version moves to `speculative`.
 3. `PATCH` a proof -> stored; `GET` returns it.
 4. `tests/e2e/rubric-overlay-api/` covers 2–3 with fixtures (`AI_STUB_ALLOW=1`). Keep the stored row.
