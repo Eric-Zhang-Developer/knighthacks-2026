@@ -80,6 +80,12 @@ test("states follow AGENTS.md: done, in flight, ready, blocked, cut, backlog", (
   expect(b.features.find((f) => f.slug === "d")?.specDir).toBe("specs/features/d");
 });
 
+test("the intro's crew counts named workers with a merged PR; its clock starts at the first PR", () => {
+  const b = buildBoard(raw, NOW);
+  expect(b.stats.crew).toBe(1); // only kiro-agent-1 has merged anything
+  expect(b.stats.firstPrAt).toBe("2026-10-10T12:00:00Z");
+});
+
 test("milestones count done of total without cut features, and resolve every time form", () => {
   const [core, sub] = buildBoard(raw, NOW).milestones;
   expect(core).toMatchObject({ name: "core", done: 1, total: 4, ship: Date.parse("2026-10-10T15:00:00-04:00") });

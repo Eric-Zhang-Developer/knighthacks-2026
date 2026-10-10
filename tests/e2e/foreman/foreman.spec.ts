@@ -40,6 +40,7 @@ test("milestones, one graph node per spec, and every human ask from GitHub", asy
   ).json()) as { title: string; pull_request?: unknown }[];
   for (const i of issues.filter((i) => !i.pull_request)) await expect(asks).toContainText(i.title);
 
+  await expect(page.getByTestId("intro")).toContainText(/agent workers.*merged \d+ PRs and built \d+ of \d+ planned features/);
   // The pipeline's Spec step counts the same specs the graph draws.
   await expect(page.getByTestId("step-spec")).toHaveText(String(specs.length));
 
