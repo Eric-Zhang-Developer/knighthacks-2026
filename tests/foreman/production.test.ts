@@ -11,7 +11,7 @@ test.skipIf(!URL)("the live page is a full snapshot of the deployed commit, buil
   const { commit } = (await health.json()) as { commit: string };
   // Named booleans, not toContain on the page: a failure should say which check, not print 50 KB of HTML.
   const has = (what: string, ok: boolean) => expect(ok, what).toBe(true);
-  for (const section of ["Will we make it", "Needs a person", "How it gets built", "The site plan", "The crew"]) has(section, html.includes(section));
+  for (const section of ["Will we make it", "Needs a person", "How it gets built", "Watch it get built", "The crew"]) has(section, html.includes(section));
   has(`built from the deployed commit ${commit.slice(0, 7)}`, html.includes(`data-sha="${commit}"`));
   has("API: token stamp", /API: token · \d+ calls/.test(html));
   has("no PR-data-missing banner", !html.includes('data-testid="degraded"'));

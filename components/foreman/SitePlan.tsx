@@ -2,17 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { statesAt, type Board } from "@/lib/foreman/board";
+import { atWork, type Chapter, type Timeline } from "@/lib/foreman/charts";
 import Graph from "./Graph";
 import { clock, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
 const PLAY_MS = 24_000; // the whole build replays in this long
 const BUCKET = 30 * 60_000; // histogram bucket
+const FLASH_MS = 900; // a node that lands flashes for this long of playback
 
-type Props = Pick<Board, "features" | "replay" | "repo" | "start"> & { now: number };
+type Props = Pick<Board, "features" | "replay" | "repo" | "start"> & { now: number; crew: Timeline | null; chapters: Chapter[] };
 
-// The feature graph, plus a scrubber that replays it from the first PR to the snapshot (`now` is the snapshot time).
-export default function SitePlan({ features, replay, repo, start, now }: Props) {
+// The judge tour (spec § The tour): the feature graph, a scrubber that replays it from the first PR to the snapshot
+// (`now` is the snapshot time), counters and a ticker for the scrubbed moment, and chapters from the snapshot.
+export default function SitePlan({ features, replay, repo, start, now, crew, chapters }: Props) {
   // From the first PR activity, not the event start: nothing on GitHub happened before it, so playing it is dead air.
   const first = Math.min(
     ...features.flatMap((f) => f.claims.map(([a]) => Date.parse(a))),
@@ -53,7 +56,16 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
   const merged = replay.filter((r) => Date.parse(r.at) <= at);
   const scheduled = features.filter((f) => f.milestone);
   const built = scheduled.filter((f) => (shown?.get(f.slug) ?? f.state) === "done").length;
-  const flight = features.filter((f) => (shown?.get(f.slug) ?? f.state) === "flight").length;
+  const working = crew ? atWork(crew, at) : null;
+  const latest = merged.slice(-3).reverse();
+  const caption = t === null ? null : chapters.filter((c) => c.t <= at).at(-1);
+  const full = Math.max(1, now - first);
+  // Features whose merge the playhead just passed: about FLASH_MS of playback, whatever the build's length.
+  const flash = useMemo(() => {
+    if (t === null) return undefined;
+    const win = (full / PLAY_MS) * FLASH_MS;
+    return new Set(features.filter((f) => f.doneAt && Date.parse(f.doneAt) <= t && Date.parse(f.doneAt) > t - win).map((f) => f.slug));
+  }, [features, t, full]);
 
   const buckets = useMemo(() => {
     const n = Math.max(1, Math.ceil((now - first) / BUCKET));
@@ -68,7 +80,22 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
 
   return (
     <>
-      <Graph features={features} repo={repo} shown={shown} />
+      {replay.length > 0 && (
+        <div className={styles.tourHead}>
+          <div className={styles.counters} data-testid="tour-counters">
+            <Counter n={`${built}/${scheduled.length}`} label="features built" />
+            <Counter n={merged.length} label="PRs merged" />
+            <Counter n={working ?? "—"} label="agents at work" />
+          </div>
+          <p className={styles.caption} data-testid="tour-caption" aria-live="polite">
+            {caption && (
+              <span key={caption.label} className={styles.captionText}>
+                {caption.label}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
       {replay.length === 0 ? (
         <p className={styles.needsPrs}>The replay needs PR data, missing from this snapshot (see above).</p>
       ) : (
@@ -89,8 +116,19 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
                 <rect x={i + 0.12} y={peak - b.feature} width={0.76} height={b.feature} fill="#8fef9a" />
               </g>
             ))}
-            <rect x={0} y={0} width={((at - first) / Math.max(1, now - first)) * buckets.length} height={peak} fill="#ffb547" opacity={0.08} />
+            <rect x={0} y={0} width={((at - first) / full) * buckets.length} height={peak} fill="#ffb547" opacity={0.08} />
           </svg>
+          {chapters
+            .filter((c) => c.t >= first && c.t <= now)
+            .map((c) => (
+              <span
+                key={c.label}
+                className={`${styles.tick} ${c.t <= at && t !== null ? styles.tickPassed : ""}`}
+                style={{ left: `${((c.t - first) / full) * 100}%` }}
+                title={`${clock(c.t)} · ${c.label}`}
+                data-testid="chapter"
+              />
+            ))}
           <input
             type="range"
             className={styles.range}
@@ -112,10 +150,17 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
             {t === null ? "SNAPSHOT" : clock(t)}
             {start !== null && <small> T{at >= start ? "+" : "−"}{span(at - start).slice(0, 5)}</small>}
           </span>
-          <span>
-            <b>{built}</b>/{scheduled.length} built · <b>{flight}</b> in flight · <b>{merged.length}</b> PRs merged
-          </span>
-          <span className={styles.replayLast}>{merged.at(-1) ? `last: #${merged.at(-1)!.number} ${merged.at(-1)!.title}` : "no merges yet"}</span>
+          <ol className={styles.ticker} aria-label="Latest merges">
+            {latest.length ? (
+              latest.map((r) => (
+                <li key={r.number}>
+                  <b>#{r.number}</b> {r.title}
+                </li>
+              ))
+            ) : (
+              <li>no merges yet</li>
+            )}
+          </ol>
         </div>
         {t !== null && (
           <button type="button" className={styles.liveBtn} onClick={() => (setPlaying(false), setT(null))}>
@@ -124,6 +169,16 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
         )}
       </div>
       )}
+      <Graph features={features} repo={repo} shown={shown} flash={flash} />
     </>
+  );
+}
+
+function Counter({ n, label }: { n: string | number; label: string }) {
+  return (
+    <div className={styles.counter}>
+      <b className={styles.stencil}>{n}</b>
+      <span>{label}</span>
+    </div>
   );
 }

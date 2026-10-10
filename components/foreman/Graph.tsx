@@ -79,10 +79,12 @@ export default function Graph({
   features,
   repo,
   shown,
+  flash,
 }: {
   features: Feature[];
   repo: string;
   shown?: Map<string, State>;
+  flash?: Set<string>; // features that just landed in the replay
 }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
@@ -167,7 +169,7 @@ export default function Graph({
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""}`}
+                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) ? styles.flash : ""}`}
                 // A plain click opens the card in place; cmd/ctrl/shift-click still opens GitHub.
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
