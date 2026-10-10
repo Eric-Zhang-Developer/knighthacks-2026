@@ -40,9 +40,15 @@ jobs:
         if: github.event_name == 'push'
         run: python3 .agents/scripts/check_markers.py --all
 
-      # Your project's own checks go here: tests, lint, build.
+      # Project checks (specs/tech-stack.md). E2E runs locally through verify.py, keeping CI fast.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Project checks
-        run: echo "Add your test command here (see specs/tech-stack.md, Checks)"
+        run: pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
   issues:
     # After a merge: one issue per feature spec (closed when done), one GitHub milestone per milestone, and a
