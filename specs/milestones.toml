@@ -20,7 +20,7 @@ cut = []
 [[milestone]]
 name = "core"             # R1: what the judges score
 ship = "2026-10-10T23:00:00-04:00"
-features = ["visual-polish", "ai-client", "guest-workspace", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui", "galaxy-history"]
+features = ["visual-polish", "ai-client", "guest-workspace", "guest-workspace-ui", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui", "galaxy-history"]
 cut = ["voice-replies-api", "voice-replies-ui"]   # person's decision 2026-10-10: push-to-talk input stays
 
 [[milestone]]
