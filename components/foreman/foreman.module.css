@@ -849,6 +849,87 @@
   animation: flash 0.9s ease-out;
 }
 
+/* Motion (spec § The tour): states settle instead of snapping; a landing sends out a ring and draws its unlocks. */
+.node rect.box,
+.node text {
+  transition:
+    fill 0.35s ease-out,
+    stroke 0.35s ease-out;
+}
+
+.edge {
+  transition: stroke 0.5s ease-out;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 2;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25, 1.9);
+  }
+}
+
+.draw {
+  stroke-width: 2;
+  stroke-dasharray: 1;
+  animation: draw 0.7s ease-out both;
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.bump {
+  transform-origin: left bottom;
+  animation: bump 0.3s ease-out;
+}
+
+@keyframes bump {
+  from {
+    transform: scale(1.06);
+    text-shadow: 0 0 18px currentColor;
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.8s ease-out both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.ticker li {
+  animation: slideIn 0.3s ease-out both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 @keyframes flash {
   0% {
     fill: #8fef9a;

@@ -124,8 +124,9 @@ export default function Graph({
         return {
           key: `${d}>${f.slug}`,
           path: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
-          stroke: critical.has(d) && critical.has(f.slug) ? "#ffb547" : done ? "#3f7a4a" : "#3a3328",
+          stroke: critical.has(d) && critical.has(f.slug) ? "#ffb547" : flash?.has(d) ? "#8fef9a" : done ? "#3f7a4a" : "#3a3328",
           critical: critical.has(d) && critical.has(f.slug),
+          draw: flash?.has(d) ?? false, // d just landed: this unlock draws outward from it
           faded: lit !== null && !(lit.has(d) && lit.has(f.slug)),
         };
       }),
@@ -148,7 +149,8 @@ export default function Graph({
               stroke={e.stroke}
               strokeWidth={e.critical ? 2 : 1.2}
               strokeDasharray={e.critical ? "6 4" : undefined}
-              className={e.faded ? styles.faded : undefined}
+              pathLength={e.draw ? 1 : undefined}
+              className={`${styles.edge} ${e.faded ? styles.faded : ""} ${e.draw ? styles.draw : ""}`}
             />
           ))}
           {features.map((f) => {
@@ -187,8 +189,19 @@ export default function Graph({
               >
                 <title>{`${f.slug} — ${s.label}${f.missed ? ` · missed ${f.milestone}` : ""}\n${f.name}${f.buildMin !== null ? `\nBuilt in ${dur(f.buildMin)}, first PR to merge` : ""}${f.gap ? `\nGap: ${f.gap}` : ""}`}</title>
                 {!shown && f.heat > 0.05 && (
-                  <rect x={p.x - 4} y={p.y - 4} width={W + 8} height={H + 8} rx={6} fill="#ff8a1f" opacity={0.25 + f.heat * 0.6} filter="url(#heat)" />
+                  <rect
+                    className={styles.fadeIn}
+                    x={p.x - 4}
+                    y={p.y - 4}
+                    width={W + 8}
+                    height={H + 8}
+                    rx={6}
+                    fill="#ff8a1f"
+                    opacity={0.25 + f.heat * 0.6}
+                    filter="url(#heat)"
+                  />
                 )}
+                {flash?.has(f.slug) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
                 <rect
                   className={`box ${state === "flight" ? styles.pulse : ""}`}
                   x={p.x}

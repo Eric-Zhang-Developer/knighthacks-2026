@@ -4,10 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { statesAt, type Board } from "@/lib/foreman/board";
 import { atWork, type Chapter, type Timeline } from "@/lib/foreman/charts";
 import Graph from "./Graph";
-import { clock, span } from "@/lib/foreman/time";
+import { advance, clock, CRUISE_MS, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
-const PLAY_MS = 24_000; // the whole build replays in this long
 const BUCKET = 30 * 60_000; // histogram bucket
 const FLASH_MS = 900; // a node that lands flashes for this long of playback
 
@@ -25,20 +24,24 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
   const [t, setT] = useState<number | null>(null); // null = the snapshot
   const [playing, setPlaying] = useState(false);
 
+  // One step per display frame, eased up from wherever the playhead is now (spec § The tour, Motion).
   useEffect(() => {
     if (!playing) return;
-    const step = ((now - first) / PLAY_MS) * 50;
-    const id = setInterval(
-      () =>
-        setT((x) => {
-          const next = (x ?? first) + step;
-          if (next < now) return next;
-          setPlaying(false);
-          return null;
-        }),
-      50,
-    );
-    return () => clearInterval(id);
+    const base = (now - first) / CRUISE_MS;
+    const started = performance.now();
+    let last = started;
+    let raf = requestAnimationFrame(function tick(ts) {
+      const dt = Math.min(64, ts - last); // a background tab's long gap doesn't leap the build forward
+      last = ts;
+      setT((x) => {
+        const next = advance(x ?? first, now, base, ts - started, dt);
+        if (next < now) return next;
+        setPlaying(false);
+        return null;
+      });
+      raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [playing, first, now]);
 
   const toggle = () => {
@@ -63,7 +66,7 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
   // Features whose merge the playhead just passed: about FLASH_MS of playback, whatever the build's length.
   const flash = useMemo(() => {
     if (t === null) return undefined;
-    const win = (full / PLAY_MS) * FLASH_MS;
+    const win = (full / CRUISE_MS) * FLASH_MS;
     return new Set(features.filter((f) => f.doneAt && Date.parse(f.doneAt) <= t && Date.parse(f.doneAt) > t - win).map((f) => f.slug));
   }, [features, t, full]);
 
@@ -177,7 +180,10 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
 function Counter({ n, label }: { n: string | number; label: string }) {
   return (
     <div className={styles.counter}>
-      <b className={styles.stencil}>{n}</b>
+      {/* keyed by value: each change remounts it, which replays the bump */}
+      <b key={n} className={`${styles.stencil} ${styles.bump}`}>
+        {n}
+      </b>
       <span>{label}</span>
     </div>
   );
