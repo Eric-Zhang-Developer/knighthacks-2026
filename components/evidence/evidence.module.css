@@ -12,3 +12,9 @@
 .point { display: grid; gap: 2px; }
 .step { color: var(--muted); font-size: var(--text-sm); }
 .prompt { margin: 0; padding: var(--space-2) var(--space-3); border: 1px dashed var(--border); border-radius: var(--radius-sm); color: var(--text); }
+/* Combine ideas: each suggestion titled by who it's for, with its two sources joined on one line. */
+.combo { gap: var(--space-2); }
+.comboTitle { margin: 0; font-family: var(--font-display); font-size: 19px; font-weight: 600; line-height: 1.2; color: var(--paper); }
+.joins { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-2); }
+.joins li { display: inline-flex; align-items: baseline; gap: var(--space-1); }
+.joins li + li::before { content: "+"; color: var(--brass); font-family: var(--font-mono); margin-right: var(--space-1); }
