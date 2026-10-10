@@ -1,6 +1,6 @@
 ---
 name: Type an idea, correct its interpretation, and see it become a star among its neighbors
-depends_on: [idea-create-api, galaxy]
+depends_on: [idea-create-api, galaxy, guest-workspace-ui]
 owns: [components/idea/, tests/idea-create-ui/, tests/e2e/idea-create-ui/]
 assignee: ""
 ---
