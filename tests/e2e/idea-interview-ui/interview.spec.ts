@@ -46,8 +46,10 @@ test("questions appear for a vague idea; answers are re-read into the fields and
   await expect(rows.nth(0)).toContainText(round1.questions[0].why);
   expect(asked[0].fields.problem).toBeNull(); // the route saw the interpretation, gaps and all
   await page.screenshot({ path: test.info().outputPath("questions.png"), fullPage: true });
-  // Phone width: the same rows, full-width inputs and 44px targets.
+  // Phone width: the same rows, full-width inputs and 44px targets. The phone shows one destination at a time
+  // (experience-shell); the idea panel, questions included, is on Idea.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("navigation", { name: "Destinations" }).getByRole("link", { name: "Idea" }).click();
   await questions(page).scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("questions-phone.png") });
   expect((await questions(page).boundingBox())!.width).toBeLessThanOrEqual(390);
