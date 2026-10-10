@@ -24,6 +24,7 @@ CACHE = ROOT / "corpus" / "data" / "embeddings.npz"
 STARS = ROOT / "public" / "corpus" / "stars.json"
 MAX_CHARS = 2000  # the opening of a description (inspiration, what it does) carries the meaning; cost grows with length
 BATCH = 16
+REQUEST_TIMEOUT = 60  # seconds without a provider response, per attempt
 SEED = 42
 
 
@@ -45,7 +46,7 @@ def embed(texts: list[str]) -> np.ndarray:
     """Normalized float32 vectors, one per text, from the Inference API. One retry per batch."""
     from huggingface_hub import InferenceClient
 
-    client = InferenceClient(provider="hf-inference", api_key=os.environ["HF_TOKEN"])
+    client = InferenceClient(provider="hf-inference", api_key=os.environ["HF_TOKEN"], timeout=REQUEST_TIMEOUT)
     out = []
     for i in range(0, len(texts), BATCH):
         for attempt in (1, 2):
@@ -65,15 +66,19 @@ def embed(texts: list[str]) -> np.ndarray:
 def cached_embeddings(records: list[dict]) -> np.ndarray:
     cache: dict[str, np.ndarray] = {}
     if CACHE.exists():
-        z = np.load(CACHE)
-        cache = dict(zip(z["hashes"].tolist(), z["vectors"]))
+        with np.load(CACHE) as z:
+            cache = dict(zip(z["hashes"].tolist(), z["vectors"]))
     todo = [r for r in records if r["content_hash"] not in cache]
     print(f"embed: {len(records) - len(todo)} cached, {len(todo)} to embed", flush=True)
-    if todo:
-        for r, v in zip(todo, embed([embed_text(r) for r in todo])):
+    for start in range(0, len(todo), BATCH):
+        batch = todo[start:start + BATCH]
+        for r, v in zip(batch, embed([embed_text(r) for r in batch])):
             cache[r["content_hash"]] = v
         CACHE.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(CACHE, hashes=np.array(list(cache)), vectors=np.stack(list(cache.values())))
+        checkpoint = CACHE.with_suffix(".tmp.npz")
+        np.savez(checkpoint, hashes=np.array(list(cache)), vectors=np.stack(list(cache.values())))
+        checkpoint.replace(CACHE)
+        print(f"embed: checkpointed {min(start + BATCH, len(todo))}/{len(todo)} new records", flush=True)
     return np.stack([cache[r["content_hash"]] for r in records])
 
 
