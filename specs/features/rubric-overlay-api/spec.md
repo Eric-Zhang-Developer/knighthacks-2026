@@ -16,23 +16,25 @@ rubric from `specs/context/event.md`).
    `rewards` copied verbatim from its "What it rewards" column, plus `source: "specs/context/prizes.md"`. A track
    whose requirement the file doesn't state gets `rewards: null`, never a paraphrase.
 2. `POST /api/rubric/:versionId`: through `lib/ai/`, for each track return `{"trackId", "requirement",
-   "demonstrated": [Claim], "speculative": [Claim], "proof": null}`. `demonstrated` claims quote the version's own
-   fields; everything else goes in `speculative`, labelled `inferred` or `unverified`.
+   "stated": [Claim], "speculative": [Claim], "proof": null}`. A `stated` claim says what the idea itself says it
+   will do, quoting the version's own fields; everything else goes in `speculative`, labelled `inferred` or
+   `unverified`. Neither is proof that anything runs: only an attached `proof` is.
 3. `PATCH /api/rubric/:versionId/:trackId` `{"proof"}`: the user attaches a link or note as proof. `GET` reads the
    stored overlay.
 
 ## Requirements
 - Every track entry traces to a row of `prizes.md`; no track, prize or requirement is invented.
-- A `demonstrated` claim must quote the version text it relies on (`checkClaims` against the version's fields);
-  otherwise it moves to `speculative`.
+- A `stated` claim must contain a verbatim substring of one of the version's fields; `lib/rubric/` checks the
+  substring itself (`checkClaims` only checks source IDs). A claim that fails moves to `speculative`.
 - No score, rank or chance of winning (mission: empty space is never presented as chance of winning).
 - Stored per version; a second `POST` returns it. Additive SQL on the test branch, never `drizzle-kit push` from a
   branch (#125).
 
 ## Validation
 1. Every entry in `tracks.json` matches a `prizes.md` row (a unit test parses the table and compares).
-2. `POST` for a saved version -> one result per track, each with a requirement or `null`, and no number anywhere.
-   A `demonstrated` claim without a quote of the version is rejected to `speculative`.
+2. `POST` for a saved version -> one result per track; each `requirement` equals that track's `rewards` in
+   `tracks.json` (or `null` where it is `null`), and no number appears anywhere. A `stated` claim without a
+   verbatim quote of the version moves to `speculative`.
 3. `PATCH` a proof -> stored; `GET` returns it.
 4. `tests/e2e/rubric-overlay-api/` covers 2–3 with fixtures (`AI_STUB_ALLOW=1`). Keep the stored row.
 

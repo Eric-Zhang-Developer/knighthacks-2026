@@ -12,13 +12,14 @@ Frontend half: Mac workers only (user decision 2026-10-10). The snapshot panel i
 `rubric-overlay-api`.
 
 ## Plan
-1. In the snapshot view: one row per track with three columns, "Required", "Shown" and "Might fit", each claim with
+1. In the snapshot view: one row per track with three columns, "Required", "The idea says" and "Might fit", each claim with
    its `ClaimBadge`; a track with no stated requirement says so.
 2. Each track has a field to attach proof (a link or a note).
 
 ## Requirements
 - No score, rank, percentage or "you will win" wording.
-- "Shown" only holds claims the API marked `demonstrated`.
+- "The idea says" only holds claims the API marked `stated`; a track reads as shown only once a proof is
+  attached, and the proof is displayed as the user's own, not verified by the app.
 - The snapshot view's own e2e still passes, and the frozen snapshot JSON is unchanged by the overlay.
 
 ## Validation
