@@ -5,6 +5,7 @@ import { ClaimBadge, PanelState, type ClaimLabel } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { setState, useAppState } from "@/lib/store";
 import StrongestAlternative from "./alternative";
+import Combinations from "./combinations";
 import styles from "./evidence.module.css";
 
 // Shape pinned by neighbor-evidence-api (lib/evidence/contract.ts).
@@ -125,6 +126,7 @@ export default function Evidence() {
           </>
         )}
       </section>
+      <Combinations versionId={versionId} />
     </>
   );
 }
