@@ -1,0 +1,5 @@
+{"directions":[
+ {"title":"Coordinate meals with teammates","field":"workflow","change":"Collect dietary constraints and let teammates choose a shared meal."},
+ {"title":"Plan around event-provided food","field":"constraints","change":"Use only the food offered by the event."},
+ {"title":"Help the organizing team","field":"audience","change":"Hackathon organizers planning meals for participants."}
+]}
