@@ -40,11 +40,12 @@
   .item { flex-direction: column; gap: 2px; }
   .meta { white-space: normal; }
 }
-/* The query gets its own row; the four filters share a compact row under it, so none squeezes the box. */
-.bar { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
-.bar .input { flex: 1 1 100%; min-width: 0; }
+/* One row in the desktop top bar (52px, experience-shell): the query takes two shares, each filter one, and a long
+   option truncates rather than wrapping the bar. The phone gives the query its own row (below). */
+.bar { display: flex; gap: var(--space-2); }
+.bar .input { flex: 2 1 0; min-width: 0; }
 .bar .filter { flex: 1 1 0; min-width: 0; }
-.bar .filter select { width: 100%; padding-top: 3px; padding-bottom: 3px; font-size: var(--text-sm); }
+.bar .filter select { width: 100%; max-width: none; font-size: var(--text-sm); }
 .filter select {
   height: 100%;
   max-width: 140px;
