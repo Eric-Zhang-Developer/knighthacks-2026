@@ -1,0 +1,8 @@
+## What shipped
+`POST /api/research/:versionId`: up to 3 model-written queries, each searched on GitHub repositories and Hugging Face models, Spaces and datasets (5 each; only the search endpoints), deduplicated by URL to at most 12, then classified as direct-alternative, adjacent, research or building-block with a one-sentence reason. Stored per version; repeat POST and `GET` read it with no outside call. Fields are copied as returned (missing = null); HF models/datasets are never direct alternatives; unknown ids are dropped; each reason cites only its item and is at most inferred; 403/429 (any non-OK) sources go in `unavailable`.
+## Where it lives
+`app/api/research/`, `lib/research/` (contract, search, service), `db/schema/research.ts`, `tests/research-api/`, `tests/e2e/research-api/` (with `recorded/` real API responses); decisions and test-branch SQL in `specs/decisions/research-api-schema.md`.
+## How to check it
+verify: `node scripts/verify.mjs research-api .git/agent-evidence/research-api/20261010T175656Z` pass at 2db1c8a (Mac; Neon test branch; recorded GitHub/HF responses via RESEARCH_SEARCH_BASE; generation fixtures; outside calls counted). Live once (Validation 3, real GitHub + HF + model, test branch): 200 in ~30 s; queries "group meal planner", "dietary restrictions recipe recommender", "team food ordering app"; 12 items, github 12, hf 0 (no matches for those queries); unavailable none; every url on github.com.
+## Gaps
+Unauthenticated GitHub search allows 10 requests/minute, so heavy use will list GitHub as unavailable. Production schema pending (#113). HF search matches ids, so multi-word queries often find nothing there.
