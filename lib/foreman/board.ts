@@ -8,6 +8,7 @@ import {
   parseSpan,
   parseTitle,
   parseWhen,
+  workerNoteOf,
   workerOf,
 } from "./parse";
 
@@ -69,7 +70,7 @@ export type Milestone = {
   total: number;
 };
 export type Ask = { kind: "merge" | "clash" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
-export type Lane = { worker: string; prs: (PR & { scope: string | null; kind: string | null })[]; merged: number };
+export type Lane = { worker: string; note: string | null; prs: (PR & { scope: string | null; kind: string | null })[]; merged: number };
 export type Board = {
   repo: string;
   sha: string;
@@ -236,9 +237,10 @@ export function buildBoard(raw: Raw, now: number): Board {
       });
 
   const laneMap = new Map<string, Lane>();
-  const lane = (w: string) => laneMap.get(w) ?? laneMap.set(w, { worker: w, prs: [], merged: 0 }).get(w)!;
+  const lane = (w: string) => laneMap.get(w) ?? laneMap.set(w, { worker: w, note: null, prs: [], merged: 0 }).get(w)!;
   for (const p of titled) {
     const w = workerOf(p.body) ?? "unnamed";
+    lane(w).note ??= workerNoteOf(p.body); // newest PR first, so the latest self-description wins
     if (p.state === "open") lane(w).prs.push({ ...p, scope: p.t?.scope ?? null, kind: p.t?.kind ?? null });
     else if (p.mergedAt) lane(w).merged++;
   }
