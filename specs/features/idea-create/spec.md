@@ -1,6 +1,6 @@
 ---
 name: Type an idea, correct its interpretation, and see it become a star among its neighbors
-depends_on: [guest-workspace, search, galaxy]
+depends_on: [guest-workspace, search, galaxy, ai-client]
 owns: [app/api/ideas/, lib/ideas/, components/idea/, db/schema/ideas.ts, tests/idea-create/, tests/e2e/idea-create/]
 assignee: ""
 ---
@@ -17,6 +17,7 @@ assignee: ""
    version 1. Sets `ideaStars` and `activeIdeaVersionId`.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`).
 - Nothing saves until the user presses Save; the interpretation is a preview.
 - Reloading shows the same star at the same position, with the same corpus version.
 - A Gemini failure keeps the typed text and lets the user fill fields by hand.

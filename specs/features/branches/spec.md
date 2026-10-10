@@ -13,6 +13,7 @@ assignee: ""
 3. The trail shows branches side by side; each is selectable.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`).
 - A branch keeps its parent; no branch overwrites another.
 
 ## Validation

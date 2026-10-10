@@ -14,13 +14,13 @@ start = "2026-10-09T19:00:00-04:00"   # Opening Ceremony, Fri Oct 9 (specs/conte
 [[milestone]]
 name = "safe-demo"        # R0: something trustworthy to show, early
 ship = "2026-10-10T14:00:00-04:00"   # unfinished features drop out of pick order after this
-features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer", "galaxy-explainer"]
+features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer", "galaxy-explainer", "corpus-release"]
 cut = []
 
 [[milestone]]
 name = "core"             # R1: what the judges score
 ship = "2026-10-10T23:00:00-04:00"
-features = ["guest-workspace", "idea-create", "neighbor-evidence", "idea-revisions", "voice", "challenge"]
+features = ["ai-client", "guest-workspace", "voice", "idea-create", "neighbor-evidence", "idea-revisions", "voice-replies", "challenge"]
 cut = []                  # decide now what drops if this runs late, not at the deadline
 
 [[milestone]]

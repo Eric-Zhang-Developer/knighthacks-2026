@@ -15,6 +15,7 @@ assignee: ""
 3. Trail UI: the version chain; selecting a past version shows it without changing the current one.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`).
 - Accepting is the only way a version is created here; reject changes nothing in the database.
 - Concurrent accepts on the same parent both survive, as sibling versions.
 

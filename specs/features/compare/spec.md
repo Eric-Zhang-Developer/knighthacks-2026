@@ -13,6 +13,7 @@ assignee: ""
 2. Show a table: per criterion, a short reason and an uncertainty note.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`); labelled claims go through `checkClaims`.
 - No numeric win probability or score totals.
 - Reasons cite evidence cards where they exist; otherwise they're labelled `inferred`.
 
