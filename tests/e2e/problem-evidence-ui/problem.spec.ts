@@ -42,7 +42,8 @@ test("problem items first with source, date or 'date not given', and labels; sol
   const problems = block(page).getByRole("list", { name: "About the problem" }).getByRole("listitem");
   await expect(problems).toHaveCount(3); // collapsed to three
   await expect(problems.nth(0)).toContainText("site1.example.org");
-  await expect(problems.nth(0)).toContainText("published 2025-03-20T09:32:13+00:00");
+  await expect(problems.nth(0)).toContainText("published Mar 20, 2025");
+  await expect(problems.nth(0).locator("time")).toHaveAttribute("datetime", "2025-03-20T09:32:13+00:00");
   await expect(problems.nth(0)).toContainText("event date 2024");
   await expect(problems.nth(0).getByRole("link", { name: "Source 1" })).toHaveAttribute("href", "https://site1.example.org/a");
   await expect(problems.nth(0).locator('[data-label="supported"]')).toHaveText(/supported/);

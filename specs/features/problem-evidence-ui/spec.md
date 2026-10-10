@@ -28,3 +28,6 @@ Collapsed to three problem items; expand for the rest.
 The saved card shows the problem field, with the check under it. A stored result loads with `GET` (no outside call);
 otherwise the "Is this problem real?" button runs the grounded search with `POST`, so viewing a version never
 triggers a web search on its own.
+Dates read as a UTC day ("published Mar 20, 2025"), with the value as returned in the `<time>` element's
+`datetime`; a value that isn't a date is shown as given. Section titles use the chart's serif, and research group
+names its mono annotation style (visual-polish Plan 4).

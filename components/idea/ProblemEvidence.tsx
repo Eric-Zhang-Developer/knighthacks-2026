@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ClaimBadge, PanelState, type ClaimLabel } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
+import { day, moment } from "./research-groups";
 import styles from "./idea.module.css";
 
 // Shape pinned by problem-evidence-api (lib/problem-evidence/contract.ts).
@@ -31,7 +32,7 @@ function EvidenceItem({ item }: { item: Item }) {
       <p><ClaimBadge label={item.claim.label} /> {item.claim.text}</p>
       <p className={styles.meta}>
         {url ? <a href={url} target="_blank" rel="noopener noreferrer">{title}</a> : title} · {domain} ·{" "}
-        {item.publishedAt ? `published ${item.publishedAt}` : "date not given"}
+        {item.publishedAt ? <>published <time dateTime={item.publishedAt}>{day(item.publishedAt)}</time></> : "date not given"}
         {item.eventDate && ` · event date ${item.eventDate}`}
       </p>
       <p className={styles.meta}><ClaimBadge label={item.relevance.label} /> {item.relevance.text}</p>
@@ -77,7 +78,7 @@ export default function ProblemEvidence({ versionId }: { versionId: string }) {
       {view.kind === "ready" && (
         <>
           <p className={styles.evidenceTitle}>Is this problem real?</p>
-          <p className={styles.meta}>Searched the web on {new Date(view.evidence.searchedAt).toLocaleString()}. Each line is only as strong as its label.</p>
+          <p className={styles.meta}>Searched the web on {moment(view.evidence.searchedAt)}. Each line is only as strong as its label.</p>
           {problems.length ? (
             <ul className={styles.evidenceList} aria-label="About the problem">
               {(expanded ? problems : problems.slice(0, SHOWN)).map((i) => <EvidenceItem key={i.id} item={i} />)}
