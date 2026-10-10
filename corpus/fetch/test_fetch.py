@@ -184,7 +184,7 @@ def test_first_429_waits_as_asked_then_slows_to_one_per_second():
 
 def test_429_without_retry_after_waits_the_default_and_huge_values_are_capped():
     assert run.retry_after(None) == run.BACKOFF_DEFAULT
-    assert run.retry_after({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}) == run.BACKOFF_DEFAULT
+    assert run.retry_after({"Retry-After": "not a date"}) == run.BACKOFF_DEFAULT
     assert run.retry_after({"Retry-After": "99999"}) == run.BACKOFF_MAX
 
 
@@ -200,3 +200,47 @@ def test_second_429_or_any_403_stops_the_run():
 def test_rps_above_the_ceiling_is_refused():
     with pytest.raises(SystemExit):
         run.main(["fetch", "--rps", "3"])
+
+
+def test_release_still_parses_the_stop_line(tmp_path, monkeypatch, capsys):
+    """corpus/release/run.py fullmatches the stop line; summaries must not change it."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("release_run", Path(__file__).parents[1] / "release" / "run.py")
+    release = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(release)
+    _sources(tmp_path, monkeypatch)
+
+    class Fake:
+        def get(self, url):
+            return PROJECT if "/software/" in url else GALLERY if url.endswith("page=1") else ""
+
+    run.fetch(type("A", (), {"limit": 1, "deadline": None}), Fake())
+    counts, stop = release.fetch_counts(capsys.readouterr().out)
+    assert stop == "limit" and counts["parsed"] == 1
+
+
+def test_gallery_only_limit_counts_cards_not_pages(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+
+    class Fake:
+        def get(self, url):
+            return GALLERY if url.endswith("page=1") else ""
+
+    run.fetch(type("A", (), {"limit": 3, "deadline": None, "gallery_only": True}), Fake())
+    assert len((tmp_path / "summaries.jsonl").read_text().splitlines()) == 3
+
+
+def test_retry_after_as_an_http_date():
+    from datetime import datetime, timezone
+    now = datetime(2026, 10, 21, 7, 27, 30, tzinfo=timezone.utc)
+    assert run.retry_after({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, now) == 30
+
+
+def test_backoff_that_would_pass_the_deadline_stops_instead():
+    from datetime import datetime, timedelta, timezone
+    c = Clock()
+    f = run.Fetcher(sleep=c.sleep, clock=c, opener=opener([429, 200], {"Retry-After": "120"}))
+    f.deadline = datetime.now(timezone.utc) + timedelta(seconds=30)
+    with pytest.raises(run.Stop, match="deadline"):
+        f.get(URL)
+    assert 120 not in c.slept

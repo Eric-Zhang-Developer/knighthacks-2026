@@ -21,7 +21,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from parse import canonical, parse_gallery, parse_gallery_cards, parse_project
@@ -42,18 +43,24 @@ class Stop(Exception):
     """The host asked us to stop (403/429); end the run."""
 
 
-def retry_after(headers) -> int:
-    """Seconds a 429 asks us to wait: Retry-After in seconds, clamped; anything else waits the default."""
+def retry_after(headers, now=None) -> int:
+    """Seconds a 429 asks us to wait: Retry-After as seconds or an HTTP date, clamped to 1..BACKOFF_MAX; missing or
+    unreadable waits BACKOFF_DEFAULT."""
     value = headers.get("Retry-After") if headers else None
     try:
-        return min(max(int(value), 1), BACKOFF_MAX)
-    except (TypeError, ValueError):  # missing, or an HTTP date
-        return BACKOFF_DEFAULT
+        seconds = int(value)
+    except (TypeError, ValueError):
+        try:
+            seconds = int((parsedate_to_datetime(value) - (now or datetime.now(timezone.utc))).total_seconds())
+        except (TypeError, ValueError):
+            return BACKOFF_DEFAULT
+    return min(max(seconds, 1), BACKOFF_MAX)
 
 
 class Fetcher:
     def __init__(self, rps=MAX_RPS, sleep=time.sleep, clock=time.monotonic, opener=None):
         self.min_interval, self.last, self.backed_off = 1.0 / rps, 0.0, False
+        self.deadline: datetime | None = None  # a backoff never sleeps past it
         self.sleep, self.clock = sleep, clock
         self.open = opener or (lambda req: urllib.request.urlopen(req, timeout=30))
 
@@ -77,7 +84,10 @@ class Fetcher:
                     # Once per run: wait as asked, then stay at 1 request per second. Losing the whole night's
                     # fetch to one 429 costs more than a minute's pause.
                     self.backed_off, self.min_interval = True, max(self.min_interval, 1.0)
-                    self.sleep(retry_after(e.headers))
+                    wait = retry_after(e.headers)
+                    if self.deadline and datetime.now(timezone.utc) + timedelta(seconds=wait) >= self.deadline:
+                        raise Stop(f"HTTP 429 on {url}; its {wait} s backoff would pass the deadline") from e
+                    self.sleep(wait)
                     attempt -= 1  # the backoff isn't the one retry
                     continue
                 if e.code in (403, 429):
@@ -138,10 +148,15 @@ def fetch(args, f: Fetcher) -> int:
     sources = read_jsonl(SOURCES)
     event_dates = {s["url"]: s.get("dates") for s in sources}
     done = {r["url"] for r in read_jsonl(OUT)} | {r["url"] for r in read_jsonl(REJECTED)}
-    summarized = {(r["url"], r["event"]["url"]) for r in read_jsonl(SUMMARIES)}
+    have_summary = {(r["url"], r["event"]["url"]) for r in read_jsonl(SUMMARIES)}
     gallery_only = getattr(args, "gallery_only", False)
     deadline = datetime.fromisoformat(args.deadline) if args.deadline else None
-    counts = {"discovered": 0, "fetched": 0, "parsed": 0, "deduplicated": 0, "written": 0, "summarized": 0}
+    # The stop line's format is parsed by corpus/release/run.py: summaries are counted apart and printed on their
+    # own line so that line stays byte-for-byte what release expects.
+    counts = {"discovered": 0, "fetched": 0, "parsed": 0, "deduplicated": 0, "written": 0}
+    summarized = 0
+    if isinstance(f, Fetcher):
+        f.deadline = deadline
     rejected: dict[str, int] = {}
     seen: set[str] = set()
     stop_reason = "frontier exhausted"
@@ -150,7 +165,7 @@ def fetch(args, f: Fetcher) -> int:
         return bool(deadline and datetime.now(timezone.utc) >= deadline)
 
     def at_limit() -> bool:
-        return bool(args.limit and counts["summarized" if gallery_only else "written"] >= args.limit)
+        return bool(args.limit and (summarized if gallery_only else counts["written"]) >= args.limit)
 
     try:
         with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ:
@@ -165,10 +180,12 @@ def fetch(args, f: Fetcher) -> int:
                         break
                     prev = urls
                     for card in parse_gallery_cards(html, src["gallery"]):
-                        if (card["url"], src["url"]) not in summarized:
-                            summarized.add((card["url"], src["url"]))
+                        if gallery_only and at_limit():
+                            break
+                        if (card["url"], src["url"]) not in have_summary:
+                            have_summary.add((card["url"], src["url"]))
                             summ.write(json.dumps(summary_record(card, src, now())) + "\n")
-                            counts["summarized"] += 1
+                            summarized += 1
                     summ.flush()
                     if gallery_only:
                         continue
@@ -201,7 +218,8 @@ def fetch(args, f: Fetcher) -> int:
     except Stop as e:
         stop_reason = str(e)
     rate = f" at {f.rate}" if isinstance(f, Fetcher) else ""
-    print(f"fetch: stopped ({stop_reason}){rate}; " + ", ".join(f"{k} {v}" for k, v in counts.items())
+    print(f"fetch: summarized {summarized} gallery cards{rate}")
+    print(f"fetch: stopped ({stop_reason}); " + ", ".join(f"{k} {v}" for k, v in counts.items())
           + f", rejected {sum(rejected.values())} {rejected or ''}".rstrip())
     return 0
 

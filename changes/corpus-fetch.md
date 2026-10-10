@@ -5,7 +5,7 @@
 ## How to check it
 verify: `node scripts/verify.mjs corpus-fetch /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-fetch/20261010T100020Z` pass at 2c8dfe0 (uncommitted changes) (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-fetch/20261010T100020Z)
 Live run: `fetch --limit 100` -> `discovered 101, fetched 100, parsed 100, deduplicated 0, written 100, rejected 0`; 3 random records' titles matched their live pages.
-Gallery capture and rate: `node scripts/verify.mjs corpus-fetch .../20261010T213857Z` pass (15 tests: card parser on saved real HTML, summaries and resume, gallery-only skips project pages, 2/s pacing, 429 backoff, second 429 and 403 stop, `--rps` ceiling).
+Gallery capture and rate: `verify.py --slug corpus-fetch` pass (19 tests: card parser on saved real HTML, summaries and resume, gallery-only skips project pages and counts --limit per card, 2/s pacing, 429 backoff incl. HTTP-date Retry-After and the deadline, second 429 and 403 stop, `--rps` ceiling, and corpus/release's own parser still reads the stop line).
 ## Gaps
 - The full corpus run hasn't happened yet: it's operations, not this PR. Size unknown until it runs.
 - Event `dates` are known only for galleries in `sources.jsonl`; other events a project lists stay null.
