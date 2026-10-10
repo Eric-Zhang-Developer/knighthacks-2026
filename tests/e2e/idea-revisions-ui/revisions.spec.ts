@@ -10,9 +10,19 @@ const panel = (page: Page) => page.getByRole("region", { name: "Revisions" });
 const trailOf = async (page: Page, ideaId: string) =>
   (await (await page.request.get(`/api/revisions/trail/${ideaId}`)).json()) as { versionId: string; parentId: string | null }[];
 
-test("reject changes nothing, accept makes version 2, and the trail previews version 1", async ({ page }) => {
+for (const format of ["legacy", "claim"] as const) test(`${format} reasons have claim badges; reject, accept, and trail still work`, async ({ page }) => {
   test.setTimeout(180_000);
   expect(process.env.AI_STUB_DIR, "Start the server with AI_STUB_DIR=tests/e2e/idea-revisions-ui/fixtures").toBeTruthy();
+  await page.route("**/api/revisions/propose", async (route) => {
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    const body = await response.json();
+    body.suggestions = body.suggestions.map((s: { reason: string | { text: string; label: string; sourceIds: string[] } }) => {
+      const claim = typeof s.reason === "string" ? { text: s.reason, label: "inferred", sourceIds: [] } : s.reason;
+      return { ...s, reason: format === "legacy" ? claim.text : claim };
+    });
+    await route.fulfill({ response, json: body });
+  });
   await page.goto("/");
   await expect(page.locator("[data-workspace-id]")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals.");
@@ -28,6 +38,10 @@ test("reject changes nothing, accept makes version 2, and the trail previews ver
   await panel(page).getByRole("button", { name: "Suggest revisions" }).click();
   const suggestions = panel(page).getByRole("list", { name: "Suggestions" }).getByRole("listitem");
   await expect(suggestions).toHaveCount(proposal.suggestions.length);
+  for (const [index, suggestion] of proposal.suggestions.entries()) {
+    await expect(suggestions.nth(index)).toContainText(suggestion.reason);
+    await expect(suggestions.nth(index).locator('[data-label="inferred"]'), "Each model-written reason needs a visible claim label").toBeVisible();
+  }
 
   // Reject: the suggestion goes, nothing else changes, and the database has no new version.
   await suggestions.first().getByRole("button", { name: "Reject" }).click();

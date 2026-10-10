@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { PanelState } from "@/components/ui";
 import { initWorkspace, post } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
-import { lerpStar, replaceStar, versionNumber, type Suggestion, type Version } from "./trail";
+import { lerpStar, replaceStar, versionNumber, type ClaimSuggestion as Suggestion, type Version } from "./trail";
+import { RevisionReason } from "./reason";
 import styles from "./revisions.module.css";
 
 const FIELDS = ["title", "description", "audience", "problem", "workflow", "constraints"] as const;
@@ -141,7 +142,7 @@ export default function Revisions() {
               <p>
                 <strong>{s.field}:</strong> {s.change}
               </p>
-              <p className={styles.meta}>{s.reason}</p>
+              <p className={styles.meta}><RevisionReason reason={s.reason} /></p>
               <div className={styles.actions}>
                 <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => accept(s)}>
                   Accept
