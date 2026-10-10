@@ -24,7 +24,7 @@ const ghPr = (n: number, state: "open" | "closed") => ({
 });
 // A fake GitHub: these PRs, no issues, main's last run red, PR 1's checks failing and every other PR's absent.
 const github = (prs: ReturnType<typeof ghPr>[]) =>
-  vi.fn(async (url: string, _init?: RequestInit) => {
+  vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (url) => {
     if (url.includes("/pulls?")) return json(prs);
     if (url.includes("/issues?")) return json([]);
     if (url.includes("/actions/runs?")) return json({ workflow_runs: [{ conclusion: "failure", html_url: "run-url" }] });

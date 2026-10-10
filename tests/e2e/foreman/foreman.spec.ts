@@ -137,3 +137,30 @@ test("clicking a feature opens its card in place; Escape closes it", async ({ pa
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
 });
+
+test("charts: hovering the build-up and a timeline bar shows their tooltips; both have a table view", async ({ page }) => {
+  test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN draws no charts");
+  await page.goto("/foreman");
+  const build = page.getByRole("figure", { name: /features built over time/i });
+  const svg = build.locator("svg");
+  await svg.scrollIntoViewIfNeeded();
+  // Hydration attaches the hover handler; retry the move until the tooltip answers.
+  await expect(async () => {
+    const box = (await svg.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.6);
+    await expect(page.getByTestId("buildup-tip")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(page.getByTestId("buildup-tip")).toContainText(/\d+ built/);
+  await build.screenshot({ path: test.info().outputPath("foreman-buildup.png") });
+
+  const crew = page.getByRole("figure", { name: /every pr by worker/i });
+  await crew.scrollIntoViewIfNeeded();
+  await crew.locator("svg a rect").first().hover({ force: true });
+  await expect(page.getByTestId("timeline-tip")).toContainText(/#\d+/);
+  await crew.screenshot({ path: test.info().outputPath("foreman-timeline.png") });
+
+  for (const fig of [build, crew]) {
+    await fig.getByText("table", { exact: true }).click();
+    await expect(fig.locator("table tbody tr").first()).toBeVisible();
+  }
+});

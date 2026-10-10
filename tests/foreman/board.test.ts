@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { buildBoard, layers, pace, statesAt, type PR, type Raw } from "@/lib/foreman/board";
+import { buildUp, timeline } from "@/lib/foreman/charts";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
@@ -202,4 +203,53 @@ test("a cut feature still in its milestone's features with dependencies done is 
   expect(asks).toEqual(["e is cut but still pickable"]); // e: cut in core, no deps, core not shipped
   const later = buildBoard(raw, Date.parse("2026-10-10T16:00:00-04:00")).asks.filter((a) => a.kind === "pickable");
   expect(later).toEqual([]); // core has shipped: nothing left to pick
+});
+
+const Z = (hm: string) => Date.parse(`2026-10-10T${hm}:00Z`);
+
+test("build-up: a step per built feature at its merge, one target at the final freeze, and the pace line to it", () => {
+  const b = buildUp(buildBoard(raw, NOW), NOW)!;
+  expect(b.steps).toEqual([
+    { t: Z("12:00"), built: 0, slug: null }, // the first PR
+    { t: Z("12:30"), built: 1, slug: "a" },
+  ]);
+  // submission is final: ship Sun 10:45 EDT, freeze 4:45 before = Sun 10:00Z. Live features: core's a-d (e cut).
+  const freeze = Date.parse("2026-10-11T10:00:00Z");
+  expect(b.target).toEqual({ t: freeze, total: 4, built: null });
+  // 1 built in the last 3h -> 1/3 per hour; the 3 left land in 9h (23:00Z), before the freeze. The line stops at the
+  // target there: a straight-line rate past every planned feature would claim features that don't exist.
+  expect(b.projection).toEqual({ t: Z("23:00"), built: 4, eta: Z("23:00") });
+  expect(b.end).toBe(freeze);
+  expect(buildUp(buildBoard({ ...raw, prs: [], prsKnown: false }, NOW), NOW)).toBeNull();
+});
+
+test("build-up: no pace in the last 3h means no projection, not a flat line", () => {
+  const later = Z("16:00"); // a merged 12:30, outside the 3h window
+  expect(buildUp(buildBoard(raw, later), later)!.projection).toBeNull();
+});
+
+test("crew timeline: a row per named worker, bars from open to merge or the snapshot, and the most open at once", () => {
+  const t = timeline(raw.prs, NOW)!;
+  expect(t.rows.map((r) => r.worker)).toEqual(["kiro-agent-1"]);
+  const bars = Object.fromEntries(t.rows[0].bars.map((b) => [b.number, [b.group, b.state, b.end]]));
+  expect(bars).toEqual({
+    1: ["feature", "merged", Z("12:30")],
+    2: ["fix", "merged", Z("13:30")],
+    3: ["feature", "open", NOW], // still open: ends at the snapshot
+    4: ["rules", "open", NOW],
+    5: ["feature", "open", NOW],
+  });
+  expect(t.rows[0].bars[0].number).toBe(1); // earliest first
+  // #1 ends 12:30 before the others open at 13:00, so #3 reuses its sub-row; #4, #5 and #2 overlap #3 and each other.
+  expect(Object.fromEntries(t.rows[0].bars.map((b) => [b.number, b.lane]))).toEqual({ 1: 0, 3: 0, 4: 1, 5: 2, 2: 3 });
+  expect(t.rows[0].lanes).toBe(4);
+  // 12:00 #1 opens; 12:30 it merges; 13:00 four open; 13:30 #2 merges.
+  expect(t.open).toEqual([
+    { t: Z("12:00"), n: 1 },
+    { t: Z("12:30"), n: 0 },
+    { t: Z("13:00"), n: 4 },
+    { t: Z("13:30"), n: 3 },
+  ]);
+  expect(t.peak).toEqual({ t: Z("13:00"), n: 4 });
+  expect(timeline([], NOW)).toBeNull();
 });

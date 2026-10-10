@@ -1069,3 +1069,79 @@
   color: var(--amber);
   font-weight: 500;
 }
+
+/* ---- charts (spec § Charts): recessive axes, text in text tokens, colour only on marks ---- */
+.chart {
+  margin: 0;
+}
+.chartWrap {
+  position: relative;
+  overflow-x: auto;
+}
+.chartSvg {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+  padding: 14px 16px 4px;
+}
+.axis {
+  fill: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.chartLabel {
+  fill: var(--text);
+  font-size: 11px;
+}
+.tip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  max-width: 340px;
+  padding: 6px 10px;
+  background: var(--ink);
+  border: 1px solid var(--amber);
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.45;
+  pointer-events: none;
+  z-index: 3;
+}
+.tip span {
+  display: block;
+  color: var(--dim);
+}
+.legend i.dash {
+  height: 0;
+  border-top: 2px dashed;
+  vertical-align: 3px;
+}
+.legend i.ring {
+  border-radius: 50%;
+  border: 2px solid var(--text);
+}
+.legend i.hollow {
+  border: 1.5px solid var(--dim);
+}
+.tableView {
+  padding: 4px 16px 12px;
+  font-size: 11px;
+  color: var(--dim);
+}
+.tableView summary {
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.tableView table {
+  margin-top: 8px;
+  border-collapse: collapse;
+  width: 100%;
+}
+.tableView th,
+.tableView td {
+  text-align: left;
+  padding: 3px 10px 3px 0;
+  border-bottom: 1px solid var(--line);
+}
