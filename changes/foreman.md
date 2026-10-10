@@ -5,7 +5,7 @@
 `app/foreman/page.tsx`, `components/foreman/`, `lib/foreman/` (`github.ts` reads, `board.ts` + `parse.ts` model), `tests/foreman/`, `tests/e2e/foreman/`.
 
 ## How to check it
-- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T135722Z` pass at f3400bc (uncommitted changes)
+- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T135902Z` pass at 9260b4b
 
 ## Gaps
 - The replay (scrub through merges) isn't built yet; it comes next as `fix(foreman)`.
