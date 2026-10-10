@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { dur, layers, type Feature, type State } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
 
@@ -89,6 +89,14 @@ export default function Graph({
   const critical = shown ? new Set<string>() : live;
   const stateOf = (f: Feature) => shown?.get(f.slug) ?? f.state;
   const [focus, setFocus] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPicked(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const by = useMemo(() => new Map(features.map((f) => [f.slug, f])), [features]);
 
   // Hovering a feature lights up everything it waits on and everything waiting on it.
   const lit = useMemo(() => {
@@ -152,14 +160,21 @@ export default function Graph({
                 : [f.pr ? `#${f.pr.number}` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
                   .filter(Boolean)
                   .join(" · ");
-            const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/specs/features/${f.slug}`;
+            const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/${f.specDir}`;
             return (
               <a
                 key={f.slug}
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""}`}
+                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""}`}
+                // A plain click opens the card in place; cmd/ctrl/shift-click still opens GitHub.
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  setPicked(picked === f.slug ? null : f.slug);
+                }}
+                aria-expanded={picked === f.slug}
                 onMouseEnter={() => setFocus(f.slug)}
                 onMouseLeave={() => setFocus(null)}
                 onFocus={() => setFocus(f.slug)}
@@ -204,6 +219,9 @@ export default function Graph({
           })}
         </svg>
       </div>
+      {picked && by.has(picked) && (
+        <FeatureCard f={by.get(picked)!} by={by} features={features} repo={repo} onClose={() => setPicked(null)} />
+      )}
       <div className={styles.legend}>
         {(Object.keys(STATE) as State[]).map((k) => (
           <span key={k}>
@@ -225,5 +243,80 @@ export default function Graph({
         </span>
       </div>
     </>
+  );
+}
+
+function FeatureCard({
+  f,
+  by,
+  features,
+  repo,
+  onClose,
+}: {
+  f: Feature;
+  by: Map<string, Feature>;
+  features: Feature[];
+  repo: string;
+  onClose: () => void;
+}) {
+  const waiting = features.filter((x) => x.deps.includes(f.slug));
+  const chip = (slug: string) => {
+    const x = by.get(slug);
+    const s = STATE[x?.state ?? "backlog"];
+    return (
+      <span key={slug} className={styles.chip} style={{ borderColor: s.stroke, color: s.text }}>
+        {slug}
+      </span>
+    );
+  };
+  const facts = [
+    ["state", STATE[f.state].label + (f.missed ? ` · missed ${f.milestone}` : "")],
+    ["milestone", f.milestone ?? "none (backlog)"],
+    ["worker", f.worker ?? "unknown"],
+    ["build time", f.buildMin !== null ? `${dur(f.buildMin)}, first PR to merge` : f.state === "done" ? "unknown" : "not built yet"],
+    ["verified", f.verified === null ? "not done yet" : f.verified ? "yes, verify.py passed" : "no"],
+    ["fixes after", String(f.fixes)],
+  ];
+  return (
+    <section className={styles.card} aria-label={`Feature ${f.slug}`}>
+      <div className={styles.cardHead}>
+        <span className={`${styles.cardSlug} ${styles.stencil}`}>{f.slug}</span>
+        <button type="button" className={styles.sinceClose} onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+      <p className={styles.cardName}>{f.name}</p>
+      <dl className={styles.facts}>
+        {facts.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {f.shipped && <p className={styles.cardLine}>Shipped: {f.shipped}</p>}
+      {f.gap && <p className={`${styles.cardLine} ${styles.cardGap}`}>Gap: {f.gap}</p>}
+      <div className={styles.cardDeps}>
+        <span>waits on</span> {f.deps.length ? f.deps.map(chip) : "nothing"}
+      </div>
+      <div className={styles.cardDeps}>
+        <span>needed by</span> {waiting.length ? waiting.map((x) => chip(x.slug)) : "nothing"}
+      </div>
+      <div className={styles.cardLinks}>
+        <a href={`https://github.com/${repo}/tree/main/${f.specDir}`} target="_blank" rel="noreferrer">
+          spec ↗
+        </a>
+        {f.pr && (
+          <a href={f.pr.url} target="_blank" rel="noreferrer">
+            open PR #{f.pr.number} ↗
+          </a>
+        )}
+        {f.state === "done" && (
+          <a href={`https://github.com/${repo}/blob/main/changes/${f.slug}.md`} target="_blank" rel="noreferrer">
+            done note ↗
+          </a>
+        )}
+      </div>
+    </section>
   );
 }

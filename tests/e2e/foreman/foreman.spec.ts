@@ -92,3 +92,15 @@ test("since you last looked: an earlier visit shows what merged after it; a relo
   await expect(page.getByTestId("replay-info")).toBeVisible();
   await expect(since).toHaveCount(0);
 });
+
+test("clicking a feature opens its card in place; Escape closes it", async ({ page }) => {
+  await page.goto("/foreman");
+  await page.locator('svg a[data-slug="galaxy"]').click();
+  const card = page.getByRole("region", { name: "Feature galaxy" });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("waits on");
+  await expect(card.getByRole("link", { name: /spec/ })).toHaveAttribute("href", /\/specs\/(features|shipped\/[^/]+)\/galaxy$/);
+  await page.screenshot({ path: test.info().outputPath("foreman-card.png") });
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+});

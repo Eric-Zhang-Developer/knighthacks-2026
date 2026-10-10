@@ -77,6 +77,7 @@ test("states follow AGENTS.md: done, in flight, ready, blocked, cut, backlog", (
   expect(state).toEqual({ a: "done", b: "flight", c: "blocked", d: "flight", e: "cut", f: "backlog", foreman: "ready" });
   expect(b.features.find((f) => f.slug === "a")).toMatchObject({ verified: true, fixes: 1, doneAt: "2026-10-10T12:30:00Z" });
   expect(b.features.find((f) => f.slug === "d")?.worker).toBe("kiro-agent-1");
+  expect(b.features.find((f) => f.slug === "d")?.specDir).toBe("specs/features/d");
 });
 
 test("milestones count done of total without cut features, and resolve every time form", () => {

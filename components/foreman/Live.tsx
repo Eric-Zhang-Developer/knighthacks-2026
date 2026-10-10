@@ -68,11 +68,22 @@ export function AutoRefresh({ every = 60_000 }: { every?: number }) {
   return null;
 }
 
-export function HeaderClock({ now: initial, start, fetchedAt }: { now: number; start: number | null; fetchedAt: string }) {
+export function HeaderClock({
+  now: initial,
+  start,
+  fetchedAt,
+  children,
+}: {
+  now: number;
+  start: number | null;
+  fetchedAt: string;
+  children?: React.ReactNode;
+}) {
   const now = useNow(initial);
   const age = Math.round((now - Date.parse(fetchedAt)) / 1000);
   return (
     <div className={styles.meta}>
+      {children}
       <span className={styles.live}>
         <b>{clock(now)}</b> EDT
       </span>
