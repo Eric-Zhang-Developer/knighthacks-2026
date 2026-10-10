@@ -1,0 +1,8 @@
+## What shipped
+The challenge panel resumes the active version's latest session after a reload or version switch, from the read-only `GET /api/workspace/state` (no model call, no new session): stored rounds with answers, outcomes and prove-it experiments; an open question shows its answer box and answering continues the same session; a round that never finished reads "This round didn't finish". A session stuck generating or answering shows "Still working" with "Check again" (one read per click) and, under three rounds, "Skip to the next round" (a live lease answers "Still working; try again shortly"); at round 3 it reads as ended with "Start over". Accepting a revision mid-challenge keeps the session on the new version.
+## Where it lives
+`components/challenge/index.tsx`, `components/challenge/rounds.ts`; `tests/challenge-resume-ui/`, `tests/e2e/challenge-resume-ui/`; `specs/decisions/challenge-resume-ui-followed-version.md`.
+## How to check it
+verify: `node scripts/verify.mjs challenge-resume-ui .git/agent-evidence/challenge-resume-ui/20261010T202332Z` pass at c2bbf9f (Mac; Neon test branch; real routes; generation fixtures; stuck sessions seeded with live and expired leases; screenshots `resumed.png`, `stuck.png`). Unchanged suites at c2bbf9f: challenge-ui 20261010T202449Z, prove-it-ui 20261010T202618Z, change-mind-ui 20261010T202724Z pass; constellation-ui failed once on its geometry check, then passed twice (20261010T202938Z, 20261010T203038Z).
+## Gaps
+The state route doesn't expose the lease, so a stuck session can't say whether skipping will work until it's tried. constellation-ui's geometry check is flaky (fix to follow).
