@@ -11,7 +11,7 @@ const schema = z.object({ message: z.string() });
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("GEMINI_API_KEY", "test-secret"); vi.stubEnv("GEMINI_MODEL", "test-model");
-  vi.stubEnv("AI_STUB_DIR", ""); vi.stubEnv("VERCEL", ""); vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv("AI_STUB_ALLOW", ""); vi.stubEnv("AI_STUB_DIR", ""); vi.stubEnv("VERCEL", ""); vi.stubEnv("NODE_ENV", "test");
   vi.stubEnv("ANTHROPIC_API_KEY", ""); vi.stubEnv("ANTHROPIC_MODEL", ""); vi.stubEnv("ANTHROPIC_WORKSPACE_ID", ""); vi.stubEnv("AI_PROVIDER", "");
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -99,4 +99,22 @@ test("claim checks only downgrade unsupported provenance and never mutate input"
   expect(checked.map((c) => c.label)).toEqual(["unverified", "unverified", "supported", "inferred", "unverified"]);
   expect(claims[0].label).toBe("supported");
   checked[2].sourceIds.push("other"); expect(claims[2].sourceIds).toEqual(["known"]);
+});
+
+test.each([
+  ["production", "1", "", true],
+  ["production", "", "", false],
+  ["production", "true", "", false],
+  ["production", " 1", "", false],
+  ["production", "1", "1", false],
+  ["test", "1", "1", false],
+] as const)("fixture boundary: environment=%s opt-in=%s deployed=%s", async (mode, flag, deployed, allowed) => {
+  vi.stubEnv("NODE_ENV", mode); vi.stubEnv("AI_STUB_ALLOW", flag); vi.stubEnv("VERCEL", deployed);
+  vi.stubEnv("AI_STUB_DIR", resolve("tests/ai-client/fixtures"));
+  useClaude();
+  const result = generate({ prompt: { text: "fixture", stubKey: "smoke" }, schema });
+  if (allowed) await expect(result).resolves.toEqual({ message: "AI client fixture verified" });
+  else await expect(result).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
+  expect(construct).not.toHaveBeenCalled(); expect(claudeConstruct).not.toHaveBeenCalled();
+  expect(call).not.toHaveBeenCalled(); expect(claude).not.toHaveBeenCalled();
 });
