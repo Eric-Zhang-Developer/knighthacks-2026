@@ -1,7 +1,7 @@
 ---
 name: Colour the galaxy by domain, ring prize winners, and filter by both
 depends_on: [galaxy, search-filters-ui]
-owns: [components/classes/, lib/classes/, components/galaxy/Scene.tsx, components/galaxy/stars.ts, components/galaxy/index.tsx, components/galaxy/galaxy.module.css, components/search/, components/drawer/, tests/galaxy-classes-ui/, tests/e2e/galaxy-classes-ui/]
+owns: [components/classes/, lib/classes/, components/galaxy/Scene.tsx, components/galaxy/stars.ts, components/galaxy/index.tsx, components/galaxy/galaxy.module.css, components/search/, components/drawer/, tests/galaxy-classes-ui/, tests/e2e/galaxy-classes-ui/, app/api/classes/]
 assignee: ""
 ---
 
@@ -28,7 +28,9 @@ up with no code change. The done note says whether the real file was on main at 
    sponsor.
 7. Idea focus (design reference: video frames): while an idea version is active, draw a line from the idea star to
    each of its `neighborIds` (stored neighbours only, no other edges). Neighbours keep their colour; other stars dim.
-   Clearing the idea restores the map. With reduced motion, there's no animated transition.
+   Clearing the idea restores the map: "Show the whole map" in the legend clears the focus while the idea stays
+   selected (the other panels need it), and the next idea is focused again. With reduced motion, there's no animated
+   transition.
 8. Region labels: put a domain's name and count at its stars' centroid only when that domain is compact (the median
    distance of its stars to their centroid is under 0.6 × the median distance of all stars to the corpus centre).
    Otherwise the legend alone names it. Labels never cover the idea star.
@@ -55,6 +57,8 @@ up with no code change. The done note says whether the real file was on main at 
 ## Ownership note
 `components/galaxy/index.tsx` and its CSS were added to `owns` while building (eric-frontend-agent, #289): the star
 visibility mask and the project list that Plan 2 and 4 filter live there, not in `Scene.tsx` or `stars.ts`.
+`app/api/classes/` was added too: the browser reads the file through it, so a not-yet-published file is a 204, not
+a 404 that the galaxy and bootstrap suites' console-error checks would catch on every page.
 
 ## Defaults
 Palette: 14 distinguishable muted hues on the dark map, checked for contrast against the background. Mount the

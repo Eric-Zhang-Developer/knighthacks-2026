@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Legend from "@/components/classes";
 import History from "@/components/history";
 import { initWorkspace } from "@/components/workspace/api";
-import { colourOf, compactRegions, keyOf, loadClasses, matches, useClasses, wins, type ClassesFile } from "@/lib/classes";
+import { colourOf, compactRegions, keyOf, loadClasses, matches, setFocus, useClasses, wins, type ClassesFile } from "@/lib/classes";
 import { setState, useAppState } from "@/lib/store";
 import type { Hover } from "./Scene";
 import { createdLabel, parseStars, revealMask, yearsOf, type StarsFile } from "./stars";
@@ -25,6 +25,7 @@ export default function Galaxy() {
   const ideaStars = useAppState((s) => s.ideaStars);
   const classes = useClasses((s) => s.load);
   const filter = useClasses((s) => s.filter);
+  const focusOn = useClasses((s) => s.focus);
   const [neighbors, setNeighbors] = useState<string[] | null>(null);
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
 
@@ -48,6 +49,7 @@ export default function Galaxy() {
   useEffect(() => {
     let live = true;
     setNeighbors(null);
+    setFocus(true); // a new idea is focused again
     if (activeIdea) neighborsOf(activeIdea).then((n) => live && setNeighbors(n));
     return () => {
       live = false;
@@ -66,7 +68,7 @@ export default function Galaxy() {
   const colourAt = useMemo(() => (data ? (i: number) => colourOf(data, data.projects[ids[i]]) : undefined), [data, ids]);
   const ringAt = useMemo(() => (data ? (i: number) => wins(data.projects[ids[i]], filter.event).length > 0 : undefined), [data, ids, filter.event]);
   // Idea focus: the active idea's stored neighbours keep their colour, every other star dims, and one line runs to each.
-  const focus = useMemo(() => (neighbors ? new Set(neighbors) : null), [neighbors]);
+  const focus = useMemo(() => (neighbors && focusOn ? new Set(neighbors) : null), [neighbors, focusOn]);
   const dimAt = useMemo(() => (focus ? (i: number) => !focus.has(ids[i]) : undefined), [focus, ids]);
   const lines = useMemo(() => {
     const from = ideaStars.find((s) => s.versionId === activeIdea);
@@ -137,7 +139,7 @@ export default function Galaxy() {
         </div>
       )}
       <div className={styles.controls}>
-        <Legend ids={ids} shown={(i) => revealed[i] === 1} events={events} />
+        <Legend ids={ids} shown={(i) => revealed[i] === 1} events={events} focusable={neighbors !== null} />
         {years.length > 0 && (
           <History
             years={years}

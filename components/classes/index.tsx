@@ -1,20 +1,29 @@
 "use client";
 
-import { counts, MIXED, NEUTRAL, PALETTE, setClassFilter, UNCLEAR, useClasses } from "@/lib/classes";
+import { counts, MIXED, NEUTRAL, PALETTE, setClassFilter, setFocus, UNCLEAR, useClasses } from "@/lib/classes";
 import styles from "./classes.module.css";
 
 const rgb = (c: readonly number[]) => `rgb(${c.map((v) => Math.round(v * 255)).join(" ")})`;
 
 // The map's key: each category with its count, a prize-winner toggle, and a summary of the loaded universe. Every
 // number is counted from the loaded files. `ids` and `shown` are the stars on the map before the category filter.
-export default function Legend({ ids, shown, events }: { ids: string[]; shown: (i: number) => boolean; events: number }) {
+// `focusable`: an idea is active and its neighbours are known, so the map can focus on it.
+export default function Legend(props: { ids: string[]; shown: (i: number) => boolean; events: number; focusable: boolean }) {
+  const { ids, shown, events, focusable } = props;
   const load = useClasses((s) => s.load);
   const filter = useClasses((s) => s.filter);
+  const focus = useClasses((s) => s.focus);
+  const focusToggle = focusable && (
+    <button type="button" className={styles.reset} onClick={() => setFocus(!focus)}>
+      {focus ? "Show the whole map" : "Focus on your idea"}
+    </button>
+  );
 
   if (load.state !== "ready") {
     return (
       <section className={`ui-panel ${styles.legend}`} aria-label="Categories">
         <p className={styles.muted}>{load.state === "loading" ? "Loading categories…" : "Categories not loaded"}</p>
+        {focusToggle}
       </section>
     );
   }
@@ -75,6 +84,7 @@ export default function Legend({ ids, shown, events }: { ids: string[]; shown: (
           Reset
         </button>
       )}
+      {focusToggle}
       <p className={styles.muted}>Categories are inferred by a model from each project&apos;s own text.</p>
     </section>
   );

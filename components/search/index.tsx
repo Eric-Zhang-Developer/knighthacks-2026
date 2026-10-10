@@ -27,7 +27,6 @@ export default function Search() {
   const classData = classes.state === "ready" ? classes.data : null;
   // Category and prize filter what search returns; they never change how it ranks.
   const keep = useMemo(() => (h: { id: string }) => matches(classData, h.id, classFilter), [classData, classFilter]);
-  const classFiltered = classFilter.key !== null || classFilter.prize !== "";
   // The selection from before this search; undefined while no search is active.
   const saved = useRef<string | null | undefined>(undefined);
 
@@ -40,7 +39,8 @@ export default function Search() {
 
   useEffect(() => {
     const query = q.trim();
-    if (!query && !filters.event && !filters.year && !classFiltered) {
+    // Category and prize alone show on the map, legend and list; only a query, event or year opens this panel.
+    if (!query && !filters.event && !filters.year) {
       if (saved.current !== undefined) setState({ highlightedIds: [], selectedProjectId: saved.current });
       saved.current = undefined;
       setView({ state: "idle" });
@@ -67,7 +67,7 @@ export default function Search() {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [q, filters, stars, keep, classFiltered]);
+  }, [q, filters, stars, keep]);
 
   const data = useMemo(() => {
     if (view.state !== "done") return null;

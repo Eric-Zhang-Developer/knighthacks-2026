@@ -97,13 +97,16 @@ export function counts(data: ClassesFile, ids: string[], keep: (i: number) => bo
 }
 
 // One shared load and filter, read by the galaxy, legend, search and drawer.
-type Shared = { load: Load; filter: ClassFilter };
-let shared: Shared = { load: { state: "loading" }, filter: NO_FILTER };
+// `focus`: whether an active idea dims the map to its neighbours. It turns off without deselecting the idea, which the
+// other panels depend on, and comes back on for the next idea.
+type Shared = { load: Load; filter: ClassFilter; focus: boolean };
+let shared: Shared = { load: { state: "loading" }, filter: NO_FILTER, focus: true };
 const listeners = new Set<() => void>();
 const set = (patch: Partial<Shared>) => {
   shared = { ...shared, ...patch };
   listeners.forEach((l) => l());
 };
+export const setFocus = (focus: boolean) => set({ focus });
 export const setClassFilter = (patch: Partial<ClassFilter>) => set({ filter: { ...shared.filter, ...patch } });
 export function useClasses<T>(select: (s: Shared) => T): T {
   return useSyncExternalStore(
@@ -117,8 +120,8 @@ let started: string | null = null;
 export function loadClasses(corpusVersion: string) {
   if (started === corpusVersion) return;
   started = corpusVersion;
-  fetch("/classify/classes.json")
-    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("not found"))))
+  fetch("/api/classes")
+    .then((r) => (r.status === 200 ? r.json() : Promise.reject(new Error("not found"))))
     .then((json) => set({ load: parseClasses(json, corpusVersion) }))
     .catch(() => set({ load: { state: "missing", reason: "categories not loaded" } }));
 }
