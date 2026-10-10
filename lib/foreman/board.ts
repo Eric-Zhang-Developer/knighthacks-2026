@@ -92,7 +92,15 @@ export type Board = {
   features: Feature[];
   asks: Ask[];
   lanes: Lane[];
-  stats: { merged: number; byKind: Record<string, number>; medianOpenMin: number | null; workers: number; reverts: number };
+  stats: {
+    merged: number;
+    byKind: Record<string, number>;
+    medianOpenMin: number | null;
+    workers: number;
+    reverts: number;
+    crew: number; // named workers with at least one merged PR
+    firstPrAt: string | null;
+  };
   heatBasis: "lines" | "activity";
   replay: { at: string; number: number; title: string; slug: string | null; kind: string | null }[];
 };
@@ -294,6 +302,8 @@ export function buildBoard(raw: Raw, now: number): Board {
       byKind,
       medianOpenMin: open.length ? open[Math.floor(open.length / 2)] : null,
       workers: recent.size,
+      crew: new Set(merged.map((p) => workerOf(p.body)).filter(Boolean)).size,
+      firstPrAt: titled.map((p) => p.createdAt).sort()[0] ?? null,
       reverts: byKind.revert ?? 0,
     },
     replay: merged

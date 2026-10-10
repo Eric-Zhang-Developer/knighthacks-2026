@@ -102,6 +102,18 @@ function Sections({ board, now }: { board: Board; now: number }) {
           ))}
         </div>
       </div>
+      <p className={styles.intro} data-testid="intro">
+        This is the build office for <b>Uncharted</b>. <b>{board.stats.crew}</b> agent workers, building in parallel under one
+        rulebook (<a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>), have merged{" "}
+        <b>{board.stats.merged}</b> PRs and built <b>{done}</b> of <b>{scheduled.length}</b> planned features
+        {board.stats.firstPrAt && (
+          <>
+            {" "}
+            since the first PR <b>{ago(now, board.stats.firstPrAt)}</b> ago
+          </>
+        )}
+        . Every number on this page is read live from GitHub.
+      </p>
       <Since replay={board.replay} features={board.features} now={now} />
 
       <section className={styles.section} aria-labelledby="ms">

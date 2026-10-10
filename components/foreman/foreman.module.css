@@ -998,3 +998,15 @@
 .pace[data-late] {
   color: var(--rust);
 }
+
+.intro {
+  max-width: 88ch;
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.intro b {
+  color: var(--amber);
+  font-weight: 500;
+}
