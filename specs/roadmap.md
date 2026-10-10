@@ -11,7 +11,7 @@ for is Best Overall (and Best AI). Each milestone keeps a working demo, so the a
 safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLAN.md` §2.
 
 ## Milestones
-- **safe-demo**, ships Sat 12:00 EDT: the bootstrap feature, then a galaxy of real projects you can explore and
+- **safe-demo**, ships Sat 14:00 EDT: the bootstrap feature, then a galaxy of real projects you can explore and
   search, where every star opens its source page (F01, F19, a short F20 explainer).
 - **core**, ships Sat 23:00: type or speak an idea, see it become a star with neighbor evidence cards, run one
   challenge, accept a revision and see the revision trail (F03, F04, F05, F06, F07, F09). Text first, voice right
