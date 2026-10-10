@@ -42,6 +42,10 @@ The spec is the source of truth. Chat and memory aren't. Everything you need is 
    `gh pr checks --watch && python3 .agents/scripts/pr_ready.py && gh pr merge --squash --delete-branch`.
    Not for `plan:` PRs, `contract:` PRs that change `AGENTS.md` (rules bind every future agent), or PRs a
    CODEOWNERS rule assigns to a person: those wait for a human.
+   If your PR adds a `db/schema/` table, complete the approved rollout in `specs/features/db-sync/spec.md`:
+   from clean, freshly fetched `origin/main`, review `node scripts/db-sync.mjs`, then run it with `--apply`
+   against production only if the plan is additive and has no drift. Paste the command and printed plan on your
+   PR, and confirm `/api/health/schema` returns 200 with `{"schema":"ok"}`. Coordinate on #113; never apply a drop.
 7. Once your PR is merged or closed, remove your worktree: each one holds a full checkout and its own installs, and
    leftovers fill the disk. From the project folder: `git worktree remove ~/.worktrees/<repo>/<slug> && git branch -D
    <slug>`. `remove` refuses a dirty tree: push or drop those changes on purpose, never `--force`. If you're stopping,
