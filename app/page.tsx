@@ -12,6 +12,9 @@ import Scorecard from "@/components/scorecard";
 import Search from "@/components/search";
 import Share from "@/components/share";
 import Nav from "@/components/shell";
+import Sheet from "@/components/shell/Sheet";
+import Starters from "@/components/shell/Starters";
+import Steps from "@/components/shell/Steps";
 import Snapshot from "@/components/snapshot";
 import Voice from "@/components/voice";
 import Votes from "@/components/votes";
@@ -26,7 +29,7 @@ export default function Home() {
       <div className={styles.top}>
         <p className={styles.brand}>
           <span className={styles.wordmark}>Uncharted</span>
-          <span className={styles.tagline}>a star chart of hackathon ideas</span>
+          <span className={styles.tagline}>Brainstorm among real hackathon projects</span>
         </p>
         <header className={styles.search} aria-label="Search">
           <Search />
@@ -48,19 +51,31 @@ export default function Home() {
         <Voice />
       </footer>
       <aside className={styles.side} aria-label="Idea and evidence">
-        <div className={styles.drawer}>
+        <Steps />
+        <Sheet>
           <Drawer />
-        </div>
+        </Sheet>
+        {/* The idea path in brainstorming order: explore and grow before anything judges the idea (defer
+            judgment), then test it, then decide and plan. Each group is one step in the step index. */}
         <div className={styles.ideaPath}>
-          <Idea />
-          <Evidence />
-          <Scorecard />
-          <Revisions />
-          <Challenge />
-          <Branches />
-          <Compare />
+          <div id="step-idea">
+            <Idea />
+            <Starters />
+          </div>
+          <div id="step-explore">
+            <Evidence />
+          </div>
+          <div id="step-grow">
+            <Revisions />
+            <Branches />
+            <Compare />
+          </div>
+          <div id="step-test">
+            <Scorecard />
+            <Challenge />
+          </div>
         </div>
-        <div className={styles.decide}>
+        <div id="step-decide" className={styles.decide}>
           {/* Decide's panels render nothing until an idea is saved; the phone says so instead of a blank screen. */}
           <p className={styles.empty}>Save an idea to vote on it, decide, and share it.</p>
           <Votes />
@@ -68,7 +83,7 @@ export default function Home() {
           <Share />
         </div>
         {/* The last step of the flow (Plan 6): its own phone destination, after Decide on desktop. */}
-        <div className={styles.plan}>
+        <div id="step-plan" className={styles.plan}>
           <p className={styles.empty}>Save an idea, then plan its build here.</p>
           <PlanStep />
         </div>
