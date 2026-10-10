@@ -11,8 +11,8 @@ const statement = "The fixture reports a problem in March 2025.";
 const undated = "The fixture describes an ongoing problem.";
 // Synthetic grounding fixtures exercise provenance; they are not factual corpus records.
 const grounded = { model: "fixture-model", text: `${statement} ${undated} This sentence has no support.`,
-  groundingChunks: [{ uri: "https://example.org/report", title: "Fixture report" }],
-  groundingSupports: [{ text: statement, chunkIndices: [0] }, { text: undated, chunkIndices: [0] }] };
+  groundingChunks: [{ uri: "https://example.org/report", title: "Fixture report" }, { uri: "https://vertexaisearch.cloud.google.com/grounding-api-redirect/fixture", title: "example.org" }],
+  groundingSupports: [{ text: statement, chunkIndices: [0] }, { text: undated, chunkIndices: [1] }] };
 
 test("grounded evidence is immutable, scoped, dated only from sources, and fails closed", async ({ playwright, baseURL }, info) => {
   test.setTimeout(240000);
@@ -37,21 +37,26 @@ test("grounded evidence is immutable, scoped, dated only from sources, and fails
   if (!live) {
     expect(process.env.AI_STUB_ALLOW).toBe("1"); expect(stub).toBeTruthy();
     await writeFile(join(stub, `${keys[0]}.json`), JSON.stringify(grounded));
-    await writeFile(join(stub, `${keys[1]}.json`), JSON.stringify({ items: [0, 1].map((s) => ({ id: `s${s}-c0`, about: "problem", relevance: "This may indicate a need for measurement." })) }));
-    await writeFile(join(stub, `${keys[2]}.json`), JSON.stringify({ "https://example.org/report": { url: "https://example.org/report", html: "<html><p>No publication date</p></html>" } }));
+    await writeFile(join(stub, `${keys[1]}.json`), JSON.stringify({ items: [0, 1].map((s) => ({ id: `s${s}-c${s}`, about: "problem", relevance: "This may indicate a need for measurement." })) }));
+    await writeFile(join(stub, `${keys[2]}.json`), JSON.stringify({ "https://example.org/report": { url: "https://example.org/report", html: "<html><p>No publication date</p></html>" }, "https://vertexaisearch.cloud.google.com/grounding-api-redirect/fixture": { url: null, html: "" } }));
   }
   const response = await owner.post(`/api/problem-evidence/${id}`, { headers, timeout: 120000 });
   expect(response.status()).toBe(200);
   const evidence = await response.json() as Evidence;
-  expect(evidence.items.some((item) => item.about === "problem")).toBe(true);
+  // Live Validation 1 requires at least one problem item with an attributable domain.
+  // Other unresolved sources may honestly retain an unknown domain.
+  expect(evidence.items.some((item) => item.about === "problem" && item.source.domain.trim() && item.source.domain !== "vertexaisearch.cloud.google.com")).toBe(true);
   const rows = await sql`select data, grounding from problem_evidence where version_id=${id}::uuid`;
   expect(rows).toHaveLength(1);
   const receipt = rows[0].grounding as Grounded;
   for (const item of evidence.items) {
     expect(receipt.groundingSupports.some((s) => s.text === item.claim.text && s.chunkIndices.length)).toBe(true);
-    expect(item.claim.label).toBe("supported"); expect(item.relevance.label).toBe("inferred"); expect(item.source.domain).toBeTruthy();
+    expect(item.source.domain).not.toBe("vertexaisearch.cloud.google.com");
+    expect(item.claim.label).toBe("supported"); expect(item.relevance.label).toBe("inferred"); expect(typeof item.source.domain).toBe("string");
   }
   if (!live) {
+    expect(evidence.items.every((i) => i.source.domain === "example.org")).toBe(true);
+    expect(evidence.items.find((i) => i.id === "s1-c1")?.source.url).toBeNull();
     expect(evidence.items.map((i) => i.claim.text)).toEqual([statement, undated]);
     expect(evidence.items.map((i) => i.eventDate)).toEqual(["March 2025", null]);
     expect(evidence.items.every((i) => i.publishedAt === null)).toBe(true);

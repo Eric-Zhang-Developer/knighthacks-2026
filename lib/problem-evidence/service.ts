@@ -7,6 +7,23 @@ import { groundedSearch, type Grounded } from "@/lib/ai/grounded";
 import { EvidenceError, eventDate, orderItems, type Evidence, type Item } from "./contract";
 import { resolveSource } from "./page";
 
+// Grounding titles may identify the publisher when redirect resolution fails.
+// Accept only a whole hostname, never infer one from prose or the redirect URI.
+function sourceDomain(url: string | null, title: string, uri: string): string {
+  const redirectHost = "vertexaisearch.cloud.google.com";
+  if (url) {
+    const host = new URL(url).hostname;
+    if (host !== redirectHost) return host;
+  }
+  const originalHost = new URL(uri).hostname;
+  if (!url && originalHost !== redirectHost) return originalHost;
+  const host = title.trim().toLowerCase();
+  const labels = host.split(".");
+  return host.length <= 253 && host !== redirectHost && labels.length >= 2
+    && labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))
+    && /^(?:[a-z]{2,63}|xn--[a-z0-9-]+)$/.test(labels[labels.length - 1]) ? host : "";
+}
+
 async function stored(workspaceId: string, versionId: string): Promise<Evidence | null> {
   const result = await db().execute(sql`select e.data from problem_evidence e join idea_versions v on v.id=e.version_id
     join ideas i on i.id=v.idea_id where e.version_id=${versionId}::uuid and i.workspace_id=${workspaceId}::uuid`);
@@ -42,7 +59,7 @@ export async function createEvidence(workspaceId: string, versionId: string) {
       if (!classified) throw new Error("Unknown classification");
       const page = sources.get(candidate.chunk.uri)!;
       return { id: candidate.id, claim: { text: candidate.text, label: "supported", sourceIds: [candidate.id] }, about: classified.about,
-        source: { title: candidate.chunk.title, domain: new URL(page.url ?? candidate.chunk.uri).hostname, url: page.url },
+        source: { title: candidate.chunk.title, domain: sourceDomain(page.url, candidate.chunk.title, candidate.chunk.uri), url: page.url },
         publishedAt: page.publishedAt, eventDate: eventDate(candidate.text),
         relevance: { text: classified.relevance, label: "inferred", sourceIds: [candidate.id] } };
     });
