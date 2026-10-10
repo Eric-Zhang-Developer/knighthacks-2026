@@ -29,3 +29,7 @@ year (galaxy-history Gaps).
 
 ## Defaults
 More than 30 events -> sort by count and show all in the select.
+Under an event filter, results are labelled with that event (a project can be in several; see
+`specs/decisions/search-filters-ui-multi-event.md`). An empty-query filter lists its first 50 projects and highlights
+all of them. On desktop the event select is capped at 140px so the search box keeps its width inside the header's
+560px search column.
