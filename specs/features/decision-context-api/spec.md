@@ -81,5 +81,3 @@ F08 requires a separate feature; this slice makes no before/after or originality
    returns the same scope without cookies and excludes private fields; revoke returns 410. Legacy snapshots still work.
 5. Unit/routes plus `tests/e2e/decision-context-api/` cover 1–4 using the real server/test DB. Run tech-stack Checks
    and the existing `verify.py --slug decision-context-api --worktree .`; retain responses and persisted row IDs.
-
-

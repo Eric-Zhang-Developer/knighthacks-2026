@@ -56,5 +56,3 @@ owned components against the exact typed contract in isolation; claim/merge foll
    Keyboard-only and 390px/1440px checks retain screenshots, but assert end state rather than screenshot existence.
 5. `tests/e2e/decision-context-ui/` covers 1–4 with provider-only AI stubs; run tech-stack Checks and existing
    `verify.py --slug decision-context-ui --worktree .`. Record live provider/reopen evidence separately from stub CI.
-
-
