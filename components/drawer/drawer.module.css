@@ -1,0 +1,18 @@
+.drawer { padding: 16px; display: grid; gap: 12px; border-bottom: 1px solid var(--border); }
+.head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.title { font-size: 1.15em; }
+.close {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.tagline { color: var(--muted); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 0.9em; }
+.facts dt { color: var(--muted); }
+.unknown { color: var(--muted); font-style: italic; }
+.excerpt { line-height: 1.5; }
+.source { color: var(--idea); word-break: break-all; }
