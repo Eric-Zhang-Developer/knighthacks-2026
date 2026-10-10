@@ -1,0 +1,13 @@
+.panel { margin: var(--space-3); padding: var(--space-4); display: grid; gap: var(--space-3); font-size: var(--text-md); }
+.meta { color: var(--muted); font-size: var(--text-sm); }
+.field { display: grid; gap: var(--space-1); }
+.field span { color: var(--muted); font-size: var(--text-sm); }
+.field select,
+.field input { width: 100%; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; }
+.primary { justify-self: start; border: 1px solid var(--idea); border-radius: var(--radius-sm); background: none; color: var(--idea); padding: var(--space-1) var(--space-3); font: inherit; cursor: pointer; }
+.primary:disabled { color: var(--muted); border-color: var(--border); cursor: default; }
+.result { display: grid; gap: var(--space-2); }
+.agreement { margin: 0; font-weight: 600; }
+.pick { display: grid; gap: 2px; }
+.who { color: var(--muted); font-size: var(--text-sm); }
+.concern { color: var(--muted); font-size: var(--text-sm); }
