@@ -10,8 +10,7 @@ assignee: ""
 Frontend half: Mac workers only (user decision 2026-10-10). The challenge panel is done, so this feature owns `components/challenge/` and renders inside it: no shell change. Build on the shape pinned in `change-mind-api`.
 
 ## Plan
-1. In the challenge panel: "What would change your mind?" lists each assumption by kind with its `ClaimBadge` and its reversal condition, or "evidence is insufficient".
-2. An assumption with a reversal offers "Prove it in ten minutes" only when a challenge round has an outcome of `test` for it; otherwise it shows the condition alone.
+1. In the challenge panel: "What would change your mind?" lists each assumption by kind with its `ClaimBadge` and its reversal (what to observe, and the result that would reverse it), or "evidence is insufficient".
 
 ## Requirements
 - Insufficient evidence reads as such, never as a pass.

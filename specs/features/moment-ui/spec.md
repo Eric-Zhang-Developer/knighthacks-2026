@@ -10,7 +10,7 @@ assignee: ""
 Frontend half: Mac workers only (user decision 2026-10-10). The share panel is done, so this feature owns `components/share/` and renders inside it: no shell change. Build on the shape pinned in `moment-api`.
 
 ## Plan
-1. In the share panel, above "Create a read-only link": "Show me the moment" with three numbered steps: what the judge does, what appears, and what it demonstrates; `basis` claims show their `ClaimBadge`.
+1. In the share panel, above "Create a read-only link": "Show me the moment" with three numbered steps: what the judge does, what appears, and what it demonstrates; each `demonstrates` and `basis` claim shows its `ClaimBadge`.
 
 ## Requirements
 - Shown only in the workspace view; the read-only `/s/:token` page never fetches or shows it.

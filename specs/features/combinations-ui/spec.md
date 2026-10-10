@@ -10,7 +10,7 @@ assignee: ""
 Frontend half: Mac workers only (user decision 2026-10-10). The evidence panel is done, so this feature owns `components/evidence/` and renders inside it: no shell change. Build on the shape pinned in `combinations-api`.
 
 ## Plan
-1. Below the evidence cards for `activeIdeaVersionId`: "Combine ideas" lists each suggestion's user, benefit and workflow steps, with both source projects linked (drawer and source page) and every claim's `ClaimBadge`.
+1. Below the evidence cards for `activeIdeaVersionId`: "Combine ideas" lists each suggestion's user, its benefit with a `ClaimBadge`, and its workflow under the heading "Proposed workflow", with both source projects linked (drawer and source page) and every claim's `ClaimBadge`.
 
 ## Requirements
 - Both source projects are always visible and linked; no suggestion shows without them.

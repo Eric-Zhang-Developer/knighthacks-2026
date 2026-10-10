@@ -11,14 +11,14 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 
 ## Plan
 1. `POST /api/combinations/:versionId`: from the version's saved neighbors, through `lib/ai/`, suggest up to 3 combinations, each joining two neighbor projects into one workflow.
-2. Response and `GET`: `{"versionId", "suggestions": [{"user", "benefit", "workflow": [string], "sources": [{"projectId", "url", "title"}, {...}], "claims": [Claim]}]}`.
+2. Response and `GET`: `{"versionId", "suggestions": [{"user", "benefit": Claim, "workflow": [string], "workflowIsProposal": true, "sources": [{"projectId", "url", "title"}, {...}], "claims": [Claim]}]}`.
 
 ## Requirements
 - Model calls go through `lib/ai/` (`generate`); labelled claims go through `checkClaims`.
 - Same workspace session, same-origin and 404 rules as the other idea routes.
 - Stored per version; a second `POST` returns the stored result without a model call. Apply the table with additive SQL on the test branch; never `drizzle-kit push` from a feature branch (#125).
 - Every suggestion names a user, a benefit, a workflow and exactly two source projects from the version's own neighbors (V3 F28 acceptance); a suggestion missing any is dropped, not padded.
-- Each claim cites only those two projects; anything else is `inferred` or `unverified`.
+- `benefit` and each claim cite only those two projects; anything else is `inferred` or `unverified`. The workflow steps are a proposal, not claims, and the response marks them so.
 - A suggestion never claims the combination already exists or will win.
 
 ## Validation
