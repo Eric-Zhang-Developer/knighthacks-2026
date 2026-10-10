@@ -5,7 +5,7 @@ import { getState, setState, useAppState } from "@/lib/store";
 import { resultIds } from "@/lib/search/highlight";
 import type { Hit, Neighbor } from "@/lib/search/neighbors";
 import { PanelState } from "@/components/ui";
-import { parseStars, type Star } from "@/components/galaxy/stars";
+import { loadStars, type Star } from "@/components/galaxy/stars";
 import { MIXED, matches, setClassFilter, UNCLEAR, useClasses, type PrizeFilter } from "@/lib/classes";
 import { filterOptions, localMatches, meta, searchUrl, type Filters } from "./filters";
 import styles from "./search.module.css";
@@ -31,10 +31,7 @@ export default function Search() {
   const saved = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    fetch("/corpus/stars.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => json && setStars(parseStars(json).stars))
-      .catch(() => {}); // no stars.json: no filters, search still works
+    loadStars().then((l) => l.state === "ready" && setStars(l.data.stars)); // no stars.json: no filters, search still works
   }, []);
 
   useEffect(() => {

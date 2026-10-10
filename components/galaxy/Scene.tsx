@@ -158,13 +158,19 @@ function Picker(props: {
   useEffect(() => {
     const screen = new Float32Array((positions.length / 3) * 2);
     const v = new THREE.Vector3();
+    // Reproject only when the camera or canvas changed: hovering a still map is then a scan, not N projections.
+    let projectedFor = "";
     const at = (e: PointerEvent | MouseEvent) => {
       const r = dom.getBoundingClientRect();
-      for (let i = 0; i < positions.length / 3; i++) {
-        v.set(positions[3 * i], positions[3 * i + 1], positions[3 * i + 2]).project(camera);
-        const onScreen = visible[i] === 1 && v.z >= -1 && v.z <= 1;
-        screen[2 * i] = onScreen ? ((v.x + 1) / 2) * r.width : NaN;
-        screen[2 * i + 1] = onScreen ? ((1 - v.y) / 2) * r.height : NaN;
+      const key = `${camera.matrixWorld.elements.join()}|${camera.projectionMatrix.elements.join()}|${r.width}x${r.height}`;
+      if (key !== projectedFor) {
+        projectedFor = key;
+        for (let i = 0; i < positions.length / 3; i++) {
+          v.set(positions[3 * i], positions[3 * i + 1], positions[3 * i + 2]).project(camera);
+          const onScreen = visible[i] === 1 && v.z >= -1 && v.z <= 1;
+          screen[2 * i] = onScreen ? ((v.x + 1) / 2) * r.width : NaN;
+          screen[2 * i + 1] = onScreen ? ((1 - v.y) / 2) * r.height : NaN;
+        }
       }
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;

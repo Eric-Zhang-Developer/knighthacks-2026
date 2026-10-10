@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Legend from "@/components/classes";
 import History from "@/components/history";
@@ -9,7 +9,7 @@ import { initWorkspace } from "@/components/workspace/api";
 import { colourOf, compactRegions, keyOf, loadClasses, matches, setFocus, useClasses, wins, type ClassesFile } from "@/lib/classes";
 import { setState, useAppState } from "@/lib/store";
 import type { Hover } from "./Scene";
-import { createdLabel, parseStars, revealMask, yearsOf, type StarsFile } from "./stars";
+import { createdLabel, loadStars, revealMask, yearsOf, type Star, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
 
 // WebGL only exists in the browser.
@@ -34,17 +34,7 @@ export default function Galaxy() {
   useEffect(() => setRail(document.getElementById("discovery-rail")), []);
 
   useEffect(() => {
-    fetch("/corpus/stars.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (!json) return setLoad({ state: "missing" });
-        try {
-          setLoad({ state: "ready", data: parseStars(json) });
-        } catch {
-          setLoad({ state: "missing", reason: "stars.json is invalid" });
-        }
-      })
-      .catch(() => setLoad({ state: "missing" }));
+    loadStars().then(setLoad);
   }, []);
 
   useEffect(() => {
@@ -88,6 +78,17 @@ export default function Galaxy() {
   const regions = useMemo(() => (data ? compactRegions(data, ids, positions, (i) => visible[i] === 1) : []), [data, ids, positions, visible]);
   const ringCount = useMemo(() => (ringAt ? ids.filter((_, i) => visible[i] && ringAt(i)).length : 0), [ringAt, ids, visible]);
   const shown = useMemo(() => visible.reduce((n, v) => n + v, 0), [visible]);
+  const dimmed = useMemo(() => (focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0), [focus, ids, visible]);
+  const unknownYear = useMemo(() => stars.filter((s) => s.year == null).length, [stars]);
+  const shownAt = useCallback((i: number) => revealed[i] === 1, [revealed]);
+  // The hover tooltip re-renders the galaxy on every pointer move; these don't depend on it, so they're kept as-is.
+  const focusable = neighbors !== null;
+  const legend = useMemo(() => <Legend ids={ids} shown={shownAt} events={events} focusable={focusable} />, [ids, shownAt, events, focusable]);
+  const history = useMemo(
+    () =>
+      years.length > 0 && <History years={years} reveal={reveal} onReveal={setReveal} shown={shown} total={stars.length} unknown={unknownYear} />,
+    [years, reveal, shown, stars.length, unknownYear],
+  );
   // Clicking empty space clears the selection, which also closes its panel and frees the camera.
   const onPick = useCallback((i: number) => setState({ selectedProjectId: i >= 0 ? ids[i] : null }), [ids]);
 
@@ -109,7 +110,7 @@ export default function Galaxy() {
       data-classes={classes.state}
       data-ring-count={ringCount}
       data-line-count={lines ? lines.length / 6 : 0}
-      data-dimmed-count={focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0}
+      data-dimmed-count={dimmed}
     >
       <Scene
         ids={ids}
@@ -145,39 +146,41 @@ export default function Galaxy() {
       {portal(
         rail,
         <div className={rail ? styles.railControls : styles.controls}>
-        <Legend ids={ids} shown={(i) => revealed[i] === 1} events={events} focusable={neighbors !== null} />
-        {years.length > 0 && (
-          <History
-            years={years}
-            reveal={reveal}
-            onReveal={setReveal}
-            shown={shown}
-            total={stars.length}
-            unknown={stars.filter((s) => s.year == null).length}
-          />
-        )}
-        <details className={styles.list}>
-          <summary>Projects ({stars.length})</summary>
-          <ul aria-label="Projects">
-            {stars.map((s, i) => (
-              <li key={s.id} hidden={!visible[i]}>
-                <button
-                  type="button"
-                  aria-pressed={s.id === selectedId}
-                  onClick={() => setState({ selectedProjectId: s.id })}
-                >
+          {legend}
+          {history}
+          <ProjectList stars={stars} visible={visible} selectedId={selectedId} data={data} />
+        </div>,
+      )}
+    </div>
+  );
+}
+
+// Memoised, so a hover (which re-renders the galaxy) doesn't re-render every row; and its rows exist only while it's
+// open, so a collapsed list costs nothing at any corpus size.
+// ponytail: an open list renders every visible row (100k at full scale); window it if people browse it at that size.
+const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: Uint8Array; selectedId: string | null; data: ClassesFile | null }) {
+  const { stars, visible, selectedId, data } = props;
+  const [open, setOpen] = useState(false);
+  return (
+    <details className={styles.list} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>Projects ({stars.length})</summary>
+      <ul aria-label="Projects">
+        {open &&
+          stars.map((s, i) =>
+            visible[i] ? (
+              <li key={s.id}>
+                <button type="button" aria-pressed={s.id === selectedId} onClick={() => setState({ selectedProjectId: s.id })}>
                   {s.title}
                   <Meta event={s.event} year={s.year} />
                   <Category data={data} id={s.id} />
                 </button>
               </li>
-            ))}
-          </ul>
-        </details>
-      </div>)}
-    </div>
+            ) : null,
+          )}
+      </ul>
+    </details>
   );
-}
+});
 
 // Unknown event or year stays visibly empty rather than guessed. The year is the created year, so it gets its own
 // line rather than sitting beside the event as if it were the event date.
