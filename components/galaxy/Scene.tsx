@@ -12,6 +12,8 @@ const PICK_RADIUS = 10; // CSS px
 // Fixed-pixel round points with a per-star colour and size, so every corpus star is one draw call.
 const material = () =>
   new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
     uniforms: { pixelRatio: { value: 1 } },
     vertexShader: `
       attribute vec3 starColor;
@@ -20,15 +22,19 @@ const material = () =>
       varying vec3 vColor;
       void main() {
         vColor = starColor;
-        gl_PointSize = size * pixelRatio;
+        // Room for a halo around the core; the core keeps the star's nominal size.
+        gl_PointSize = size * 2.2 * pixelRatio;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: `
       varying vec3 vColor;
       void main() {
-        vec2 c = gl_PointCoord - 0.5;
-        if (dot(c, c) > 0.25) discard;
-        gl_FragColor = vec4(vColor, 1.0);
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        if (d > 1.0) discard;
+        // A solid core (the exact star colour) inside a soft glow.
+        float core = 1.0 - smoothstep(0.38, 0.46, d);
+        float halo = pow(1.0 - d, 2.2) * 0.45;
+        gl_FragColor = vec4(vColor, max(core, halo));
       }`,
   });
 
@@ -81,7 +87,8 @@ function Controls({ center, radius, locked }: { center: THREE.Vector3; radius: n
 
   useEffect(() => () => controls.dispose(), [controls]);
   useEffect(() => {
-    camera.position.set(center.x, center.y, center.z + radius * 2.5);
+    // Close enough that the cloud fills the chart; the bounding radius is set by a few outliers.
+    camera.position.set(center.x, center.y, center.z + radius * 1.7);
     camera.near = radius / 1000;
     camera.far = radius * 100;
     camera.updateProjectionMatrix();
@@ -193,7 +200,6 @@ export default function Scene(props: {
 
   return (
     <Canvas camera={{ fov: 60 }} aria-hidden>
-      <color attach="background" args={["#07080c"]} />
       <StarPoints positions={positions} styleAt={corpusStyle} expose />
       {ideaStars.length > 0 && <StarPoints positions={ideaPositions} styleAt={ideaStyle} />}
       <Controls center={center} radius={radius} locked={selectedId !== null} />
