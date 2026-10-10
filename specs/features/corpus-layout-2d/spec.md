@@ -2,7 +2,7 @@
 name: Lay the corpus out in 2D, so the flat map has no overlapping clusters
 depends_on: [corpus-embed]
 owns: [corpus/embed/, public/corpus/stars.json, tests/corpus-layout-2d/]
-assignee: ""
+assignee: "claude-corpus-grow"
 ---
 
 # Corpus layout 2D
@@ -15,15 +15,17 @@ top of each other. This feature projects the same embeddings to 2D.
 1. In `corpus/embed/`, project the existing embeddings to two dimensions with the same method and settings as the
    3D projection (and the star-system arrangement from #301, if it applies to 2D). Write `z = 0` for every star.
 2. Normalise `x, y` to the same range as today (about ±0.5), so the map's zoom limits still fit.
-3. Keep `corpus_version` unchanged (the same projects); add `layout: "2d"` to `stars.json`. `classes.json` and other
-   files keyed by `corpus_version` keep working.
+3. Ship with the corpus growth release (#262, #317), so the map is re-laid out once: that release changes the ids
+   and `corpus_version` anyway, and `classes.json` is regenerated for the new version (corpus-classify). Add
+   `layout: "2d"` to `stars.json`. If it ships without a new release, keep `corpus_version` unchanged.
 
 ## Requirements
-- Same set of ids as the current `stars.json`; no project added or dropped.
+- Same set of ids as the corpus release it ships with; layout never adds or drops a project.
 - Deterministic: a fixed random seed, so a re-run gives the same positions.
 
 ## Validation
-1. `stars.json` has the same ids and `corpus_version` as before, every `z` is 0, and `layout` is `"2d"`.
+1. `stars.json` has the release's ids, every `z` is 0, and `layout` is `"2d"`; with no new release, its ids and
+   `corpus_version` match the previous file.
 2. Each project's 10 nearest neighbours in 2D share at least 5 with its 10 nearest in embedding space, for at
    least 70% of a 500-project sample (the map still means "near = similar").
 3. Two runs give byte-identical `stars.json`.

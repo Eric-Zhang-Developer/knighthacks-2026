@@ -33,7 +33,8 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 ## Requirements
 - Stars never move relative to each other: panning and zooming change only the view (the e2e reads the position
   buffer, as `galaxy` does).
-- 60 fps pan and zoom on the full corpus (8,409 stars) on a 2020+ laptop: one draw call for stars, as now.
+- 60 fps pan and zoom on the full corpus on a 2020+ laptop, sized for the growth release (#317, up to ~55k stars):
+  one draw call for stars, as now, and picking that doesn't project every star on each pointer move.
 - Reduced motion: no spring or momentum, only instant view changes.
 
 ## Validation
