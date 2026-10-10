@@ -107,6 +107,9 @@ test("the tour leads the page; space plays it with chapters and flashes and ends
   }).toPass();
   await expect(page.getByTestId("tour-caption")).not.toBeEmpty({ timeout: 20_000 });
   await expect(page.locator("svg a[data-slug][class*=flash]").first()).toBeAttached({ timeout: 20_000 });
+  // Motion (spec § The tour): a landing sends out a ring and draws the edges it unlocks.
+  await expect(page.locator("svg rect[class*=ring]").first()).toBeAttached({ timeout: 20_000 });
+  await expect(page.locator("svg path[class*=draw]").first()).toBeAttached({ timeout: 20_000 });
   await page.screenshot({ path: test.info().outputPath("foreman-tour-playing.png") });
 
   await expect(page.getByTestId("replay-info")).toContainText("SNAPSHOT", { timeout: 40_000 });
@@ -124,7 +127,11 @@ test("reduced motion: the tour still plays, but no node animates", async ({ page
   }).toPass();
   const flashed = page.locator("svg a[data-slug][class*=flash]").first();
   await expect(flashed).toBeAttached({ timeout: 20_000 });
-  expect(await flashed.locator("rect.box").evaluate((r) => r.getAnimations().length)).toBe(0);
+  // The playhead still moves (it is the content); nothing on the page animates or transitions while it does.
+  const info = page.getByTestId("replay-info");
+  const before = await info.innerText();
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await expect(info).not.toHaveText(before);
 });
 
 test("demo keys: a number jumps to its section, space starts the replay", async ({ page }) => {

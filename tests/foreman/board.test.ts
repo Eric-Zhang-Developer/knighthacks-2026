@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { buildBoard, layers, pace, statesAt, type PR, type Raw } from "@/lib/foreman/board";
 import { atWork, buildUp, chapters, timeline } from "@/lib/foreman/charts";
+import { advance, CRUISE_MS } from "@/lib/foreman/time";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
@@ -273,4 +274,24 @@ test("agents at work: named workers with a PR open at that moment, still-open PR
   expect(atWork(crew, Z("12:15"))).toBe(1); // #1 open
   expect(atWork(crew, Z("12:45"))).toBe(0); // #1 merged, nothing else open yet
   expect(atWork(crew, NOW)).toBe(1); // #3-#5 still open: one worker
+});
+
+test("the replay's playhead eases up from rest, never passes cruise speed, slows in and lands exactly on the end", () => {
+  const [first, end] = [0, 18 * 3_600_000]; // an 18 h build
+  const base = (end - first) / CRUISE_MS;
+  let [at, ms, top] = [first, 0, 0];
+  const speeds: number[] = [];
+  while (at < end && ms < 60_000) {
+    const next = advance(at, end, base, ms, 16);
+    speeds.push((next - at) / 16);
+    top = Math.max(top, next - at);
+    [at, ms] = [next, ms + 16];
+  }
+  expect(at).toBe(end); // lands on the snapshot, no overshoot
+  expect(Math.abs(ms - 24_000)).toBeLessThan(2_400); // a full play stays about 24 s
+  expect(speeds[0]).toBeLessThan(base * 0.01); // starts from rest
+  expect(top).toBeLessThanOrEqual(base * 16 + 1e-6); // never faster than cruise
+  expect(speeds.at(-2)!).toBeLessThan(base * 0.3); // slow into the end
+  // Resume mid-way ramps up again from the current moment, never jumps.
+  expect(advance(end / 2, end, base, 0, 16)).toBe(end / 2);
 });
