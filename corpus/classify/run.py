@@ -33,7 +33,7 @@ UNKNOWN = {"domain": None, "status": "insufficient_text", "runner_up": None,
            "dev_tools": "unknown", "dev_tools_evidence": None}
 TOOL = re.compile(r"\b(chatgpt|copilot|cursor|claude(?:\s+code)?|codex|v0|lovable|windsurf|gemini|"
                   r"tabnine|codeium|replit|bolt|coding\s+assistant|ai[- ](?:assisted|generated)\s+code)\b", re.I)
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 
 
 def canonical(value):
@@ -170,7 +170,9 @@ class Gemini:
 
     def __call__(self, prompt, schema):
         body = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {
-            "responseFormat": {"text": {"mimeType": "APPLICATION_JSON", "schema": schema}}}}
+            "responseMimeType": "application/json", "responseJsonSchema": schema}}
+        if self.model.startswith("gemini-3"):
+            body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": "LOW"}
         request = urllib.request.Request(f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
             data=canonical(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
         with self.lock:
@@ -245,8 +247,8 @@ def classify_batches(kind, items, call, model, cache_dir, batch_size=25, concurr
                 pass
         for attempt in range(2):
             try:
-                response_schema = object_schema({"index": {"type": "integer", "minimum": 0, "maximum": len(batch) - 1}, "value": schema})
-                raw = call(prompt, {"type": "array", "items": response_schema, "minItems": len(batch), "maxItems": len(batch)})
+                response_schema = object_schema({"index": {"type": "integer"}, "value": schema})
+                raw = call(prompt, {"type": "array", "items": response_schema})
                 values = validate(raw)
                 if cache:
                     write_json(cache, [{"index": index, "value": value} for index, value in enumerate(values)])

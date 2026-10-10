@@ -186,7 +186,8 @@ def test_saved_artifact_matches_current_stars():
     assert set(artifact["projects"]) == {star["id"] for star in stars["stars"]}
     assert artifact["domains"] == [{"id": key, "label": label} for key, label in classifier.DOMAINS]
     for value in artifact["projects"].values():
-        classifier.project_value({key: value[key] for key in classifier.UNKNOWN}, {"description": value["dev_tools_evidence"] or ""})
+        projected = {key: value[key] for key in classifier.UNKNOWN}
+        assert classifier.project_value(projected, {"description": value["dev_tools_evidence"] or ""}) == projected
         for prize in value["prizes"]:
             classifier.prize_value({key: prize[key] for key in ("kind", "place", "sponsor")}, prize["text"])
 
@@ -204,7 +205,7 @@ def test_rest_wire_format_and_secret_header(monkeypatch):
 
     def open_request(request, timeout):
         body = json.loads(request.data)
-        assert body["generationConfig"]["responseFormat"]["text"]["mimeType"] == "APPLICATION_JSON"
+        assert body["generationConfig"]["responseMimeType"] == "application/json"
         assert request.get_header("X-goog-api-key") == "private-test-secret"
         assert "private-test-secret" not in request.full_url + request.data.decode()
         assert timeout == 90
