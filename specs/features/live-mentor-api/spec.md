@@ -32,6 +32,9 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
    not an unauthenticated provider webhook. Require current workspace/member and active unexpired session.
    Strict Zod allowlist: `get_context`, `find_projects`, `propose_idea`. No arbitrary endpoint, SQL, URL or code tool.
    Limit body to 16 KiB, 8 calls per turn and 40 per session; concurrent reservations count once per callId.
+   IDs are app-managed, not assumed SDK callback fields: turnId advances on a committed user utterance;
+   callId is derived from sessionId + turnId + tool + canonical validated args, stable across HTTP retries and
+   identical tool redelivery within that turn. Store a body digest; pending duplicates do not start another call.
    Replaying the same callId/body returns its stored result; a different body for that ID -> 409. Tool results
    completing after session end/expiry cannot be published; safe cancelled result, no application mutation.
 5. `get_context` takes optional saved versionId, authorizes it, and returns the user's immutable idea fields,
@@ -45,7 +48,10 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
 7. `propose_idea` accepts the existing validated IdeaFields plus a short rationale and cited project IDs.
    Validate citations against evidence returned to this session. Return an ephemeral proposal labelled
    `pending_confirmation`; perform no idea/revision/snapshot write. Only explicit user confirmation in the UI
-   calls the existing authenticated create/revision operation with its existing duplicate-write protections.
+   calls existing `POST /api/ideas` with a stable idempotency key and the exact confirmed fields. For an already
+   saved idea, label this explicitly Save as new idea; it does not revise the original or preserve a parent link.
+   Existing suggestion/accept revision controls remain available separately. No claim of voice-driven arbitrary
+   saved-version revision until its own compatible contract is implemented.
 8. The agent asks one contextual question at a time, acknowledges corrections and explains relevant tradeoffs
    using retrieved facts and originality/technical understanding/functionality/design/wow criteria. Important
    claims require tool evidence or an explicit inferred/unknown label. It never equates sparse map space with
@@ -54,6 +60,9 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
 
 ## Requirements
 - The application API owns state. Provider sessions must not create/accept an idea on the user's behalf.
+  Private-agent configuration uses `platformSettings.auth.enableAuth=true` and
+  `conversationConfig.conversation.maxDurationSeconds=1200`; first-message interruption stays enabled.
+  `recordVoice:false` does not by itself disable transcript retention; verify the separate privacy fields.
 - Each tool response carries session/turn/call identity and one payload for speech and visible cards; clients
   suppress stale turns. Client cancellation is not trusted as authorization or as proof of a saved mutation.
 - Runtime configuration names: `ELEVENLABS_API_KEY`, `ELEVENLABS_MENTOR_AGENT_ID`; missing/unusable agent is a

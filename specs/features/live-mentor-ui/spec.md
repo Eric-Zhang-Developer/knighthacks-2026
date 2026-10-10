@@ -20,7 +20,9 @@ Keep the existing app navigation and source-backed idea/evidence panels. This is
    readiness/failure, not awaiting those methods. Client tools serialize structured results to JSON strings.
 2. Show connecting/listening/thinking/speaking/ended/failed/permission-denied states truthfully. Mentor greets
    briefly, asks about the problem and user, listens naturally and asks one relevant follow-up at a time.
-   Keep readable user/mentor transcript, mute, stop-speaking and End session controls accessible.
+   Keep readable user/mentor transcript, mute and End session controls accessible. In this pinned SDK, the
+   explicit Stop control ends the conversation and is labelled Stop and end; do not invent an interrupt() hook
+   or treat volume=0/sendUserActivity as proof of cancelled generation. Natural spoken interruption is separate.
 3. Natural interruption must stop the old speech and let the user correct the direction. End releases audio
    tracks and provider connection, aborts tool requests and marks the server session ended. Suppress old
    session/turn callbacks. Reconnect starts an explicitly authorized fresh session, never replays old writes.
@@ -30,8 +32,10 @@ Keep the existing app navigation and source-backed idea/evidence panels. This is
    speech cannot claim a tool succeeded while the UI shows a failure. Keep untrusted evidence as data.
 5. Mentor remembers current conversation goals/constraints and loads only authorized selected-version context
    on resume. Corrections update the proposed idea visibly. `propose_idea` is a preview, never an automatic save.
-   A visible explicit Confirm action invokes existing create/revision APIs with stable idempotency; then update
+   A visible explicit Save as new idea action invokes existing POST /api/ideas with stable idempotency; then update
    existing app state so the star, evidence and history reflect the confirmed version. Cancel changes nothing.
+   Show that saving from a selected existing idea creates a separate idea, not a revision. Existing revision
+   controls remain unchanged; conversational editing of a persisted revision is not claimed by this slice.
 6. Typing remains available throughout microphone denial, provider failure or disconnect. Use existing text
    interpretation/interview/save flow; preserve the draft and selected idea. No forced voice-only onboarding.
 7. Use a human-tested realistic voice and concise, context-specific replies; don't recite all rubric criteria
