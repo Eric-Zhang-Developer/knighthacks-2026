@@ -31,4 +31,4 @@ final = true
 report_before = "1:45"    # from Sun 09:00: fixes, reverts and docs only; Devpost closes 10:00
 features = ["decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "demo-flow", "vultr-deploy"]
 cut = ["compare-api", "compare-ui", "vultr-deploy"]   # first to drop if late; rejected once the freeze starts
-allow = []                # e.g. your reporter's feature
+allow = ["foreman"]       # the build-status page (specs/features/foreman): may merge through the freeze

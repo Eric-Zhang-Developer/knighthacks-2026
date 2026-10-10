@@ -22,6 +22,10 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   (hard deadline 10:00). Final code push: 11:00.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
+Beside the product: `/foreman`, an unlisted build-status page (countdowns, what needs a person, the feature
+graph, a replay of the build) for the team and the judges. It's in the final milestone's `allow`, so it never
+competes for pick order.
+
 Human work beside the agents: Figma frames (for the Figma track), the demo video, and Devpost.
 
 ## Not doing
