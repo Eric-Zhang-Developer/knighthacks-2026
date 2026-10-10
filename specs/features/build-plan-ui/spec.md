@@ -25,3 +25,6 @@ Frontend: Mac workers. It's the last step of the flow: Explore → Talk → Idea
 
 ## Defaults
 Mount through the shell (#269).
+Until experience-shell mounts the panel (#299), every view state is checked by server-rendering `PlanView` in
+`tests/build-plan-ui/`; the browser e2e lands with the mount. The newest stored plan loads by `GET`; generating waits
+for the button; plans replaced in the session stay readable under "Earlier plan".
