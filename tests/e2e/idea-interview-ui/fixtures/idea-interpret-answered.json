@@ -1,0 +1,8 @@
+{
+  "title": "Student app",
+  "description": "An app for students.",
+  "audience": "Students",
+  "problem": "Group project deadlines slip because nobody sees who is blocked",
+  "workflow": "Each member posts a one-line daily status and the app flags the blocked ones",
+  "constraints": null
+}

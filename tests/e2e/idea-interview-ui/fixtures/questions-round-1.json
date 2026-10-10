@@ -1,0 +1,7 @@
+{
+  "questions": [
+    { "field": "problem", "question": "What goes wrong for students today?", "why": "The answer becomes the idea's problem." },
+    { "field": "workflow", "question": "What does a student do first in the app?", "why": "The answer shapes the workflow." }
+  ],
+  "done": false
+}

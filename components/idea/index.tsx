@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Interview from "@/components/interview";
+import { withAnswers, type Answer } from "@/components/interview/interview";
 import { PanelState } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
@@ -42,6 +44,13 @@ export default function Idea() {
   const [error, setError] = useState<string | null>(null);
   // One key per preview, so retrying a save can't create a second idea.
   const saveKey = useRef<string | null>(null);
+  // The interview: what has been answered so far, and which round of questions is showing.
+  const [interview, setInterview] = useState<{ text: string; answers: Answer[]; round: number; fields: Fields | null }>({
+    text: "",
+    answers: [],
+    round: 0,
+    fields: null,
+  });
 
   // Reload: restore saved ideas from the server, the latest one active.
   useEffect(() => {
@@ -82,13 +91,29 @@ export default function Idea() {
   async function interpret() {
     const text = getState().ideaDraft.trim();
     if (!text) return;
+    setInterview({ text, answers: [], round: 0, fields: null });
+    await read(text);
+  }
+
+  async function read(text: string) {
     setError(null);
     setView({ step: "interpreting" });
     saveKey.current = crypto.randomUUID();
     const r = await call<Fields>("/api/ideas/interpret", postJson({ text }));
-    if (r.ok) return setView({ step: "edit", form: toForm(r.data), failed: false });
-    // Interpretation failed: keep the typed text and let the user fill the fields by hand.
+    if (r.ok) {
+      setInterview((i) => ({ ...i, fields: r.data }));
+      return setView({ step: "edit", form: toForm(r.data), failed: false });
+    }
+    // Interpretation failed: keep the typed text and let the user fill the fields by hand (no interview).
+    setInterview((i) => ({ ...i, fields: null }));
     setView({ step: "edit", form: toForm({ description: text }), failed: true });
+  }
+
+  // Answers join the idea text and the whole thing is read again; the next round asks about what is still unclear.
+  async function answer(next: Answer[]) {
+    const answers = [...interview.answers, ...next];
+    setInterview({ text: interview.text, answers, round: interview.round + 1, fields: null });
+    await read(withAnswers(interview.text, answers));
   }
 
   async function save(form: Form) {
@@ -151,6 +176,17 @@ export default function Idea() {
           <PanelState kind="failed" message="Couldn't interpret your idea. Your text is kept; fill in the fields yourself." />
         ) : (
           <p className={styles.meta}>Nothing is saved until you press Save. Edit anything that&apos;s wrong.</p>
+        )}
+        {interview.fields && (
+          <Interview
+            key={interview.round}
+            fields={interview.fields}
+            answers={interview.answers}
+            round={interview.round}
+            busy={busy}
+            onAnswer={answer}
+            onSkip={() => save(form)}
+          />
         )}
         <form
           className={styles.form}
