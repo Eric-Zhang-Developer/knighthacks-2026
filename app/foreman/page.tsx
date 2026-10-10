@@ -3,6 +3,7 @@ import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
 import { AutoRefresh, DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
 import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
+import Since from "@/components/foreman/Since";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
 import { readRaw, REPO } from "@/lib/foreman/github";
@@ -95,6 +96,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
           ))}
         </div>
       </div>
+      <Since replay={board.replay} features={board.features} now={now} />
 
       <section className={styles.section} aria-labelledby="ms">
         <h2 id="ms" className={`${styles.h2} ${styles.stencil}`}>

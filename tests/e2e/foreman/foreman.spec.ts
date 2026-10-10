@@ -76,3 +76,19 @@ test("demo keys: a number jumps to its section, space starts the replay", async 
   await page.keyboard.press(" ");
   await expect(page.getByRole("button", { name: /resume/i })).toBeVisible();
 });
+
+test("since you last looked: an earlier visit shows what merged after it; a reload right away doesn't", async ({ page }) => {
+  const before = Date.parse("2026-10-10T09:00:00-04:00"); // Sat 09:00 EDT, before many merges
+  await page.addInitScript((t) => {
+    if (sessionStorage.getItem("seeded")) return;
+    localStorage.setItem("foreman:last-seen", String(t));
+    sessionStorage.setItem("seeded", "1");
+  }, before);
+  await page.goto("/foreman");
+  const since = page.getByRole("complementary", { name: "Since you last looked" });
+  await expect(since).toContainText(/\d+ PRs merged/);
+  await page.screenshot({ path: test.info().outputPath("foreman-since.png") });
+  await page.reload();
+  await expect(page.getByTestId("replay-info")).toBeVisible();
+  await expect(since).toHaveCount(0);
+});
