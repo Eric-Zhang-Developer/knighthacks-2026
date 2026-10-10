@@ -6,8 +6,9 @@ import { test, expect } from "@playwright/test";
 const run = promisify(execFile);
 test.use({ trace: "off" });
 test("server client returns schema-validated live or explicitly stubbed JSON", async ({}, info) => {
-  test.setTimeout(150000);
-  const { stdout } = await run(process.execPath, [join(__dirname, "runner.mjs")], { timeout: 140000, env: process.env });
+  // Sequential retries allow 2 x 60s for Claude + 2 x 30s for Gemini, plus startup/reporting time.
+  test.setTimeout(210000);
+  const { stdout } = await run(process.execPath, [join(__dirname, "runner.mjs")], { timeout: 200000, env: process.env });
   const result = JSON.parse(stdout);
   expect(["live", "stub"]).toContain(result.mode);
   if (result.mode === "stub") expect(result).toEqual({ mode: "stub", model: null, data: { message: "AI client fixture verified" } });
