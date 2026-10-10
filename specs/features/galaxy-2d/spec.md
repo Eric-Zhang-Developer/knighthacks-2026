@@ -12,6 +12,10 @@ nothing for reading the map; it should be 2D, and fancy. This replaces the orbit
 still come from `public/corpus/stars.json`. Until `corpus-layout-2d` ships a true 2D layout, the map draws `x, y` and
 ignores `z` (a top-down view of today's layout).
 
+Visual target: `docs/design-references/desktop.png` and `phone.png` (the person's references, read with their
+README): luminous category clusters with labelled counts, a glowing idea anchor, glass panels, chip filters, an icon
+navigation bar. Mockup numbers and names are illustrative and are never shown as data.
+
 ## Plan
 1. Orthographic, top-down camera. Drag pans, wheel and pinch zoom about the pointer, with no rotation. Zoom is
    clamped between the whole map and about 40 stars across the view.

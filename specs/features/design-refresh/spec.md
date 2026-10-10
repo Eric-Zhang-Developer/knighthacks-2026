@@ -14,6 +14,10 @@ bar and state layers) and **Apple supplies the materials and motion** (transluce
 springs, reduced-motion and reduced-transparency fallbacks). The map is the content, so it goes edge to edge like a
 maps app, and the panels float over it.
 
+Visual target: `docs/design-references/desktop.png` and `phone.png` (the person's references, read with their
+README): luminous category clusters with labelled counts, a glowing idea anchor, glass panels, chip filters, an icon
+navigation bar. Mockup numbers and names are illustrative and are never shown as data.
+
 ## Plan
 1. Tokens: a dark Material 3 scheme (`--md-sys-color-*`) from one seed colour, the shape scale
    (`--md-sys-shape-corner-*`) and the type scale (`--md-sys-typescale-*`, Roboto Flex via next/font). The legacy
