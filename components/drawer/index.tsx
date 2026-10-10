@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ProjectEvent } from "@/db/schema/corpus";
 import { setState, useAppState } from "@/lib/store";
+import { PanelState } from "@/components/ui";
 import styles from "./drawer.module.css";
 
 type Project = {
@@ -48,11 +49,15 @@ export default function Drawer() {
     </button>
   );
   if (load.state !== "ready") {
-    const message = { loading: "Loading project…", missing: "Project not found.", error: "Couldn't load this project." };
+    const view = {
+      loading: { kind: "loading", message: "Loading project…" },
+      missing: { kind: "empty", message: "Project not found." },
+      error: { kind: "failed", message: "Couldn't load this project." },
+    } as const;
     return (
-      <section className={styles.drawer} aria-label="Project">
+      <section className={`ui-panel ${styles.drawer}`} data-panel="drawer" aria-label="Project">
         <div className={styles.head}>
-          <p role="status">{message[load.state]}</p>
+          <PanelState {...view[load.state]} />
           {close}
         </div>
       </section>
@@ -61,9 +66,9 @@ export default function Drawer() {
 
   const p = load.project;
   return (
-    <section className={styles.drawer} aria-label="Project">
+    <section className={`ui-panel ${styles.drawer}`} data-panel="drawer" aria-label="Project">
       <div className={styles.head}>
-        <h2 className={styles.title}>{p.title}</h2>
+        <h2 className="ui-heading">{p.title}</h2>
         {close}
       </div>
       {p.tagline ? <p className={styles.tagline}>{p.tagline}</p> : <Unknown what="tagline" />}

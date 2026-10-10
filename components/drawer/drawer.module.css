@@ -1,17 +1,17 @@
-.drawer { padding: 16px; display: grid; gap: 12px; border-bottom: 1px solid var(--border); }
-.head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
-.title { font-size: 1.15em; }
+.drawer { margin: var(--space-3); padding: var(--space-4); display: grid; gap: var(--space-3); }
+.head { display: flex; justify-content: space-between; align-items: start; gap: var(--space-3); }
+.head > [role] { flex: 1; padding: 0; }
 .close {
   border: 1px solid var(--border);
   background: none;
   color: var(--muted);
-  border-radius: 6px;
-  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
   font: inherit;
   cursor: pointer;
 }
 .tagline { color: var(--muted); }
-.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 0.9em; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-3); font-size: var(--text-md); }
 .facts dt { color: var(--muted); }
 .unknown { color: var(--muted); font-style: italic; }
 .excerpt { line-height: 1.5; }

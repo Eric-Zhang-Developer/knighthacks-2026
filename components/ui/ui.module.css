@@ -1,0 +1,36 @@
+.state {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-md);
+  color: var(--muted);
+}
+.state p { flex: 1; }
+.glyph { width: 1em; text-align: center; font-weight: 700; }
+.state[data-kind="partial"] { color: var(--uncertain); }
+.state[data-kind="failed"] { color: var(--failed); }
+.retry {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  padding: 2px var(--space-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.badge[data-label="supported"] { color: var(--live); }
+.badge[data-label="inferred"] { color: var(--history); }
+.badge[data-label="unverified"] { color: var(--uncertain); border-style: dashed; }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getState, setState, useAppState } from "@/lib/store";
 import { resultIds } from "@/lib/search/highlight";
 import type { Hit, Neighbor } from "@/lib/search/neighbors";
+import { PanelState } from "@/components/ui";
 import styles from "./search.module.css";
 
 type Response = { results: Neighbor[]; textMatches: Hit[]; meaning: "ok" | "unavailable" };
@@ -78,20 +79,23 @@ export default function Search() {
         onKeyDown={(e) => e.key === "Escape" && setQ("")}
       />
       {view.state !== "idle" && (
-        <div className={styles.panel} aria-label="Search results" aria-live="polite">
-          {view.state === "error" && <p className={styles.notice}>Search is unavailable right now.</p>}
+        <div className={`ui-panel ${styles.panel}`} data-panel="search" aria-label="Search results" aria-live="polite">
+          {view.state === "error" && <PanelState kind="failed" message="Search is unavailable right now." />}
           {data?.meaning === "unavailable" && (
-            <p className={styles.notice}>Meaning search unavailable; showing title matches.</p>
+            <PanelState kind="partial" message="Meaning search unavailable; showing title matches." />
           )}
-          {data && data.results.length + textOnly.length === 0 && <p className={styles.heading}>No matches.</p>}
+          {data && data.results.length + textOnly.length === 0 && <PanelState kind="empty" message="No matches." />}
           {data && data.results.length > 0 && (
-            <ul className={styles.list} aria-label="Similar projects">
-              {data.results.map((r) => item(r, r.similarity))}
-            </ul>
+            <>
+              <h2 className={`ui-heading ${styles.heading}`}>Similar projects</h2>
+              <ul className={styles.list} aria-label="Similar projects">
+                {data.results.map((r) => item(r, r.similarity))}
+              </ul>
+            </>
           )}
           {textOnly.length > 0 && (
             <>
-              <p className={styles.heading}>Title matches</p>
+              <h2 className={`ui-heading ${styles.heading}`}>Title matches</h2>
               <ul className={styles.list} aria-label="Title matches">
                 {textOnly.map((t) => item(t))}
               </ul>

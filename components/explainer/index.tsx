@@ -18,8 +18,8 @@ export default function Explainer() {
   if (!summary) return null;
 
   return (
-    <details className={styles.panel}>
-      <summary>What am I looking at?</summary>
+    <details className={`ui-panel ${styles.panel}`} data-panel="explainer">
+      <summary className="ui-heading">What am I looking at?</summary>
       <div className={styles.body} data-testid="explainer-text">
         <p>
           Each star is one real past hackathon project: <strong data-testid="explainer-count">{summary.count}</strong>{" "}
