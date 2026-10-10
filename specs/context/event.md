@@ -17,16 +17,16 @@ Event: Fri Oct 9 to Sun Oct 11 at UCF (Opening Ceremony Fri 7:00 PM). Team: 2 pe
 
 ## Judging rubric
 
-Every project is scored 1 to 5 on five criteria. The official rubric link wasn't captured; this is the team's
-paraphrase of it, not the official text.
+Every project is scored 1 to 5 on five criteria. The official rubric link wasn't captured; the summaries are the
+team's paraphrase, and the 1/3/5 anchors are as the team's notes recorded them "from the Knight Hacks rubric".
 
-| Criterion | What it rewards |
-|---|---|
-| **Originality** | A problem or approach the judge hasn't seen before. A 5 means "never seen this." |
-| **Technical Understanding** | Not complexity: whether the team can explain how it works, admit which tools helped, and show what they learned. A 5 includes visuals like diagrams in the demo. |
-| **Functionality** | Works end to end, reliably. A 5 means about 90% of what we claim works, smoothly. |
-| **Design** | Looks good and is pleasant to use. |
-| **Wow Factor** | Given sparingly: "would I show this to my friends?" |
+| Criterion | What it rewards | 1 | 3 | 5 |
+|---|---|---|---|---|
+| **Originality** | A problem or approach the judge hasn't seen before. | Easily found online | Seen before, but rarely | Never seen |
+| **Technical Understanding** | Not complexity: how well the team can explain how it works, admit which tools helped, and show what they learned. | | | Full understanding, with diagrams in the demo |
+| **Functionality** | Works end to end, reliably. | Demo doesn't work | End to end, but fails half the time | 90% of what we claim works smoothly |
+| **Design** | Looks good and is pleasant to use. | Painful to look at | You can get used to it | Fantastic, seamless |
+| **Wow Factor** | Given sparingly: "would I show this to my friends?" | "eh?" | "dang!" | "WOW!!!!" |
 
 The rubric scores *all* projects; high scorers are then sorted into the General Challenges.
 

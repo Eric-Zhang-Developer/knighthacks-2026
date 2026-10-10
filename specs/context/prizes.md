@@ -18,7 +18,7 @@ Prizes are **per team member** (max 4). "x 4" below means one each for a team of
 | Best Overall Hack, 2nd | Samsung Odyssey OLED G5 27" monitor + trophy | $2,080 | Same, second place |
 | Best Overall Hack, 3rd | Wob Key Rainy 75 + HyperX Quadcast V2 + trophy | $1,240 | Same, third place |
 | Best AI Hack | Apple Watch SE3 + trophy | $1,080 | Pushes the boundary of AI; must *feature* a model |
-| Best Game Dev Hack | Viper V3 Pro mouse + trophy | $800 | Best game made in 36 hours: creative, engaging, fun |
+| Best Game Dev Hack | Tenz or Faker Viper V3 Pro + trophy | $800 | Best game made in 36 hours: creative, engaging, fun |
 | Most "Useful" Hack | Roomba & mop + trophy | $1,080 | Actually: the funniest, goofiest project |
 | Best Embedded Hack | Bambu A1 Mini + trophy | $1,180 | Best use of hardware / embedded systems |
 | Best First-Time Hacker | AirPods 4 + trophy | $600 | More than half the team must be first-timers |
