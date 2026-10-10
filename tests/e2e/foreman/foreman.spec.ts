@@ -39,3 +39,24 @@ test("hovering a feature traces what it waits on and what waits on it", async ({
   await expect(page.locator('svg a[data-slug="foreman"]')).toHaveClass(/faded/);
   await page.screenshot({ path: test.info().outputPath("foreman-trace.png") });
 });
+
+test("the replay scrubs the graph back to the first PR and returns to live", async ({ page }) => {
+  await page.goto("/foreman");
+  const info = page.getByTestId("replay-info");
+  await expect(info).toContainText("LIVE");
+  const built = async () => Number(/(\d+)\/\d+ built/.exec(await info.innerText())![1]);
+  const live = await built();
+  const done = await page.locator('svg a[data-state="done"]').count();
+
+  const slider = page.getByRole("slider", { name: "Time" });
+  await slider.focus();
+  await page.keyboard.press("Home");
+  await expect(info).not.toContainText("LIVE");
+  expect(await built()).toBeLessThan(live);
+  expect(await page.locator('svg a[data-state="done"]').count()).toBeLessThan(done);
+  await page.screenshot({ path: test.info().outputPath("foreman-replay-start.png") });
+
+  await page.keyboard.press("End");
+  await expect(info).toContainText("LIVE");
+  await expect(page.locator('svg a[data-state="done"]')).toHaveCount(done);
+});

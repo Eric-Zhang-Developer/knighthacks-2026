@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { buildBoard, layers, type PR, type Raw } from "@/lib/foreman/board";
+import { buildBoard, layers, statesAt, type PR, type Raw } from "@/lib/foreman/board";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
@@ -123,4 +123,14 @@ test("layers put a feature one column right of its deepest dependency, and survi
   ]);
   expect([...d.entries()]).toEqual([["a", 0], ["b", 1], ["c", 2]]);
   expect(layers([{ slug: "x", deps: ["y"] }, { slug: "y", deps: ["x"] }]).size).toBe(2);
+});
+
+test("replay states come from PR history: in flight while open, done once merged", () => {
+  const f = buildBoard(raw, NOW).features;
+  const at = (iso: string) => Object.fromEntries(statesAt(f, Date.parse(iso)));
+  // Before a's PR opened: a is ready, b waits on it. While #1 was open: a in flight. After it merged: a done.
+  expect(at("2026-10-10T11:00:00Z")).toMatchObject({ a: "ready", b: "blocked", e: "cut", f: "backlog" });
+  expect(at("2026-10-10T12:10:00Z")).toMatchObject({ a: "flight", b: "blocked" });
+  expect(at("2026-10-10T12:45:00Z")).toMatchObject({ a: "done", b: "ready", d: "ready" });
+  expect(at("2026-10-10T13:30:00Z")).toMatchObject({ a: "done", b: "flight", d: "flight" });
 });

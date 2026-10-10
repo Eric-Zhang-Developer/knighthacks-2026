@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
-import Graph from "@/components/foreman/Graph";
 import { HeaderClock, Milestones } from "@/components/foreman/Live";
+import SitePlan from "@/components/foreman/SitePlan";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
 import { readRaw, REPO } from "@/lib/foreman/github";
@@ -170,10 +170,10 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
       <section className={styles.section} aria-labelledby="graph">
         <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
-          The site plan <small>every feature, left to right in dependency order · hover to trace · click to open</small>
+          The site plan <small>every feature, left to right in dependency order · hover to trace · click to open · replay to watch it get built</small>
         </h2>
         <div className={styles.panel}>
-          <Graph features={board.features} repo={board.repo} />
+          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} />
         </div>
       </section>
 
