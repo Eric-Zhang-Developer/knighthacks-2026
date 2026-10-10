@@ -163,7 +163,8 @@ const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: U
   const [open, setOpen] = useState(false);
   return (
     <details className={styles.list} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary>Projects ({stars.length})</summary>
+      {/* Click (Enter on a summary is one) renders the rows at once: toggle fires a task later, after a quick Tab. */}
+      <summary onClick={(e) => setOpen(!(e.currentTarget.parentElement as HTMLDetailsElement).open)}>Projects ({stars.length})</summary>
       <ul aria-label="Projects">
         {open &&
           stars.map((s, i) =>
