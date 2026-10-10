@@ -1,6 +1,6 @@
 ---
 name: Add-on: run the same app on a Vultr VM
-depends_on: [share-qr]
+depends_on: [share-qr-ui]
 owns: [deploy/, Dockerfile, .dockerignore]
 assignee: ""
 ---

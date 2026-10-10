@@ -1,6 +1,6 @@
 ---
 name: Turn a challenged assumption into a ten-minute experiment and record its result
-depends_on: [challenge, ai-client]
+depends_on: [challenge-ui, ai-client]
 owns: [app/api/experiments/, lib/experiments/, components/experiments/, db/schema/experiments.ts, tests/prove-it/, tests/e2e/prove-it/]
 assignee: ""
 ---
