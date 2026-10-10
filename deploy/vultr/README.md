@@ -73,5 +73,9 @@ Run the canonical container test with `python3 .agents/scripts/verify.py --slug 
 
 ## Current verification
 
-Not verified: local Docker daemon and the provisioned VM/SSH/HTTPS endpoint are required. Issue #15 tracks VM
-provisioning. This document is preparation, not evidence that a Vultr deployment exists.
+Local container verification passed at `6bc866c` on 2026-10-10: Docker built and ran the image as `node`,
+`/api/health` returned the full built commit, and `/` returned 200. The canonical verifier saved the actual
+receipt under `.git/agent-evidence/vultr-deploy/20261010T153627Z` in the shared repository.
+
+VM verification remains blocked on issue #15: provisioned VM/SSH access, runtime secrets and an HTTPS endpoint
+have not been supplied. No Vultr deployment or sponsor-track claim has been made.
