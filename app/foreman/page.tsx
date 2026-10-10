@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
-import { AutoRefresh, DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
+import { DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
 import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
 import Since from "@/components/foreman/Since";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
-import { readRaw, REPO } from "@/lib/foreman/github";
+import { readRaw, REPO } from "@/lib/foreman/collect";
+import { clock } from "@/lib/foreman/time";
 
 const stencil = Big_Shoulders_Stencil({ subsets: ["latin"], weight: ["600", "800"], variable: "--font-stencil" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 // Unlisted: nothing links here and search engines are told to stay out. Everything shown is already public.
 export const metadata: Metadata = { title: "Foreman · Uncharted", robots: { index: false, follow: false } };
-// Regenerated at most once a minute and served from cache in between. Rendering per request meant ~70 reads of
-// Vercel's remote data cache each time (0.9–4.6 s to first byte). The data was already a minute stale at most,
-// the header shows its real age, and the clocks correct themselves on the first client tick.
-export const revalidate = 60;
+// One snapshot per build (specs/features/foreman/spec.md § Architecture): prerendered once, no GitHub call per view.
+// force-static keeps it static even though the collector's fetches say no-store (so Next never caches them).
+export const dynamic = "force-static";
 
 const ASK_LABEL: Record<Ask["kind"], string> = {
   stop: "stop",
@@ -38,49 +38,54 @@ const KIND_COLOR: Record<string, string> = {
   other: "#4a4338",
 };
 
-const ago = (now: number, iso: string) => {
-  const m = Math.round((now - Date.parse(iso)) / 60_000);
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
-};
+// Times baked into static HTML are absolute: "N min ago" would be wrong a minute after the build.
+const at = (iso: string) => clock(Date.parse(iso));
+const hhmm = (iso: string) => at(iso).split(" ")[1];
 
 export default async function ForemanPage() {
-  const now = Date.now();
-  let board: Board | null = null;
-  let error = "";
-  try {
-    board = buildBoard(await readRaw(), now);
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
+  const raw = await readRaw();
+  const snapshot = Date.parse(raw.fetchedAt);
+  const board = buildBoard(raw, snapshot);
+  const { api } = board;
 
   return (
     <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
       <header className={styles.header}>
         <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
-        <span className={styles.sub} data-sha={board?.sha}>
-          site office · <a href={`https://github.com/${REPO}`}>{REPO}</a>
-          {board && ` · data: main @ ${board.sha.slice(0, 7)}`}
-          {/* The deployed code can lag main by a deploy; without this the data SHA reads like the build's. */}
-          {` · build ${(process.env.GIT_COMMIT ?? "unknown").slice(0, 7)}`}
+        <span className={`${styles.sub} ${styles.survey}`} data-sha={board.sha}>
+          site office · <a href={`https://github.com/${REPO}`}>{REPO}</a> · surveyed <b>{clock(snapshot)}</b> · main @{" "}
+          <b>{board.sha.slice(0, 7)}</b> ·{" "}
+          <span className={styles.api} data-testid="api" data-api={!api.token ? "off" : api.error ? "failed" : "ok"}>
+            {!api.token
+              ? "API: no token"
+              : api.error
+                ? "API: failed"
+                : `API: token · ${api.calls} calls${api.remaining !== null ? ` · ${api.remaining}/${api.limit} left` : ""}`}
+          </span>
         </span>
-        {board && (
-          <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt}>
-            <DemoKeys />
-          </HeaderClock>
-        )}
-        <AutoRefresh fetchedAt={board?.fetchedAt} />
+        <HeaderClock now={snapshot} start={board.start} fetchedAt={board.fetchedAt}>
+          <DemoKeys />
+        </HeaderClock>
       </header>
 
-      {!board ? (
-        <p className={styles.error} role="alert">
-          GitHub data unavailable: {error}. Nothing below is shown rather than showing a guess.
-        </p>
-      ) : (
-        <Sections board={board} now={now} />
+      {!board.prsKnown && (
+        <div className={styles.degraded} role="status" data-testid="degraded">
+          <p>
+            <strong>PR data missing</strong>
+            {api.token
+              ? `GitHub's API refused during the build (${api.error}).`
+              : "This build ran without GITHUB_TOKEN, so it read no PRs, issues or CI."}{" "}
+            Milestones, specs, done notes and gaps below come from the repo at {board.sha.slice(0, 7)} and are true. Features that
+            could be under construction show as unknown, and the crew, replay and PR asks are left out until a build reads GitHub.
+          </p>
+        </div>
       )}
+      <Sections board={board} now={snapshot} />
     </main>
   );
 }
+
+const NeedsPrs = ({ what }: { what: string }) => <p className={styles.needsPrs}>{what} needs PR data, missing from this snapshot (see above).</p>;
 
 function Sections({ board, now }: { board: Board; now: number }) {
   const latest = board.replay.slice(-12).reverse();
@@ -96,28 +101,41 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
   return (
     <>
-      <div className={styles.ticker} aria-label="Latest merges">
-        <div className={styles.tickerTrack}>
-          {[...latest, ...latest].map((r, i) => (
-            <span key={i}>
-              <b>#{r.number}</b> {r.title} · {ago(now, r.at)} ago
-            </span>
-          ))}
+      {latest.length > 0 && (
+        <div className={styles.ticker} aria-label="Latest merges">
+          <div className={styles.tickerTrack}>
+            {[...latest, ...latest].map((r, i) => (
+              <span key={i}>
+                <b>#{r.number}</b> {r.title} · merged {hhmm(r.at)}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <p className={styles.intro} data-testid="intro">
-        This is the build office for <b>Uncharted</b>. <b>{board.stats.crew}</b> agent workers, building in parallel under one
-        rulebook (<a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>), have merged{" "}
-        <b>{board.stats.merged}</b> PRs and built <b>{done}</b> of <b>{scheduled.length}</b> planned features
-        {board.stats.firstPrAt && (
+        This is the build office for <b>Uncharted</b>.{" "}
+        {board.prsKnown ? (
           <>
-            {" "}
-            since the first PR <b>{ago(now, board.stats.firstPrAt)}</b> ago
+            <b>{board.stats.crew}</b> agent workers, building in parallel under one rulebook (
+            <a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>), have merged <b>{board.stats.merged}</b> PRs
+            and built <b>{done}</b> of <b>{scheduled.length}</b> planned features
+            {board.stats.firstPrAt && (
+              <>
+                {" "}
+                since the first PR at <b>{at(board.stats.firstPrAt)}</b>
+              </>
+            )}
+            .
           </>
-        )}
-        . Every number on this page is read live from GitHub.
+        ) : (
+          <>
+            Agent workers under one rulebook (<a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>) have
+            built <b>{done}</b> of <b>{scheduled.length}</b> planned features.
+          </>
+        )}{" "}
+        Every number here was read from the repo and GitHub when this page was built, at <b>{at(board.fetchedAt)}</b>.
       </p>
-      <Since replay={board.replay} features={board.features} now={now} />
+      {board.prsKnown && <Since replay={board.replay} features={board.features} now={now} />}
 
       <section className={styles.section} aria-labelledby="ms">
         <h2 id="ms" className={`${styles.h2} ${styles.stencil}`}>
@@ -133,8 +151,9 @@ function Sections({ board, now }: { board: Board; now: number }) {
             <h2 id="ask" className={`${styles.h2} ${styles.stencil}`} style={{ padding: "12px 16px 0" }}>
               Needs a person <small>{blocking.length} open · agents can&apos;t clear these themselves</small>
             </h2>
+            {!board.prsKnown && <NeedsPrs what="Merging plans, stale drafts, clashes, issues and main's CI" />}
             {blocking.length === 0 ? (
-              <p className={styles.empty}>Nothing waiting on a person.</p>
+              board.prsKnown && <p className={styles.empty}>Nothing waiting on a person.</p>
             ) : (
               <ul className={styles.asks} aria-label="Needs a person">
                 {blocking.map((a) => (
@@ -175,8 +194,8 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
           <div className={`${styles.panel} ${styles.stats}`} aria-label="Build stats">
             <Stat n={`${done}/${scheduled.length}`} label="features built" />
-            <Stat n={board.stats.merged} label="PRs merged" />
-            <Stat n={board.stats.workers} label={`agents active, ${HEAT_HOURS}h`} />
+            <Stat n={board.prsKnown ? board.stats.merged : "—"} label="PRs merged" />
+            <Stat n={board.prsKnown ? board.stats.workers : "—"} label={`agents active, ${HEAT_HOURS}h`} />
             <Stat n={board.stats.medianOpenMin === null ? "—" : `${board.stats.medianOpenMin}m`} label="median PR open→merge" />
             <div className={styles.mix}>
               <div className={styles.statLabel}>merged PRs by type</div>
@@ -214,7 +233,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
       <section className={styles.section} aria-labelledby="how">
         <h2 id="how" className={`${styles.h2} ${styles.stencil}`}>
-          How it gets built <small>the loop every agent runs, from AGENTS.md · numbers are live</small>
+          How it gets built <small>the loop every agent runs, from AGENTS.md · numbers at the snapshot</small>
         </h2>
         <Pipeline board={board} />
       </section>
@@ -224,14 +243,15 @@ function Sections({ board, now }: { board: Board; now: number }) {
           The site plan <small>every feature, left to right in dependency order · hover to trace · click for details · replay to watch it get built</small>
         </h2>
         <div className={styles.panel}>
-          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} heatBasis={board.heatBasis} now={now} />
+          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} />
         </div>
       </section>
 
       <section className={styles.section} aria-labelledby="crew">
         <h2 id="crew" className={`${styles.h2} ${styles.stencil}`}>
-          The crew <small>open PRs by worker, as each describes itself · dot = CI</small>
+          The crew <small>open PRs by worker at the snapshot, as each describes itself · dot = CI</small>
         </h2>
+        {!board.prsKnown && <NeedsPrs what="The crew" />}
         <div className={styles.crew}>
           {board.lanes.map((l) => (
             <article key={l.worker} className={`${styles.panel} ${styles.lane}`} aria-label={`Worker ${l.worker}`}>
@@ -247,7 +267,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
                     #{p.number} {p.title}
                     {p.draft ? " · draft" : ""}
                   </span>
-                  <span className={styles.prAge}>{ago(now, p.updatedAt)}</span>
+                  <span className={styles.prAge} title={`last push ${at(p.updatedAt)}`}>{hhmm(p.updatedAt)}</span>
                 </a>
               ))}
             </article>

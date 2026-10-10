@@ -28,19 +28,18 @@ export default function Since({ replay, features, now }: Pick<Board, "replay" | 
     try {
       if (prev === null || now - prev >= MIN_GAP) localStorage.setItem(KEY, String(now));
     } catch {}
-    // Only on first mount: auto-refresh changes `now`, but the banner keeps comparing to the visit before this one.
+    // Only on first mount. `now` is the snapshot time, so a reload of the same snapshot shows nothing new.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (seen === null || hidden) return null;
   const merged = replay.filter((r) => Date.parse(r.at) > seen);
   const built = features.filter((f) => f.doneAt && Date.parse(f.doneAt) > seen).map((f) => f.slug);
-  const mins = Math.round((now - seen) / 60_000);
 
   return (
     <aside className={styles.since} aria-label="Since you last looked">
       <span className={styles.sinceHead}>
-        Since you last looked · {clock(seen)}, {mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`} ago
+        Since you last looked · the snapshot of {clock(seen)}
       </span>
       {merged.length === 0 ? (
         <span>nothing merged.</span>
