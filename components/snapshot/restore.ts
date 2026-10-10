@@ -4,11 +4,23 @@ import { useEffect } from "react";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState, rememberActive, rememberedActive, setState, subscribe } from "@/lib/store";
 
-type Version = { versionId: string; neighborIds: string[] };
+type Version = { ideaId: string; versionId: string; neighborIds: string[] };
+
+const get = <T,>(path: string) => fetch(path).then((r) => (r.ok ? (r.json() as Promise<T>) : null), () => null);
+
+// Any version of this workspace's ideas: /api/ideas lists only each idea's latest, so look through their trails.
+async function findVersion(versionId: string): Promise<Version | null> {
+  for (const idea of (await get<Version[]>("/api/ideas")) ?? []) {
+    if (idea.versionId === versionId) return idea;
+    const found = (await get<Version[]>(`/api/revisions/trail/${idea.ideaId}`))?.find((v) => v.versionId === versionId);
+    if (found) return found;
+  }
+  return null;
+}
 
 // Brings back the idea version chosen before a reload. The idea panel restores saved ideas with the newest one
-// active; once its stars are in the store, this switches to the remembered version if this workspace still has it
-// (a gone one is dropped silently), then remembers every later choice.
+// active; once its stars are in the store, this switches to the remembered version if any of this workspace's idea
+// trails still has it (a gone one is dropped silently), then remembers every later choice.
 export function useRememberedVersion() {
   useEffect(() => {
     let cancelled = false;
@@ -25,15 +37,11 @@ export function useRememberedVersion() {
       });
       if (cancelled) return;
       const wanted = rememberedActive(workspaceId);
-      const { ideaStars, activeIdeaVersionId } = getState();
-      if (wanted && wanted !== activeIdeaVersionId) {
-        if (ideaStars.some((s) => s.versionId === wanted)) {
-          const versions = await fetch("/api/ideas").then((r) => (r.ok ? (r.json() as Promise<Version[]>) : []), () => []);
-          const v = versions.find((x) => x.versionId === wanted);
-          if (v && !cancelled) setState({ activeIdeaVersionId: v.versionId, highlightedIds: v.neighborIds });
-        } else {
-          rememberActive(workspaceId, null);
-        }
+      if (wanted && wanted !== getState().activeIdeaVersionId) {
+        const v = await findVersion(wanted);
+        if (cancelled) return;
+        if (v) setState({ activeIdeaVersionId: v.versionId, highlightedIds: v.neighborIds });
+        else rememberActive(workspaceId, null); // gone from this workspace: dropped silently
       }
       if (cancelled) return;
       let last = getState().activeIdeaVersionId;
