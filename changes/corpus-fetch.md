@@ -1,5 +1,5 @@
 ## What shipped
-`corpus/fetch/run.py`: `discover` adds ended hackathons from Devpost's API to `sources.jsonl` (16 Knight Hacks galleries seeded); `fetch` walks galleries and project pages at 1 req/s into `corpus/data/projects.jsonl` with provenance, dedupe, rejection counts and resume. Since #PR: 2 req/s with one 429 backoff to 1 req/s, and every gallery card (title, tagline, winner badge) captured to `corpus/data/summaries.jsonl`; `fetch --gallery-only` collects ~24 projects per request. 100 real records committed as `corpus/fixtures/sample.jsonl`.
+`corpus/fetch/run.py`: `discover` adds ended hackathons from Devpost's API to `sources.jsonl` (16 Knight Hacks galleries seeded); `fetch` walks galleries and project pages at 1 req/s into `corpus/data/projects.jsonl` with provenance, dedupe, rejection counts and resume. Since #310: 2 req/s with one 429 backoff to 1 req/s, and every gallery card (title, tagline, winner badge) captured to `corpus/data/summaries.jsonl`; `fetch --gallery-only` collects ~24 projects per request. 100 real records committed as `corpus/fixtures/sample.jsonl`.
 ## Where it lives
 `corpus/fetch/` (run.py, parse.py, test_fetch.py, testdata/, sources.jsonl, requirements.txt), `corpus/fixtures/sample.jsonl`
 ## How to check it
