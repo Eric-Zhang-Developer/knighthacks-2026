@@ -1,4 +1,4 @@
-import { copyFile, readdir } from "node:fs/promises";
+import { copyFile, readdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -47,6 +47,15 @@ test("a reload keeps the chosen version, lists past snapshots and their links, a
   await version(2).click();
   const v2 = (await decide(page).getAttribute("data-active-version"))!;
   expect(v2).not.toBe(v1);
+
+  // Choosing a version first generates its missing evidence cards (decision-snapshot-api #181): stub one per real
+  // neighbor of both versions.
+  const versions = (await (await page.request.get("/api/ideas")).json()) as { neighborIds: string[] }[];
+  for (const id of new Set(versions.flatMap((v) => v.neighborIds))) {
+    await writeFile(join(process.env.AI_STUB_DIR!, `evidence-${id}.json`), JSON.stringify({
+      overlaps: [], differences: [], uncertainty: { text: "Team size is unknown.", label: "unverified", sourceIds: [] },
+    }));
+  }
 
   // Validation 2: two snapshots, one per version.
   const older = await choose(page, /Choose this version/);
