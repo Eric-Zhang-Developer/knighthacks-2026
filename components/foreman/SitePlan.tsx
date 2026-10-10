@@ -38,6 +38,16 @@ export default function SitePlan({ features, replay, repo, start, heatBasis, now
     return () => clearInterval(id);
   }, [playing, first, now]);
 
+  const toggle = () => {
+    if (!playing && t === null) setT(first);
+    setPlaying(!playing);
+  };
+  // Space in demo mode (DemoKeys) toggles the same way as the button.
+  useEffect(() => {
+    window.addEventListener("foreman:replay", toggle);
+    return () => window.removeEventListener("foreman:replay", toggle);
+  });
+
   const shown = useMemo(() => (t === null ? undefined : statesAt(features, t)), [features, t]);
   const at = t ?? now;
   const merged = replay.filter((r) => Date.parse(r.at) <= at);
@@ -63,10 +73,7 @@ export default function SitePlan({ features, replay, repo, start, heatBasis, now
         <button
           type="button"
           className={styles.play}
-          onClick={() => {
-            if (!playing && t === null) setT(first);
-            setPlaying(!playing);
-          }}
+          onClick={toggle}
           aria-pressed={playing}
         >
           {playing ? "❚❚ pause" : t === null ? "▶ replay the build" : "▶ resume"}

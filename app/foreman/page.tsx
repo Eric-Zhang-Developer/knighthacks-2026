@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
-import { AutoRefresh, HeaderClock, Milestones } from "@/components/foreman/Live";
+import { AutoRefresh, DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
 import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
 import styles from "@/components/foreman/foreman.module.css";
@@ -58,6 +58,7 @@ export default async function ForemanPage() {
         </span>
         {board && <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt} />}
         <AutoRefresh />
+        {board && <DemoKeys />}
       </header>
 
       {!board ? (

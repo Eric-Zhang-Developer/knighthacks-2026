@@ -63,3 +63,16 @@ test("the replay scrubs the graph back to the first PR and returns to live", asy
   await expect(info).toContainText("LIVE");
   await expect(page.locator('svg a[data-state="done"]')).toHaveCount(done);
 });
+
+test("demo keys: a number jumps to its section, space starts the replay", async ({ page }) => {
+  await page.goto("/foreman");
+  await page.keyboard.press("5");
+  await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport();
+  await page.keyboard.press("2");
+  await expect(page.getByRole("heading", { name: /needs a person/i })).toBeInViewport();
+  await page.keyboard.press(" ");
+  await expect(page.getByRole("button", { name: /pause/i })).toBeVisible();
+  await expect(page.getByTestId("replay-info")).not.toContainText("LIVE");
+  await page.keyboard.press(" ");
+  await expect(page.getByRole("button", { name: /resume/i })).toBeVisible();
+});
