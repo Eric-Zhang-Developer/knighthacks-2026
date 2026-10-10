@@ -2,6 +2,9 @@ import { expect, test as base } from "@playwright/test";
 
 const test = base.extend<{ workspace: { origin: string } }>({
   workspace: async ({ request, baseURL }, provide) => {
+    if (!process.env.TEST_DATABASE_URL || process.env.DATABASE_URL !== process.env.TEST_DATABASE_URL) {
+      throw new Error("Voice workspace creation requires the dedicated test database");
+    }
     const headers = { origin: new URL(baseURL!).origin };
     const created = await request.post("/api/workspace", { headers });
     expect(created.status()).toBe(201);
