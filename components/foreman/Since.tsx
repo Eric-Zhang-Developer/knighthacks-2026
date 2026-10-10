@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Board } from "@/lib/foreman/board";
-import { clock } from "./Live";
+import { clock } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
 const KEY = "foreman:last-seen";

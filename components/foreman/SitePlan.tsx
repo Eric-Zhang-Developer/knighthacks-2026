@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { statesAt, type Board } from "@/lib/foreman/board";
 import Graph from "./Graph";
-import { clock, span } from "./Live";
+import { clock, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
 const PLAY_MS = 24_000; // the whole build replays in this long
