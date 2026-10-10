@@ -59,7 +59,9 @@ export default async function ForemanPage() {
         <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
         <span className={styles.sub} data-sha={board?.sha}>
           site office · <a href={`https://github.com/${REPO}`}>{REPO}</a>
-          {board && ` · main @ ${board.sha.slice(0, 7)}`}
+          {board && ` · data: main @ ${board.sha.slice(0, 7)}`}
+          {/* The deployed code can lag main by a deploy; without this the data SHA reads like the build's. */}
+          {` · build ${(process.env.GIT_COMMIT ?? "unknown").slice(0, 7)}`}
         </span>
         {board && (
           <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt}>

@@ -41,6 +41,9 @@ test("milestones, one graph node per spec, and every human ask from GitHub", asy
   for (const i of issues.filter((i) => !i.pull_request)) await expect(asks).toContainText(i.title);
 
   await expect(page.getByTestId("intro")).toContainText(/agent workers.*merged \d+ PRs and built \d+ of \d+ planned features/);
+  // The header names the build it's running, the same commit /api/health reports.
+  const { commit } = (await (await request.get("/api/health")).json()) as { commit: string };
+  await expect(page.locator("[data-sha]")).toContainText(`build ${commit.slice(0, 7)}`);
   // The pipeline's Spec step counts the same specs the graph draws.
   await expect(page.getByTestId("step-spec")).toHaveText(String(specs.length));
 
