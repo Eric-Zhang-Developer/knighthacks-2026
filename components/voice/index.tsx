@@ -4,6 +4,7 @@ import { useScribe } from "@elevenlabs/react";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { getState, setState } from "@/lib/store";
 import { appendUtterance } from "@/lib/voice/draft";
+import { PanelState } from "@/components/ui";
 import styles from "./voice.module.css";
 
 const MIC_DENIED = "Microphone blocked. Type your idea instead.";
@@ -73,7 +74,8 @@ export default function Voice() {
   };
 
   return (
-    <div className={styles.bar}>
+    <div className={`ui-panel ${styles.bar}`} data-panel="voice">
+      <h2 className="ui-heading">Speak your idea</h2>
       <button
         type="button"
         className={styles.talk}
@@ -95,11 +97,7 @@ export default function Voice() {
           Added to your idea: {added}
         </p>
       ) : null}
-      {notice && (
-        <p className={styles.notice} role="alert">
-          {notice}
-        </p>
-      )}
+      {notice && <PanelState kind="failed" message={notice} />}
       <button type="button" className={styles.end} disabled={!scribe.isConnected} onClick={() => scribe.disconnect()}>
         End voice session
       </button>

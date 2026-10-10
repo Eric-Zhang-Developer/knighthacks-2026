@@ -1,4 +1,4 @@
-.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-2) var(--space-3); }
 .talk, .end {
   border: 1px solid var(--border);
   background: var(--panel);
@@ -14,4 +14,3 @@
 .end:disabled { opacity: 0.5; cursor: default; }
 .transcript { flex: 1; min-width: 12ch; color: var(--muted); font-style: italic; }
 .added { flex: 1; min-width: 12ch; color: var(--text); }
-.notice { color: var(--uncertain); }

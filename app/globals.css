@@ -8,6 +8,18 @@
   --history: #a78bfa; /* revision history */
   --uncertain: #f5b44a; /* uncertainty */
   --live: #5ad48a; /* current-event projects */
+  --failed: #f2877d; /* failed panel state */
+
+  /* One spacing, radius and type scale for every panel. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --heading: 15px;
 }
 
 * {
@@ -23,6 +35,19 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* A solid panel over the canvas, shared by every panel component. */
+.ui-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.ui-heading {
+  font-size: var(--heading);
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 :focus-visible {
