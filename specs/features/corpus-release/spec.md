@@ -1,6 +1,6 @@
 ---
 name: Publish the full real corpus to production with a validated bundle
-depends_on: [corpus-embed]
+depends_on: [corpus-embed, galaxy]
 owns: [corpus/release/]
 assignee: ""
 ---

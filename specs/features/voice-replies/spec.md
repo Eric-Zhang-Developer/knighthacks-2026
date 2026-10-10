@@ -25,7 +25,8 @@ assignee: ""
 ## Validation
 1. Save an idea -> a short read-back plays; press stop -> audio stops at once.
 2. Save two ideas quickly -> only the newer read-back plays.
-3. `tests/e2e/voice-replies/` covers the route (no key in the response) and 2 with TTS stubbed in the test only;
+3. Deny the mic, type an idea and save -> it saves, the star appears and the read-back plays.
+4. `tests/e2e/voice-replies/` covers the route (no key in the response), 2 and 3, with TTS stubbed in the test only;
    1 is a live check written in the done note.
 
 ## Defaults

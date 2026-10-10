@@ -16,8 +16,8 @@ client and the rest would copy it.
    model from `GEMINI_MODEL`, and returns the zod-parsed result. One retry when the JSON fails the schema, then a
    typed error the caller can show.
 2. `lib/ai/claims.ts`: the `Claim` type (`text`, `label`: `supported` | `inferred` | `unverified`, `sourceIds`) and
-   `checkClaims(claims, sourceIds)`: a `supported` claim whose sources aren't all in the given set becomes
-   `unverified`.
+   `checkClaims(claims, sourceIds)`: a `supported` claim with no sources, or with any source not in the given set,
+   becomes `unverified`.
 3. A test stub: when `AI_STUB_DIR` is set, `generate` returns the fixture JSON for the prompt's `stubKey` instead
    of calling Gemini. Tests and the verifier only.
 
@@ -29,7 +29,7 @@ client and the rest would copy it.
 
 ## Validation
 1. `pnpm test` -> `tests/ai-client/` covers schema retry, the typed errors and `checkClaims` (a `supported` claim
-   citing an unknown source comes back `unverified`).
+   citing no source, or an unknown one, comes back `unverified`).
 2. `tests/e2e/ai-client/` calls `generate` with a small fixed schema: against the live API when `GEMINI_API_KEY` is
    set (record the model ID and one response in the done note), against the stub otherwise.
 3. `python3 .agents/scripts/verify.py --slug ai-client --worktree .` -> pass. Keep the response.
