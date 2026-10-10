@@ -21,3 +21,6 @@ required, and inventing one would be unsourced). Any non-OK answer from a source
 `RESEARCH_SEARCH_BASE`, honoured only under the AI fixture opt-in and never on Vercel.
 
 How to undo: `drop table research;` on the test branch. Production is applied separately (#113).
+
+The classifier's output array has no `maxItems`: Gemini answered 400 INVALID_ARGUMENT to the schema with
+`maxItems: 24` (12 and none both pass), and the server keeps only ids the searches returned, at most 12.

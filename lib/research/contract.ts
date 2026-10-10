@@ -15,7 +15,7 @@ export const queriesSchema = z.object({ queries: z.array(z.string().trim().min(1
 export const classifySchema = z.object({ items: z.array(z.object({
   id: z.string().max(300), kind: z.enum(KINDS),
   reason: z.object({ text: z.string().trim().min(1).max(300), label: z.enum(["supported", "inferred", "unverified"]), sourceIds: z.array(z.string().max(300)).max(6) }).strict(),
-}).strict()).max(MAX_ITEMS * 2) }).strict(); // extras are dropped by id, not rejected
+}).strict()) }).strict(); // unbounded: Gemini rejects maxItems 24, and extras are dropped by id anyway
 
 const str = (v: unknown) => (typeof v === "string" ? v : null);
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
