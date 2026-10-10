@@ -9,7 +9,7 @@ const fixtures = join(__dirname, "fixtures");
 const decide = (page: Page) => page.getByRole("region", { name: "Decision" });
 const branches = (page: Page) => page.getByRole("region", { name: "Branches" });
 const history = (page: Page) => decide(page).getByRole("region", { name: "Past snapshots" });
-const rows = (page: Page) => history(page).getByRole("listitem").filter({ has: page.locator("[data-snapshot-row]") });
+const rows = (page: Page) => history(page).locator("li[data-snapshot-row]");
 
 async function copyFixtures() {
   const stub = process.env.AI_STUB_DIR;
@@ -74,8 +74,8 @@ test("a reload keeps the chosen version, lists past snapshots and their links, a
 
   // Validation 2: both snapshots listed, newest first; choosing the older shows it.
   await expect(rows(page)).toHaveCount(2, { timeout: 30_000 });
-  await expect(rows(page).nth(0).locator("[data-snapshot-row]")).toHaveAttribute("data-snapshot-row", newer);
-  await expect(rows(page).nth(1).locator("[data-snapshot-row]")).toHaveAttribute("data-snapshot-row", older);
+  await expect(rows(page).nth(0)).toHaveAttribute("data-snapshot-row", newer);
+  await expect(rows(page).nth(1)).toHaveAttribute("data-snapshot-row", older);
   await rows(page).nth(1).getByRole("button").first().click();
   await expect(decide(page).getByRole("article", { name: "Decision snapshot" })).toHaveAttribute("data-snapshot-id", older);
   await expect(decide(page).getByRole("article", { name: "Decision snapshot" })).toHaveAttribute("data-version-id", v2);
