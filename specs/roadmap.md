@@ -24,6 +24,9 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   (live-smoke), the rubric and sponsor overlay (F11), strongest alternative (F26), prove it in ten minutes (F27),
   meaningful combinations (F28), what would change your mind (F23) and show me the moment (F30). Each is split into a
   Windows API half and a Mac UI half that renders inside a finished panel.
+- **submission, third wave** (person's go, Sat 13:20): assumption constellations (F24), GitHub and Hugging
+  Face research labelled product versus building block (F13, F14), and problem evidence through Gemini search
+  grounding (F12). Demo rehearsal (F18) waits for a person's call.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
 Beside the product: `/foreman`, an unlisted build-status page (countdowns, what needs a person, the feature
