@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ClaimBadge, PanelState, type ClaimLabel } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { setState, useAppState } from "@/lib/store";
+import StrongestAlternative from "./alternative";
 import styles from "./evidence.module.css";
 
 // Shape pinned by neighbor-evidence-api (lib/evidence/contract.ts).
@@ -98,29 +99,32 @@ export default function Evidence() {
   }
 
   return (
-    <section className={`ui-panel ${styles.evidence}`} aria-label="Evidence">
-      <h2 className="ui-heading">How it compares</h2>
-      {view.kind === "loading" && <PanelState kind="loading" message="Comparing your idea with its nearest projects…" />}
-      {view.kind === "failed" && (
-        <PanelState kind="failed" message={`Couldn't load evidence: ${view.error}`} onRetry={() => setAttempt((n) => n + 1)} />
-      )}
-      {view.kind === "ready" && (
-        <>
-          {view.cards.length === 0 && <PanelState kind="empty" message="No evidence for this idea yet." />}
-          {view.cards.map((card) => (
-            <EvidenceCard key={card.projectId} card={card} />
-          ))}
-          {view.more === "loading" && <PanelState kind="loading" message="Comparing the remaining neighbors…" />}
-          {view.more !== "idle" && view.more !== "loading" && (
-            <PanelState kind="failed" message={`Couldn't load the remaining neighbors: ${view.more}`} onRetry={showAll} />
-          )}
-          {!view.all && view.more === "idle" && (
-            <button type="button" className={styles.more} onClick={showAll}>
-              Compare the remaining neighbors
-            </button>
-          )}
-        </>
-      )}
-    </section>
+    <>
+      <StrongestAlternative versionId={versionId} />
+      <section className={`ui-panel ${styles.evidence}`} aria-label="Evidence">
+        <h2 className="ui-heading">How it compares</h2>
+        {view.kind === "loading" && <PanelState kind="loading" message="Comparing your idea with its nearest projects…" />}
+        {view.kind === "failed" && (
+          <PanelState kind="failed" message={`Couldn't load evidence: ${view.error}`} onRetry={() => setAttempt((n) => n + 1)} />
+        )}
+        {view.kind === "ready" && (
+          <>
+            {view.cards.length === 0 && <PanelState kind="empty" message="No evidence for this idea yet." />}
+            {view.cards.map((card) => (
+              <EvidenceCard key={card.projectId} card={card} />
+            ))}
+            {view.more === "loading" && <PanelState kind="loading" message="Comparing the remaining neighbors…" />}
+            {view.more !== "idle" && view.more !== "loading" && (
+              <PanelState kind="failed" message={`Couldn't load the remaining neighbors: ${view.more}`} onRetry={showAll} />
+            )}
+            {!view.all && view.more === "idle" && (
+              <button type="button" className={styles.more} onClick={showAll}>
+                Compare the remaining neighbors
+              </button>
+            )}
+          </>
+        )}
+      </section>
+    </>
   );
 }
