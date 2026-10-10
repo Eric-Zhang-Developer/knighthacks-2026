@@ -8,15 +8,28 @@
 }
 .state p { flex: 1; }
 .glyph { width: 1em; text-align: center; font-weight: 700; }
-.state[data-kind="partial"] { color: var(--uncertain); }
-.state[data-kind="failed"] { color: var(--failed); }
-.retry {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: none;
+/* A hiccup, not an alarm (design-refresh Plan 6): the glyph carries the colour, the words stay calm and readable,
+   and Retry is the one obvious next step. */
+.state[data-kind="partial"],
+.state[data-kind="failed"],
+.state[data-kind="offline"] {
+  align-items: center;
+  margin: var(--space-2) 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container-high);
   color: var(--text);
-  padding: 2px var(--space-2);
-  font: inherit;
+}
+.state[data-kind="partial"] .glyph { color: var(--uncertain); }
+.state[data-kind="failed"] .glyph,
+.state[data-kind="offline"] .glyph { color: var(--failed); }
+.retry {
+  flex: none;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  padding: 6px 16px;
+  font: var(--md-sys-typescale-label-large);
   cursor: pointer;
 }
 

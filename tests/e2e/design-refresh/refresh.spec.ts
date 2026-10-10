@@ -143,3 +143,29 @@ test("phone: a quick flick up closes the project sheet; a slow short drag spring
   await expect(page.getByRole("region", { name: "Project" })).toHaveCount(0, { timeout: 2000 });
   await page.screenshot({ path: info.outputPath("phone-explore.png") });
 });
+
+test("a failed panel is a calm hiccup: readable words, the glyph in the error colour, a Retry pill", async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route("**/api/evidence/**", (r) => r.fulfill({ status: 503, contentType: "application/json", body: '{"error":"Evidence generation is temporarily unavailable."}' }));
+  await page.goto("/");
+  await saveIdea(page);
+  const state = page.locator('[data-kind="failed"]').first();
+  await expect(state).toBeVisible({ timeout: 30_000 });
+  const s = await state.evaluate((e) => {
+    const cs = getComputedStyle(e);
+    const glyph = getComputedStyle(e.querySelector("span")!).color;
+    const text = getComputedStyle(e.querySelector("p")!).color;
+    const retry = e.querySelector("button");
+    const probe = document.createElement("i");
+    probe.style.color = "var(--failed)";
+    document.body.append(probe);
+    const failed = getComputedStyle(probe).color;
+    probe.remove();
+    return { bg: cs.backgroundColor, glyph, text, failed, retry: retry && getComputedStyle(retry).borderTopLeftRadius };
+  });
+  expect(s.glyph).toBe(s.failed);
+  expect(s.text).not.toBe(s.failed);
+  expect(contrast(s.text, s.bg)).toBeGreaterThanOrEqual(4.5);
+  expect(s.retry).toBe("9999px");
+  await state.screenshot({ path: info.outputPath("failed-state.png") });
+});
