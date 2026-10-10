@@ -67,7 +67,7 @@ export type Milestone = {
   done: number;
   total: number;
 };
-export type Ask = { kind: "merge" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
+export type Ask = { kind: "merge" | "clash" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
 export type Lane = { worker: string; prs: (PR & { scope: string | null; kind: string | null })[]; merged: number };
 export type Board = {
   repo: string;
@@ -198,6 +198,21 @@ export function buildBoard(raw: Raw, now: number): Board {
     asks.push({ kind: "stop", title: "STOP file is on main", detail: "Every agent stops until it's removed", url: null });
   if (raw.mainCi === "failure")
     asks.push({ kind: "ci", title: "main is red", detail: "Only the fix merges until it's green", url: `https://github.com/${raw.repo}/actions?query=branch%3Amain` });
+  // Two open feat PRs on one feature: the earlier draft is the claim (AGENTS.md), so the later one is wasted work.
+  const claims = new Map<string, typeof titled>();
+  for (const p of titled)
+    if (p.state === "open" && p.t?.kind === "feature" && p.t.scope) claims.set(p.t.scope, [...(claims.get(p.t.scope) ?? []), p]);
+  for (const [slug, ps] of claims) {
+    if (ps.length < 2) continue;
+    const [first, ...rest] = [...ps].sort((a, b) => a.number - b.number);
+    const who = (p: (typeof ps)[number]) => `#${p.number} (${workerOf(p.body) ?? "unnamed"})`;
+    asks.push({
+      kind: "clash",
+      title: `${ps.length} agents are building ${slug}`,
+      detail: `${who(first)} claimed it first; ${rest.map(who).join(", ")} duplicate it`,
+      url: rest[0].url,
+    });
+  }
   for (const p of titled) {
     if (p.state !== "open") continue;
     if (!p.draft && (p.t?.kind === "plan" || p.t?.kind === "contract"))

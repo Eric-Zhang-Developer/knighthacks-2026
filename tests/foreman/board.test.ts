@@ -91,6 +91,12 @@ test("needs a person: plan PRs to merge, stale drafts, flagged issues, red main"
   expect(asks).toEqual(["ci:main is red", "merge:plan: move things", "stale:feat(b): old claim", "issue:Need a key"]);
 });
 
+test("two open feat PRs on one feature are flagged, naming the first claim", () => {
+  const prs = [...raw.prs, pr(7, "feat(d): the same d page", { body: "Worker: eric-claude-agent-1" })];
+  const clash = buildBoard({ ...raw, prs }, NOW).asks.find((a) => a.kind === "clash");
+  expect(clash?.detail).toBe("#3 (kiro-agent-1) claimed it first; #7 (eric-claude-agent-1) duplicate it");
+});
+
 test("a done note with a gap or no passing verify line is flagged for review", () => {
   const files = { ...raw.files, "changes/a.md": note("not verified: no browser", "- Untested on mobile.") };
   const ask = buildBoard({ ...raw, files }, NOW).asks.find((a) => a.kind === "review");
