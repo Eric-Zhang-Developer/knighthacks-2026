@@ -123,11 +123,21 @@ Page and component changes:
 Rollback: `revert:` the implementation PR; the spec PR stays (it's what we want), and the revert note says the
 code is behind it.
 
-## 6. Out of scope (parked, not started)
-- Crew timeline (Gantt of every PR per worker): branch `foreman-gantt`, one local commit. Needs a spec change first.
-- Main CI health strip over time.
+## 6. Next: two charts (spec § Charts)
+Why these two: the build-up answers the page's first question ("will we make it?") with the trend instead of a
+count, and the crew timeline shows what makes this project unusual (many agents at once) to judges in one glance.
+Both use the snapshot's PRs and done notes only, so the API budget is unchanged.
+1. `lib/foreman/charts.ts`: pure `buildUp(board)` and `timeline(board)` series, unit-tested.
+2. `components/foreman/BuildUp.tsx`, `CrewTimeline.tsx`: SVG, server-rendered, with a small client hover layer.
+3. Palette: three hues stepped into the dark band (OKLCH L 0.48-0.67) from the page's own green, amber and blue,
+   validated before use; the page's neon tones stay for text and state.
+4. e2e: tooltips and table views; screenshots. Then verify both ways, production check, done note.
+Replaces the parked `foreman-gantt` branch (written before the snapshot rewrite; deleted, not merged).
+
+## 7. Out of scope (parked, not started)
+- Main CI health strip over time (needs one more API call per page of runs).
 - Scheduled redeploy for freshness between merges (needs a Vercel deploy hook from a person).
 
-## 7. Size
+## 8. Size
 About 400 changed lines, mostly the collector, its tests and the e2e rewrite. One PR: the collector, the board's
 `unknown` state and the page's two clocks only make sense together; split, any one would leave the page wrong.
