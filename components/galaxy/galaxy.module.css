@@ -68,3 +68,33 @@
 
 /* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
 .railControls { display: contents; }
+
+/* Keyboard focus on the map itself (for + - 0) shows as an inset ring, not a box around the page. */
+.galaxy:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+
+/* Zoom in / out / whole map: small icon buttons stacked at the map's bottom-right, above the count. */
+.mapControls {
+  position: absolute;
+  bottom: 40px;
+  right: 12px;
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.mapControls button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.mapControls button + button { border-top: 1px solid var(--border); }
+.mapControls button:hover { background: var(--rule); }
+.mapControls button:active { transform: scale(0.94); }
+.mapControls svg { width: 20px; height: 20px; fill: currentColor; }
+@media (max-width: 720px) { .mapControls button { width: 44px; height: 44px; } }

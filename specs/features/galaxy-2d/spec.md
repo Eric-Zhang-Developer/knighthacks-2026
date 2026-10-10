@@ -26,7 +26,8 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 3. Look: each category's stars sit on a soft nebula of their own hue (a static, additive glow layer under the
    points; neutral without `classes.json`). Selected and highlighted stars keep their marks and prize rings; region
    labels stay screen-sized at any zoom. No continuous decorative motion.
-4. Map controls (Material 3 small icon buttons) at the map's corner: zoom in, zoom out, fit all. Keyboard: `+`, `-`
+4. Map controls (Material 3 small icon buttons) at the map's bottom-right corner, above the count (the top-right
+   corner is the galaxy suite's "empty space" click): zoom in, zoom out, fit all. Keyboard: `+`, `-`
    and `0` when the map has focus.
 5. Picking, the reveal mask, idea stars and focus lines work as before, in 2D.
 
@@ -36,6 +37,8 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 - 60 fps pan and zoom on the full corpus on a 2020+ laptop, sized for the growth release (#317, up to ~55k stars):
   one draw call for stars, as now, and picking that doesn't project every star on each pointer move.
 - Reduced motion: no spring or momentum, only instant view changes.
+- The canvas draws on demand: only while the view moves or the stars' styles change, never at idle (battery, and
+  the page stays responsive under software rendering).
 
 ## Validation
 1. Drag the map 200px right: two stars' screen positions both move 200px right (±2) and the distance between them
