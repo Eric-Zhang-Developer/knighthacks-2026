@@ -1,0 +1,13 @@
+/* A light, phone-first page, separate from the app's dark shell. */
+.page { min-height: 100vh; background: #f7f7f5; color: #16181d; padding: 16px; font-size: 16px; line-height: 1.5; }
+.card { max-width: 640px; margin: 0 auto; display: grid; gap: 12px; }
+.card h1 { font-size: 24px; line-height: 1.25; }
+.card h2 { font-size: 16px; margin-top: 8px; }
+.card ul { padding-left: 20px; }
+.card a { color: #0b5f8a; }
+.meta { color: #555b66; font-size: 14px; }
+.unknown { color: #555b66; }
+.label { font-size: 13px; padding: 0 6px; border: 1px solid currentColor; border-radius: 999px; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; }
+.facts dt { color: #555b66; }
+.notice { max-width: 640px; margin: 40vh auto 0; text-align: center; }
