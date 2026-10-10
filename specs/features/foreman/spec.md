@@ -105,6 +105,17 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
   done); and the peak of PRs open at once (the crew timeline's peak, "N PRs open at once"). While playing, the
   last chapter passed shows as a caption.
 - **Flash:** a node flashes once when its feature turns done during playback. No flash with reduced motion.
+- **Motion** (#318; the tour is 25 seconds of watching, so it has to move like one continuous thing, not a slideshow):
+  - The playhead advances on `requestAnimationFrame`, at display rate. Its speed eases up from rest when play
+    starts or resumes (about 1 s) and slows into the snapshot over the last stretch, which it still reaches. A
+    full play stays about 24 s. Pause, scrub and resume always continue from the current moment.
+  - Node fill and stroke transition (about 350 ms) instead of snapping, both when a feature lands and when play
+    rewinds to the first PR.
+  - A feature landing also sends a ring out from its node, expanding and fading (transform and opacity only).
+  - Edges from a feature that just landed draw outward toward the features it unblocks.
+  - A counter bumps when its number changes. The ticker's newest merge slides in.
+  - At the snapshot, heat and the critical path fade in instead of appearing.
+  - With reduced motion the playhead still moves (it is the content), but nothing else animates or transitions.
 - Without PR data the graph still renders; the replay, counters, chapters and ticker say they need PR data.
 
 **Charts.** Both are drawn from the snapshot alone (no extra API call), server-rendered SVG, with a hover tooltip, a
@@ -154,7 +165,10 @@ legend or direct labels so identity is never colour alone, and a table view (`<d
    unbuilt milestone, the peak equal to the timeline's) and agents at work at a given moment, on fixed inputs. The
    e2e checks the tour is the first section; Space plays it; a chapter caption and a node flash appear during
    playback; at the end the counters equal the snapshot's; with reduced motion no node animates. Screenshot it
-   mid-playback.
+   mid-playback. Motion: unit tests pin the playhead's speed curve (starts from rest, never above the base speed,
+   reaches the snapshot exactly, a full play within 10% of its 24 s); the e2e sees a landing ring and an edge
+   drawing during playback, and with reduced motion `document.getAnimations()` is empty while it plays. Measure
+   frame intervals during a local play and report them in the PR.
 7. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
    the done note.
 
