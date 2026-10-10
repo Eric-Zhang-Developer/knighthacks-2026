@@ -11,6 +11,7 @@ import { setState, useAppState } from "@/lib/store";
 import type { Hover } from "./Scene";
 import { createdLabel, parseStars, revealMask, yearsOf, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
+import { Viewport } from "./view";
 
 // WebGL only exists in the browser.
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
@@ -29,6 +30,8 @@ export default function Galaxy() {
   const focusOn = useClasses((s) => s.focus);
   const [neighbors, setNeighbors] = useState<string[] | null>(null);
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
+  // The 2D view, shared by the scene (input, camera) and the map buttons and keys.
+  const view = useMemo(() => new Viewport(), []);
   // The page's discovery rail (experience-shell), if there is one; without it the controls float over the map.
   const [rail, setRail] = useState<HTMLElement | null>(null);
   useEffect(() => setRail(document.getElementById("discovery-rail")), []);
@@ -110,6 +113,14 @@ export default function Galaxy() {
       data-ring-count={ringCount}
       data-line-count={lines ? lines.length / 6 : 0}
       data-dimmed-count={focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0}
+      tabIndex={0}
+      aria-label="Star map. Drag to move, scroll or pinch to zoom; plus, minus and 0 keys zoom in, out and fit."
+      onKeyDown={(e) => {
+        const act = ({ "+": () => view.zoomBy(1.6), "=": () => view.zoomBy(1.6), "-": () => view.zoomBy(1 / 1.6), "0": () => view.fit() } as Record<string, () => void>)[e.key];
+        if (!act || e.target !== e.currentTarget) return;
+        e.preventDefault();
+        act();
+      }}
     >
       <Scene
         ids={ids}
@@ -117,6 +128,7 @@ export default function Galaxy() {
         visible={visible}
         onHover={setHover}
         onPick={onPick}
+        view={view}
         colourAt={colourAt}
         ringAt={ringAt}
         dimAt={dimAt}
@@ -135,6 +147,19 @@ export default function Galaxy() {
       <p role="status" className={styles.status}>
         {stars.length} projects indexed
       </p>
+      <div className={styles.mapControls} role="group" aria-label="Map controls">
+        <button type="button" aria-label="Zoom in" onClick={() => view.zoomBy(1.6)}>
+          <svg viewBox="0 0 24 24" aria-hidden><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" /></svg>
+        </button>
+        <button type="button" aria-label="Zoom out" onClick={() => view.zoomBy(1 / 1.6)}>
+          <svg viewBox="0 0 24 24" aria-hidden><path d="M5 11h14v2H5z" /></svg>
+        </button>
+        <button type="button" aria-label="Show the whole map" onClick={() => view.fit()}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z" />
+          </svg>
+        </button>
+      </div>
       {hover && hovered && (
         <div role="tooltip" className={styles.tooltip} style={{ left: hover.x + 12, top: hover.y + 12 }}>
           <strong>{hovered.title}</strong>
