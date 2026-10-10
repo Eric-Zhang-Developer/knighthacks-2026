@@ -14,7 +14,8 @@ type Load =
 
 // "What would change your mind?": the assumptions the active version rests on, each with what would reverse it.
 // Listing them is one model call per version, so it runs when asked; a stored list loads on its own.
-export default function ChangeMind({ versionId }: { versionId: string }) {
+// onLoaded hands the same list to the assumption map, so it never fetches it twice.
+export default function ChangeMind({ versionId, onLoaded }: { versionId: string; onLoaded?: (items: Assumption[]) => void }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
 
   const fetchList = useCallback(async (method: "GET" | "POST") => {
@@ -22,13 +23,16 @@ export default function ChangeMind({ versionId }: { versionId: string }) {
     try {
       const res = await fetch(`/api/assumptions/${encodeURIComponent(versionId)}`, { method });
       const json = await res.json().catch(() => ({}));
-      if (res.ok) return setLoad({ state: "ready", items: json.assumptions as Assumption[] });
+      if (res.ok) {
+        onLoaded?.(json.assumptions as Assumption[]);
+        return setLoad({ state: "ready", items: json.assumptions as Assumption[] });
+      }
       if (method === "GET" && res.status === 404) return setLoad({ state: "none" });
       setLoad({ state: "failed", message: json.error ?? `HTTP ${res.status}` });
     } catch {
       setLoad({ state: "failed", message: "Network error" });
     }
-  }, [versionId]);
+  }, [versionId, onLoaded]);
 
   useEffect(() => {
     fetchList("GET");
