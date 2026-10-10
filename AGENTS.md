@@ -19,6 +19,10 @@ The spec is the source of truth. Chat and memory aren't. Everything you need is 
   don't pick them. `python3 .agents/scripts/status.py --out -` prints the order.
 - **Blocked?** Don't wait. File a `needs-human` issue (below), note it on your PR, and take the next ready feature.
 - **Nothing ready?** Say so in your PR or in an issue and stop. Never invent scope.
+- **Claim an issue before working it** (a bug, a fix, a `needs-human` answer). Skip it if it has an assignee or an open
+  PR that links it. Otherwise `gh issue edit <n> --add-assignee @me` and comment `claim: <your-worker-name>`. Agents
+  can share one GitHub login, so the comment is the claim: re-read the issue, and if an earlier `claim:` names
+  another worker, drop it and switch.
 
 ## The loop
 1. Work in a worktree outside the project folder:
