@@ -8,7 +8,7 @@ import SitePlan from "@/components/foreman/SitePlan";
 import Since from "@/components/foreman/Since";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
-import { buildUp, timeline, type BuildUp as BuildUpData, type Timeline } from "@/lib/foreman/charts";
+import { buildUp, chapters, timeline, type BuildUp as BuildUpData, type Timeline } from "@/lib/foreman/charts";
 import { readRaw, REPO } from "@/lib/foreman/collect";
 import { clock } from "@/lib/foreman/time";
 
@@ -148,6 +148,16 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
       </p>
       {board.prsKnown && <Since replay={board.replay} features={board.features} now={now} />}
 
+      <section className={styles.section} aria-labelledby="graph">
+        <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
+          Watch it get built{" "}
+          <small>every feature, left to right in dependency order · press space to replay · hover to trace · click for its spec and PR</small>
+        </h2>
+        <div className={styles.panel}>
+          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} crew={crew} chapters={chapters(board, crew)} />
+        </div>
+      </section>
+
       <section className={styles.section} aria-labelledby="ms">
         <h2 id="ms" className={`${styles.h2} ${styles.stencil}`}>
           Will we make it? <small>countdown to each milestone · cells = its features</small>
@@ -252,15 +262,6 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
           How it gets built <small>the loop every agent runs, from AGENTS.md · numbers at the snapshot</small>
         </h2>
         <Pipeline board={board} />
-      </section>
-
-      <section className={styles.section} aria-labelledby="graph">
-        <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
-          The site plan <small>every feature, left to right in dependency order · hover to trace · click for details · replay to watch it get built</small>
-        </h2>
-        <div className={styles.panel}>
-          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} />
-        </div>
       </section>
 
       <section className={styles.section} aria-labelledby="crew">

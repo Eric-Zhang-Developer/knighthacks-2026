@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { buildBoard, layers, pace, statesAt, type PR, type Raw } from "@/lib/foreman/board";
-import { buildUp, timeline } from "@/lib/foreman/charts";
+import { atWork, buildUp, chapters, timeline } from "@/lib/foreman/charts";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
@@ -252,4 +252,25 @@ test("crew timeline: a row per named worker, bars from open to merge or the snap
   ]);
   expect(t.peak).toEqual({ t: Z("13:00"), n: 4 });
   expect(timeline([], NOW)).toBeNull();
+});
+
+test("tour chapters: first PR, a milestone built at its last live feature's merge, none if unbuilt, the open peak", () => {
+  // core's live features b-d aren't done, so core gets no chapter; "early" (just a) is built when #1 merged.
+  const early = `[[milestone]]\nname = "early"\nship = ""\nfeatures = ["a"]\n\n`;
+  const r = { ...raw, files: { ...raw.files, "specs/milestones.toml": TOML.replace("[[milestone]]", early + "[[milestone]]") } };
+  const b = buildBoard(r, NOW);
+  const crew = timeline(r.prs, NOW)!;
+  expect(chapters(b, crew)).toEqual([
+    { t: Z("12:00"), label: "first PR" },
+    { t: Z("12:30"), label: "early built" },
+    { t: crew.peak.t, label: "4 PRs open at once" },
+  ]);
+  expect(chapters(buildBoard(raw, NOW), null)).toEqual([{ t: Z("12:00"), label: "first PR" }]);
+});
+
+test("agents at work: named workers with a PR open at that moment, still-open PRs counting at the snapshot", () => {
+  const crew = timeline(raw.prs, NOW)!;
+  expect(atWork(crew, Z("12:15"))).toBe(1); // #1 open
+  expect(atWork(crew, Z("12:45"))).toBe(0); // #1 merged, nothing else open yet
+  expect(atWork(crew, NOW)).toBe(1); // #3-#5 still open: one worker
 });
