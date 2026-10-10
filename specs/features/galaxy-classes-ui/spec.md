@@ -1,7 +1,7 @@
 ---
 name: Colour the galaxy by domain, ring prize winners, and filter by both
 depends_on: [galaxy, search-filters-ui]
-owns: [components/classes/, lib/classes/, components/galaxy/Scene.tsx, components/galaxy/stars.ts, components/search/, components/drawer/, tests/galaxy-classes-ui/, tests/e2e/galaxy-classes-ui/]
+owns: [components/classes/, lib/classes/, components/galaxy/Scene.tsx, components/galaxy/stars.ts, components/galaxy/index.tsx, components/galaxy/galaxy.module.css, components/search/, components/drawer/, tests/galaxy-classes-ui/, tests/e2e/galaxy-classes-ui/]
 assignee: ""
 ---
 
@@ -51,6 +51,10 @@ up with no code change. The done note says whether the real file was on main at 
 4. With a fixture idea whose `neighborIds` are known → exactly that many lines, and non-neighbour stars dimmed.
    Clear it → back to normal.
 5. `tests/e2e/galaxy-classes-ui/` covers 1–4 with a fixture. Keep desktop and phone screenshots.
+
+## Ownership note
+`components/galaxy/index.tsx` and its CSS were added to `owns` while building (eric-frontend-agent, #289): the star
+visibility mask and the project list that Plan 2 and 4 filter live there, not in `Scene.tsx` or `stars.ts`.
 
 ## Defaults
 Palette: 14 distinguishable muted hues on the dark map, checked for contrast against the background. Mount the
