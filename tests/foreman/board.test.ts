@@ -77,6 +77,7 @@ test("states follow AGENTS.md: done, in flight, ready, blocked, cut, backlog", (
   expect(state).toEqual({ a: "done", b: "flight", c: "blocked", d: "flight", e: "cut", f: "backlog", foreman: "ready" });
   expect(b.features.find((f) => f.slug === "a")).toMatchObject({ verified: true, fixes: 1, doneAt: "2026-10-10T12:30:00Z" });
   expect(b.features.find((f) => f.slug === "d")?.worker).toBe("kiro-agent-1");
+  expect(b.features.find((f) => f.slug === "d")?.specDir).toBe("specs/features/d");
 });
 
 test("milestones count done of total without cut features, and resolve every time form", () => {
@@ -155,4 +156,10 @@ test("heat ranks by lines changed when every recent PR has a count, else by PR a
   expect(heat.b).toBeLessThan(0.1);
   const missing = buildBoard({ ...raw, prs: prs.map((p) => (p.number === 2 ? { ...p, lines: undefined } : p)) }, NOW);
   expect(missing.heatBasis).toBe("activity");
+});
+
+test("a feature on the cut list that someone is building shows as in flight", () => {
+  const prs = [...raw.prs, pr(8, "feat(e): build it anyway")];
+  const e = buildBoard({ ...raw, prs }, NOW).features.find((f) => f.slug === "e");
+  expect(e?.state).toBe("flight");
 });

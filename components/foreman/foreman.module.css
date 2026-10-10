@@ -810,6 +810,13 @@
   color: var(--dim);
 }
 
+/* Below this the hint would wrap the header onto two lines; the keys still work. */
+@media (max-width: 1439px) {
+  .keys {
+    display: none;
+  }
+}
+
 .keys kbd {
   font: inherit;
   color: var(--amber);
@@ -864,5 +871,99 @@
 
 .sinceClose:hover,
 .sinceClose:focus-visible {
+  color: var(--amber);
+}
+
+/* ---- feature card ---- */
+.picked rect.box {
+  stroke: var(--amber);
+  stroke-width: 2.4;
+}
+
+.card {
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--amber);
+  background: var(--ink);
+  animation: rise 0.25s both;
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+}
+
+.cardSlug {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--amber);
+}
+
+.cardName {
+  margin: 4px 0 12px;
+  color: var(--ready);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 18px;
+  margin-bottom: 10px;
+}
+
+.facts dt {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.facts dd {
+  font-size: 12px;
+}
+
+.cardLine {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.cardGap {
+  color: var(--hazard);
+}
+
+.cardDeps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.cardDeps > span:first-child {
+  width: 6.5rem;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chip {
+  border: 1px solid;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+
+.cardLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.cardLinks a {
   color: var(--amber);
 }

@@ -53,13 +53,16 @@ export default async function ForemanPage() {
     <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
       <header className={styles.header}>
         <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
-        <span className={styles.sub}>
+        <span className={styles.sub} data-sha={board?.sha}>
           site office · <a href={`https://github.com/${REPO}`}>{REPO}</a>
           {board && ` · main @ ${board.sha.slice(0, 7)}`}
         </span>
-        {board && <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt} />}
+        {board && (
+          <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt}>
+            <DemoKeys />
+          </HeaderClock>
+        )}
         <AutoRefresh />
-        {board && <DemoKeys />}
       </header>
 
       {!board ? (
@@ -200,7 +203,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
       <section className={styles.section} aria-labelledby="graph">
         <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
-          The site plan <small>every feature, left to right in dependency order · hover to trace · click to open · replay to watch it get built</small>
+          The site plan <small>every feature, left to right in dependency order · hover to trace · click for details · replay to watch it get built</small>
         </h2>
         <div className={styles.panel}>
           <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} heatBasis={board.heatBasis} now={now} />

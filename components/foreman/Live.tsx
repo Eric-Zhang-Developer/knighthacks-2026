@@ -68,11 +68,22 @@ export function AutoRefresh({ every = 60_000 }: { every?: number }) {
   return null;
 }
 
-export function HeaderClock({ now: initial, start, fetchedAt }: { now: number; start: number | null; fetchedAt: string }) {
+export function HeaderClock({
+  now: initial,
+  start,
+  fetchedAt,
+  children,
+}: {
+  now: number;
+  start: number | null;
+  fetchedAt: string;
+  children?: React.ReactNode;
+}) {
   const now = useNow(initial);
   const age = Math.round((now - Date.parse(fetchedAt)) / 1000);
   return (
     <div className={styles.meta}>
+      {children}
       <span className={styles.live}>
         <b>{clock(now)}</b> EDT
       </span>
@@ -121,7 +132,7 @@ export function Milestones({ now: initial, milestones, features }: { now: number
             </div>
             <div className={styles.count}>
               <b>{m.done}</b> of {m.total} features done
-              {m.cut.length > 0 && ` · ${m.cut.length} cut`}
+              {m.cut.length > 0 && ` · ${m.cut.length} on cut list`}
             </div>
             {passed && (
               <span className={`${styles.stamp} ${styles.stencil}`} data-bad={m.done < m.total ? "" : undefined}>

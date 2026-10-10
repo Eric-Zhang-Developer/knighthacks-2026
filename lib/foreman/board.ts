@@ -60,6 +60,7 @@ export type Feature = {
   claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
   buildMin: number | null; // first feat PR opened -> the merge that finished it
   missed: boolean; // its milestone shipped without it
+  specDir: string; // specs/features/<slug> while in flight, specs/shipped/<milestone>/<slug> after ship.py
 };
 export type Milestone = {
   name: string;
@@ -116,9 +117,13 @@ export function buildBoard(raw: Raw, now: number): Board {
 
   // Specs live in specs/features/<slug>/ while in flight, and specs/shipped/<milestone>/<slug>/ once shipped.
   const specs = new Map<string, Record<string, unknown>>();
+  const specPath = new Map<string, string>();
   for (const [path, text] of Object.entries(raw.files)) {
     const m = /^specs\/(?:features|shipped\/[^/]+)\/([^/_][^/]*)\/spec\.md$/.exec(path);
-    if (m) specs.set(m[1], frontMatter(text));
+    if (m) {
+      specs.set(m[1], frontMatter(text));
+      specPath.set(m[1], path.replace(/\/spec\.md$/, ""));
+    }
   }
   const notes = new Map<string, string>();
   for (const [path, text] of Object.entries(raw.files)) {
@@ -170,12 +175,13 @@ export function buildBoard(raw: Raw, now: number): Board {
       const feats = titled.filter((p) => p.t?.kind === "feature" && p.t.scope === slug);
       const merged = feats.filter((p) => p.mergedAt).map((p) => p.mergedAt!).sort();
       const opened = feats.map((p) => p.createdAt).sort();
+      // An open PR wins over the cut list: cut means "drop first if late" (milestones.toml), not "don't build".
       const state: State = note
         ? "done"
-        : cut.has(slug)
-          ? "cut"
-          : open
-            ? "flight"
+        : open
+          ? "flight"
+          : cut.has(slug)
+            ? "cut"
             : !scheduled.has(slug)
               ? "backlog"
               : deps.every((d) => notes.has(d))
@@ -198,6 +204,7 @@ export function buildBoard(raw: Raw, now: number): Board {
         startedAt: opened[0] ?? null,
         claims: feats.map((p): [string, string | null] => [p.createdAt, p.mergedAt ?? p.closedAt]),
         buildMin: note && merged.length && opened.length ? minutes(Date.parse(merged.at(-1)!), Date.parse(opened[0])) : null,
+        specDir: specPath.get(slug)!,
         missed: !note && milestones.some((m) => m.ship !== null && m.ship <= now && m.features.includes(slug) && !m.cut.includes(slug)),
       };
     });
@@ -297,8 +304,8 @@ export function statesAt(features: Feature[], t: number): Map<string, State> {
   return new Map(
     features.map((f): [string, State] => {
       if (done.has(f.slug)) return [f.slug, "done"];
-      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
       if (f.claims.some(([a, b]) => Date.parse(a) <= t && (!b || Date.parse(b) > t))) return [f.slug, "flight"];
+      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
       return [f.slug, f.deps.every((d) => done.has(d)) ? "ready" : "blocked"];
     }),
   );
