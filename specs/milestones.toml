@@ -14,7 +14,7 @@ start = "2026-10-09T19:00:00-04:00"   # Opening Ceremony, Fri Oct 9 (specs/conte
 [[milestone]]
 name = "safe-demo"        # R0: something trustworthy to show, early
 ship = "2026-10-10T14:00:00-04:00"   # unfinished features drop out of pick order after this
-features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer-api", "project-drawer-ui", "galaxy-explainer", "corpus-release"]
+features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer", "galaxy-explainer", "corpus-release"]
 cut = []
 
 [[milestone]]
