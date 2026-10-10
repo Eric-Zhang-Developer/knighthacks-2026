@@ -41,9 +41,9 @@ test("compare two and three versions using their saved evidence without numeric 
     const beforeCards = await sql`select to_jsonb(c) as row from evidence_cards c where version_id = any(array(select jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb))::uuid[]) order by version_id, project_id`;
     const results = [];
     for (const selection of [ids.slice(0, 2), ids]) {
-      const fixture = { criteria: CRITERIA.map((name) => ({ name, perVersion: selection.map((versionId, i) => ({ versionId,
-        reason: { text: "The proposed workflow needs validation against the saved evidence", label: "inferred", sourceIds: cards[i].length ? [cards[i][0].projectId] : [] },
-        uncertainty: "Implementation quality and user demand remain unknown" })) })) };
+      const fixture = { m: CRITERIA.map(() => selection.map((_versionId, i) => ({
+        r: "The proposed workflow needs validation against the saved evidence", l: "inferred", s: cards[i].length ? [["a0", "b0", "c0"][i]] : [],
+        u: "Implementation quality and user demand remain unknown" }))) };
       await writeFile(join(fixtures, "compare.json"), JSON.stringify(fixture));
       const response = await owner.post("/api/compare", { headers, data: { versionIds: selection.map((id) => id.toUpperCase()) } });
       expect(response.status()).toBe(200); const result = await response.json(); results.push(result);
