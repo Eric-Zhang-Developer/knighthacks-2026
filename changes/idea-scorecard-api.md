@@ -5,4 +5,4 @@
 ## How to check it
 verify: `node scripts/verify.mjs idea-scorecard-api .git/agent-evidence/idea-scorecard-api/20261010T210906Z` pass at 7a5eda0 (Mac; Neon test branch; real save and neighbours; evidence and scorecard fixtures; rows kept).
 ## Gaps
-Live run (Validation 2) not done: Gemini returns 429/402 (spending cap, credits depleted) for every call, #297; evidence generation fails live for the same reason. Production table comes through db-sync. No UI yet (idea-scorecard-ui).
+Live run (Validation 2), 2026-10-10 22:5xZ at 146b4cb on the test database with the spare Gemini key (#297, #328): POST 200 in 67 s (evidence for the neighbours, then the scorecard), GET returned the same card. Originality 2 (supported), Functionality 2, Wow Factor 1; the model gave Technical Understanding and Design no score, so they read "evidence is insufficient". Validation 1 asks for a 1-5 score on each, which held with stubs but not live for those two. Both supported points cite a real neighbour (Meal Mate, HackPilot, Code Connections). 67 s is slow for a demo click. Production table comes through db-sync; production AI still needs the spare key set in Vercel (#297).
