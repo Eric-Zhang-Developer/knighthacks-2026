@@ -1,0 +1,6 @@
+# Branch direction storage and parent contract
+Context: the spec supplies direction IDs and editable manual fields but adds no table or detailed payload shape.
+Options: reuse persisted revision suggestions, add a direction table, or sign stateless payloads.
+Choice: directions reuse `revision_suggestions`; `reason` is `Branch direction: <title>`, with the chosen field and its full replacement in existing columns. Accept reuses the revision service's atomic idempotency. No schema change.
+Contract: suggest returns `{directions:[{id,title,change}]}`; change is replacement text. Manual takes `{versionId,fields:{title?,description?,audience?,problem?,workflow?,constraints?}}`; each edit is text or null. Both operations branch FROM the supplied source version, so their resulting versions have that source as `parentId` and are siblings of each other. They return the existing idea-version shape; accepted retries return 200, new versions 201. Unknown/foreign IDs return 404. No-op or empty manual ideas return 400.
+How to undo: migrate outstanding direction rows if the representation changes; keep existing immutable versions and parent links. The frontend consumes this contract in its own feature.
