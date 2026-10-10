@@ -9,7 +9,8 @@ export async function startServer(provider: "claude" | "gemini") {
   const identity = JSON.parse(execFileSync(process.execPath, [join(process.cwd(), "scripts/verify-server.mjs")], {
     encoding: "utf8", windowsHide: true, env: allocationEnv,
   }).trim()) as { port: number; token: string };
-  const origin = `http://127.0.0.1:${identity.port}`;
+  // NextRequest canonicalizes loopback IPs to localhost for same-origin checks.
+  const origin = `http://localhost:${identity.port}`;
   const child = spawn(process.execPath, [join(process.cwd(), "node_modules/next/dist/bin/next"), "start", "--hostname", "127.0.0.1", "--port", String(identity.port)], {
     cwd: process.cwd(), env: providerEnvironment(process.env, provider, identity.token), windowsHide: true, stdio: "ignore",
   });
