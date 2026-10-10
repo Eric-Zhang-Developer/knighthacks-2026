@@ -18,11 +18,13 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 - Gemini calls go through `lib/ai/` (`generate`).
 - Accepting is the only way a version is created here; reject changes nothing in the database.
 - Concurrent accepts on the same parent both survive, as sibling versions.
+- Each returned `reason` is a checked Claim (`text`, `label`, `sourceIds`), inferred with no citations because revision generation receives no stored sources. The database retains the reason text. Deploy only after both revisions and challenge UIs accept Claim reasons (#161).
 
 ## Validation
 1. Propose -> suggestions; reject one -> no new row; accept one -> a new row whose parent is version 1.
 2. Two accepts at once on one parent -> two sibling rows.
 3. `tests/e2e/idea-revisions-api/` covers 1–2; keep the rows.
+4. Every proposed reason has its original text, inferred label and empty sourceIds; accepting/rejecting still works with the existing stored text schema.
 
 ## Defaults
 `context` is free text, such as a challenge outcome.
