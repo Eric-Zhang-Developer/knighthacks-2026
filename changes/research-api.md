@@ -3,6 +3,6 @@
 ## Where it lives
 `app/api/research/`, `lib/research/` (contract, search, service), `db/schema/research.ts`, `tests/research-api/`, `tests/e2e/research-api/` (with `recorded/` real API responses); decisions and test-branch SQL in `specs/decisions/research-api-schema.md`.
 ## How to check it
-verify: `node scripts/verify.mjs research-api .git/agent-evidence/research-api/20261010T175656Z` pass at 2db1c8a (Mac; Neon test branch; recorded GitHub/HF responses via RESEARCH_SEARCH_BASE; generation fixtures; outside calls counted). Live once (Validation 3, real GitHub + HF + model, test branch): 200 in ~30 s; queries "group meal planner", "dietary restrictions recipe recommender", "team food ordering app"; 12 items, github 12, hf 0 (no matches for those queries); unavailable none; every url on github.com.
+verify: `node scripts/verify.mjs research-api .git/agent-evidence/research-api/20261010T175656Z` pass at 2db1c8a (Mac; Neon test branch; recorded GitHub/HF responses via RESEARCH_SEARCH_BASE; generation fixtures; outside calls counted). Live once (Validation 3, real GitHub + HF + model, test branch): 200 in ~30 s; queries "group meal planner", "dietary restrictions recipe recommender", "team food ordering app"; 12 items, github 12, hf 0 (no matches for those queries); no source failed; every url on github.com.
 ## Gaps
-Unauthenticated GitHub search allows 10 requests/minute, so heavy use will list GitHub as unavailable. Production schema pending (#113). HF search matches ids, so multi-word queries often find nothing there.
+Unauthenticated GitHub search allows 10 requests/minute, so heavy use will report GitHub as failed (status 403). Production schema pending (#113). HF search matches ids, so multi-word queries often find nothing there.
