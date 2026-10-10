@@ -1,0 +1,1 @@
+{ "question": "What would you measure in a short meal-selection trial (round 3)?", "assumption": "A short trial can reveal whether the workflow supports a shared decision.", "source": { "text": "Unverified until tested.", "label": "unverified", "sourceIds": [] }, "test": "Run a ten-minute meal-selection trial with teammates and record where a decision stalls." }
