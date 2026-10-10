@@ -2,7 +2,7 @@
 # Agents pick the first ready feature in this file's order: milestones top to bottom (skipping ones whose ship time
 # has passed), features left to right. A spec in no milestone is backlog and is never picked.
 #
-# ship    "+H:MM" after start · "YYYY-MM-DD" (through the end of that day, UTC) · an ISO time with offset · "" = none
+# ship    "+H:MM" after start Â· "YYYY-MM-DD" (through the end of that day, UTC) Â· an ISO time with offset Â· "" = none
 # freeze  "H:MM" or "2d" before ship: only this milestone's features (and `allow`) merge as feat; fixes still merge;
 #         anything on `cut` is rejected.
 # final   the last milestone: from `report_before`, only fixes, reverts, docs and `allow`; at ship, nothing merges.
@@ -29,6 +29,6 @@ ship = "2026-10-11T10:45:00-04:00"   # 15 min before the 11:00 final code push
 freeze = "4:45"           # from Sun 06:00: no new features
 final = true
 report_before = "1:45"    # from Sun 09:00: fixes, reverts and docs only; Devpost closes 10:00
-features = ["db-sync", "live-smoke", "decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "rubric-overlay-api", "rubric-overlay-ui", "combinations-api", "combinations-ui", "change-mind-api", "change-mind-ui", "moment-api", "moment-ui", "experience-shell", "constellation-ui", "research-api", "research-ui", "challenge-resume-ui", "problem-evidence-api", "problem-evidence-ui", "workspace-restore-api", "workspace-restore-ui", "search-filters-ui", "rehearsal-api", "rehearsal-ui", "demo-flow", "corpus-classify", "idea-interview-api", "galaxy-classes-ui", "idea-interview-ui", "build-plan-api", "build-plan-ui", "idea-scorecard-api", "idea-scorecard-ui", "era-board-ui", "vultr-deploy"]
+features = ["db-sync", "live-smoke", "decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "rubric-overlay-api", "rubric-overlay-ui", "combinations-api", "combinations-ui", "change-mind-api", "change-mind-ui", "moment-api", "moment-ui", "experience-shell", "constellation-ui", "research-api", "research-ui", "challenge-resume-ui", "problem-evidence-api", "problem-evidence-ui", "workspace-restore-api", "workspace-restore-ui", "search-filters-ui", "rehearsal-api", "rehearsal-ui", "demo-flow", "corpus-classify", "idea-interview-api", "galaxy-classes-ui", "idea-interview-ui", "build-plan-api", "build-plan-ui", "idea-scorecard-api", "idea-scorecard-ui", "era-board-ui", "ai-image-input", "sponsor-challenges-api", "sponsor-challenges-ui", "vultr-deploy"]
 cut = ["compare-api", "compare-ui", "vultr-deploy", "era-board-ui", "idea-scorecard-ui", "idea-scorecard-api"]   # first to drop if late; rejected once the freeze starts
 allow = ["foreman"]       # the build-status page (specs/features/foreman): may merge through the freeze
