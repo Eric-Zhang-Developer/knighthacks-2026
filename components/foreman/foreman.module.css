@@ -700,3 +700,74 @@
   white-space: nowrap;
   max-width: 60ch;
 }
+
+/* ---- pipeline ---- */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  counter-reset: step;
+}
+
+@media (max-width: 1000px) {
+  .pipeline {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+.step {
+  position: relative;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The arrow into the next step. */
+.step:not(:nth-child(5))::after {
+  content: "▶";
+  position: absolute;
+  right: -12px;
+  top: 22px;
+  font-size: 10px;
+  color: var(--amber);
+}
+
+.stepNo {
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
+
+.stepName {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--amber);
+  margin: 2px 0 8px;
+}
+
+.stepRule {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.stepNum {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--green);
+}
+
+.guard {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--dim);
+  border-left: 3px solid var(--hazard);
+  padding: 4px 0 4px 12px;
+}
+
+.guard b {
+  color: var(--text);
+  font-weight: 500;
+}

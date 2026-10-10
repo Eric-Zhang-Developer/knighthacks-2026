@@ -27,6 +27,9 @@ test("milestones, one graph node per spec, and every human ask from GitHub", asy
   ).json()) as { title: string; pull_request?: unknown }[];
   for (const i of issues.filter((i) => !i.pull_request)) await expect(asks).toContainText(i.title);
 
+  // The pipeline's Spec step counts the same specs the graph draws.
+  await expect(page.getByTestId("step-spec")).toHaveText(String(specs.length));
+
   await expect(page.locator("meta[name=robots]")).toHaveAttribute("content", /noindex/);
   await page.screenshot({ path: test.info().outputPath("foreman.png"), fullPage: true });
 });
