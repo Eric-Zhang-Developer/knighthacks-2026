@@ -28,3 +28,5 @@ Frontend: Mac workers. Renders below the moment in the share panel.
 
 ## Defaults
 No built items -> the Draft button stays disabled with the hint "List at least one thing that works now."
+A stored rehearsal also refills the list with its built items, so a redraft starts from what was sent. The list
+always keeps one row (its Remove is disabled); "Add an item" stops at 8.
