@@ -80,6 +80,6 @@ test("choose a version, see three numbered steps; the share link never shows or 
 
   // A reload reads the stored moment without the button (and without a model call: one row, no new fixture needed).
   await page.reload();
-  await expect(page.getByRole("region", { name: "Share" }).locator("ol > li")).toHaveCount(3, { timeout: 30_000 });
+  await expect(page.getByRole("region", { name: "Share" }).getByRole("group", { name: "Show me the moment" }).locator("ol > li")).toHaveCount(3, { timeout: 30_000 });
   expect((await sql`select count(*)::int as n from moments where version_id = ${versionId}::uuid`)[0].n).toBe(1);
 });
