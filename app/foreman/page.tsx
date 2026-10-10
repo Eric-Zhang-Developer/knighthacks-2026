@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
 import { AutoRefresh, HeaderClock, Milestones } from "@/components/foreman/Live";
+import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
@@ -167,6 +168,13 @@ function Sections({ board, now }: { board: Board; now: number }) {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className={styles.section} aria-labelledby="how">
+        <h2 id="how" className={`${styles.h2} ${styles.stencil}`}>
+          How it gets built <small>the loop every agent runs, from AGENTS.md · numbers are live</small>
+        </h2>
+        <Pipeline board={board} />
       </section>
 
       <section className={styles.section} aria-labelledby="graph">
