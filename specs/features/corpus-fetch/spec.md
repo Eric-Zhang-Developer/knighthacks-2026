@@ -8,15 +8,16 @@ assignee: ""
 # Corpus fetch
 
 ## Plan
-1. `corpus/fetch/` script (own `requirements.txt`): start from a committed list of past hackathon gallery URLs
-   on Devpost; walk each gallery's pages, then each project page.
+1. `corpus/fetch/` script (own `requirements.txt`): `run.py discover` adds ended hackathons from Devpost's hackathon
+   API to the committed `sources.jsonl`; `run.py fetch` walks each gallery's pages, then each project page.
 2. Parse each project; write one JSON line per project to `corpus/data/projects.jsonl` (gitignored), with a
    checkpoint so a rerun resumes.
 3. Commit `corpus/fixtures/sample.jsonl`: up to 100 real records the run produced.
 
 ## Requirements
 - Record fields: `id` (sha1 of canonical URL), `url`, `title`, `tagline`, `description`, `technologies[]`,
-  `events[]` (name + gallery URL), `date` and `date_kind` (`submission` or `unknown`), `source`, `fetched_at`,
+  `events[]` (name, URL, `dates` from the hackathon API or null, `prizes` won), `date` and `date_kind` (`created`,
+  the page's "started this project" time, or `unknown`: Devpost shows no submission time), `source`, `fetched_at`,
   `content_hash`. A field the page doesn't have stays null; never fill one in.
 - Reject a record with no URL, title or description; count rejections by reason.
 - One project in several events is one record with several `events`.
@@ -24,7 +25,7 @@ assignee: ""
 - Print counts: discovered, fetched, parsed, rejected (by reason), deduplicated, written.
 
 ## Validation
-1. `python corpus/fetch/run.py --limit 50` -> the count line prints and `corpus/data/projects.jsonl` has the
+1. `python corpus/fetch/run.py fetch --limit 50` -> the count line prints and `corpus/data/projects.jsonl` has the
    written count.
 2. Open 3 random records' `url`s -> each page matches its title.
 3. `pytest corpus/fetch` -> parser tests against saved real HTML in `corpus/fetch/testdata/`, the dedupe test
