@@ -5,6 +5,7 @@ import { useState } from "react";
 import { PanelState } from "@/components/ui";
 import { initWorkspace, post } from "@/components/workspace/api";
 import { useAppState } from "@/lib/store";
+import MomentSection from "./Moment";
 import styles from "./share.module.css";
 
 type Share = { token: string; url: string; qr: string };
@@ -48,6 +49,7 @@ export default function SharePanel() {
   return (
     <section className={`ui-panel ${styles.panel}`} aria-label="Share">
       <h2 className="ui-heading">Share</h2>
+      {active && <MomentSection versionId={active} />}
       {!share || revoked ? (
         <>
           {revoked && <PanelState kind="empty" message="Link revoked. Anyone opening it now sees that it was revoked." />}
