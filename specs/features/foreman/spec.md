@@ -1,5 +1,5 @@
 ---
-name: An unlisted build-status page that shows people and judges how the agent-built project is going
+name: An unlisted build-status page, built once per deploy from the repo and GitHub, that shows the team and judges how the agent-built project is going
 depends_on: []
 owns: [app/foreman/, components/foreman/, lib/foreman/, tests/foreman/, tests/e2e/foreman/]
 assignee: "foreman"
@@ -11,50 +11,105 @@ The project is built by several agents at once, faster than the two people on th
 already works out the state, but as a Markdown issue nobody reads mid-event. Foreman is one unlisted page,
 `/foreman`, styled as a construction terminal, that answers four questions in order:
 1. **Will we make it?** Each milestone's ship and freeze countdown, and its features done of total.
-2. **What needs a person right now?** `plan:`/`contract:` PRs waiting for a human merge, `needs-human` and
-   `blocked` issues, stale draft PRs, done notes whose gaps or "not verified" lines need a look, main CI red.
+2. **What needs a person?** `plan:`/`contract:` PRs waiting for a human merge, `needs-human` and `blocked` issues,
+   duplicate claims, stale draft PRs, cut features still in pick order, done notes whose gaps or "not verified"
+   lines need a look, main CI red.
 3. **How does it fit together?** Every feature as a node in its `depends_on` graph, coloured by state, glowing by
    recent activity, labelled with the worker holding it.
 4. **How did we get here?** (judges) A replay that scrubs through merged PRs and lights features up as they landed.
 
-Person's decisions (2026-10-10): construction-terminal look, unlisted and open (no key), understanding views
-before the replay, tuned for a live laptop walkthrough. Owned entirely by worker `foreman`; it's in `allow`, not in
-any milestone's `features`, so other agents never pick it.
+Two audiences, one page. **The team** opens it to see what needs them; it must say how old its data is. **Judges**
+see it in a live laptop walkthrough; it must load instantly and can never show an error page.
 
-## Plan
-1. `lib/foreman/`: read `origin/main` and GitHub live (raw files for specs, `changes/`, `milestones.toml`; the REST
-   API for PRs, issues and check runs), then a pure model that turns that into the board. Port the rules from
-   `.agents/scripts/status.py`, don't invent new ones.
-2. `app/foreman/page.tsx` + `components/foreman/`: countdown strip, needs-a-person list, feature graph (SVG), PR
-   lanes.
-3. Heat on the graph, then the replay.
+Person's decisions (2026-10-10): construction-terminal look, unlisted and open (no key), understanding views
+before the replay, tuned for a live laptop walkthrough, and **collect the data once, then show it** (after the
+request-time version hit GitHub's rate limit and went blank in production). Owned entirely by worker `foreman`;
+it's in `allow`, not in any milestone's `features`, so other agents never pick it. Implementation plan:
+[plan.md](plan.md).
+
+## Architecture
+```
+next build (every deploy; every merge to main deploys)
+  1. repo files   <- the checkout on disk: specs/**/spec.md, changes/*.md, specs/milestones.toml, STOP
+  2. GitHub API   <- one pass, only if GITHUB_TOKEN is set: PRs, open issues, main's last CI run, open PRs' CI
+  3. buildBoard(raw, snapshotTime)   pure; status.py's rules
+  4. static HTML  <- /foreman is prerendered once; the snapshot is baked into the page
+page view: zero server work, zero GitHub calls. Client code only ticks clocks and runs the replay.
+```
+- **A snapshot, not a feed.** The data is read once per build and frozen into static HTML. Nothing reads GitHub
+  when someone opens the page, so no number of viewers can hit a rate limit, and the page works with GitHub down.
+- **Repo files come from disk**, from the commit being built, so the board and the build are always the same commit.
+  No API call is needed for them.
+- **The API is optional and bounded.** It runs only with `GITHUB_TOKEN` set (read-only, server-only, set in Vercel
+  for builds). With no token it makes no calls (CI, local tests). One render makes at most `2 + PR pages + 25`
+  calls (about 12 today). GitHub responses are never written to Next's data cache: Vercel restores that cache
+  between builds, and a cached response would freeze the snapshot (measured 2026-10-10: a plain `fetch` in a static
+  page is cached for a year; `cache: "no-store"` under `dynamic = "force-static"` stays static and uncached).
+- **GitHub failing never breaks the build or the page.** If the API refuses, the board still renders from the
+  repo files and a banner says which data is missing and why.
+- **Freshness = the last deploy.** Merges deploy within minutes while agents work. Known ceiling: a PR opened after
+  the last merge isn't shown until the next deploy. The header shows the snapshot's time and age so nobody mistakes
+  it for live. Upgrade path (not built): a scheduled redeploy through a Vercel deploy hook, which a person creates.
+- **Locally:** `GITHUB_TOKEN=$(gh auth token) pnpm dev` re-collects on each reload (about 12 calls), for working on
+  the page. `pnpm build && pnpm start` behaves like production.
 
 ## Requirements
+**Data**
 - A feature's state uses AGENTS.md's definitions: **done** = `changes/<slug>.md` on main; **in flight** = an open PR
-  titled `feat(<slug>): ...`; **ready** = every `depends_on` done and not in flight; **blocked** otherwise; **cut**
-  = on a milestone's `cut` list; **backlog** = in no milestone's `features`.
+  titled `feat(<slug>): ...`, which wins over the cut list; **ready** = every `depends_on` done and not in flight;
+  **blocked** otherwise; **cut** = on a milestone's `cut` list; **backlog** = in no milestone's `features` or `allow`.
+- Without PR data (no token, or the API failed), in flight can't be told from ready or blocked: those features show
+  as **unknown**, never as a guess.
 - Verified/not verified and gaps follow `status.py`: verified only when `## How to check it` has a passing
   `verify: ... pass` line and no failing or "not verified" line; gaps = the first line of `## Gaps` unless it says
   none.
-- Every number on the page comes from the repo or GitHub at request time. Unknown shows as unknown (for example
-  GitHub unreachable or rate-limited), never a guess or a stale number dressed as live.
-- `GITHUB_TOKEN` (optional, server-only, read-only) raises the API limit; it never reaches the browser. Without it
-  the page still works within GitHub's unauthenticated limit.
-- The page is `noindex` and linked from nowhere in the product. It adds no database tables and changes no product
-  code, so it can't break the demo.
-- Data is cached for about a minute; the page says how old it is.
+- Main CI = the conclusion of the latest completed `push` run on `main`. Red is an ask; unknown shows as unknown.
+  Each open PR's CI = its head's check runs, for the 25 most recent open PRs; the rest show unknown.
+- Heat = PR activity on a feature in the 3 hours before the snapshot (one per PR touched, weighted toward recent).
+  No per-PR detail calls.
+- Workers come from `Worker:` in PR bodies; PRs without one are `unnamed`.
+
+**Time.** Two clocks, never mixed silently.
+- Everything read from the repo or GitHub is **as of the snapshot**. Server-rendered times are absolute (`Sat
+  12:03`) or say "at snapshot". No "N min ago" is baked into the HTML.
+- Only the wall clock ticks in the browser: the header clock, T+ since start, milestone countdowns, freeze and
+  passed states, and the snapshot's age.
+
+**Page**
+- Header: brand, repo link, `snapshot <time> · main @ <sha>` (the commit built, also in `data-sha`), API status
+  (`API: token · N calls · R/L left`, `API: no token`, or `API: failed`), wall clock, T+, snapshot age (amber past
+  30 min).
+- Sections, in pitch order, with demo keys 1-5 to jump and space to play the replay: milestones (countdown, freeze,
+  cells per feature, what's left with in-flight ages at snapshot, pace forecast when 3 or more are left); needs a
+  person, beside build stats (features built, PRs merged, agents active in 3 h, median PR open to merge, merged PRs
+  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the site plan (graph with
+  critical path, hover trace, click card, cmd-click to GitHub; replay scrubbing from the first PR to the snapshot);
+  the crew (open PRs per worker with CI dots). Plus a ticker of the latest merges, an intro sentence, and a "since
+  you last looked" banner (browser storage only).
+- Sections that need PR data say so in place when it's missing, instead of rendering empty.
+- `noindex`, linked from nowhere in the product. No database tables, no product code changes, so it can't break the
+  demo. `GITHUB_TOKEN` never reaches the browser or the HTML.
 
 ## Validation
-1. `pnpm build && pnpm start`, open `/foreman` -> the countdown strip shows each milestone from `milestones.toml`
-   with done/total counts matching `changes/` on main.
-2. The graph shows one node per spec in `specs/features/` (minus `_template`), each in the state `status.py --out -`
-   gives it at the same moment (done, in flight, ready, blocked).
-3. The needs-a-person list includes every open `plan:`/`contract:` PR that isn't a draft and every open
-   `needs-human` issue, each linking to GitHub.
-4. With GitHub unreachable, the page renders and says the data is unavailable, rather than erroring.
-5. `tests/foreman/` (vitest) pins the state rules on fixed inputs; `tests/e2e/foreman/` loads the page against live
-   GitHub and checks 1–3. Keep a full-page screenshot.
+1. **Unit (vitest, `tests/foreman/`)**, no network:
+   - the board's state, ask, stats and replay rules on fixed inputs, including unknown states without PR data;
+   - collector with no token -> zero fetch calls, files read from the real repo on disk;
+   - collector with the API answering 403 -> stops after the first call, records the error, board still built;
+   - collector against a fixed fake GitHub -> exactly the expected number of calls (the budget), CI mapped;
+   - page render with no token -> board sections plus the banner, never an "unavailable" page.
+2. **Build:** `pnpm build` -> the route table lists `○ /foreman` (static); `.next/cache/fetch-cache` holds no
+   `api.github.com` entry; `grep -E "ghp_|gho_|github_pat_" .next/server/app/foreman.html` finds nothing.
+3. **Verify:** `GITHUB_TOKEN=$(gh auth token) python3 .agents/scripts/verify.py --slug foreman --worktree .` ->
+   Playwright on the production build: milestones as in the checkout's `milestones.toml`; one graph node per spec
+   on disk; every open non-draft `plan:`/`contract:` PR and `needs-human` issue not updated since the snapshot is
+   listed; header SHA = `/api/health` commit; hover trace, replay scrub, demo keys, since banner, card; screenshots.
+4. **Production, after each deploy of this feature:**
+   `FOREMAN_URL=https://knighthacks-2026.vercel.app pnpm exec vitest run tests/foreman/production.test.ts` -> the
+   live HTML has every section, `API: token`, no failure banner, and its SHA equals the live `/api/health` commit.
+   Run it again after the next merge to main: the SHA must have moved (one snapshot per deploy).
+5. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
+   the done note.
 
 ## Defaults
-Cache: 60 s. Stale draft: 45 min without a push (the watchdog's number). If the spec is silent, show less and keep
-it truthful.
+Snapshot age amber past 30 min. Stale draft: 45 min without a push at snapshot time (the watchdog's number). Heat
+and pace windows: 3 h. Open-PR CI cap: 25. If the spec is silent, show less and keep it truthful.
