@@ -1,7 +1,7 @@
 ---
 name: Shared panel states, claim badges and one visual pass over the finished panels
 depends_on: [search, project-drawer, galaxy-explainer, voice]
-owns: [app/globals.css, app/page.module.css, components/ui/, components/search/, components/drawer/, components/explainer/, components/voice/, tests/visual-polish/, tests/e2e/visual-polish/]
+owns: [app/globals.css, components/ui/, components/search/, components/drawer/, components/explainer/, components/voice/, tests/visual-polish/, tests/e2e/visual-polish/]
 assignee: ""
 ---
 
