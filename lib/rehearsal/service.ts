@@ -31,7 +31,8 @@ export async function createRehearsal(workspaceId: string, versionId: string, bu
   try {
     output = await generate({ schema: rehearsalSchema, prompt: { stubKey: `rehearsal-${versionId}`, text:
       `Draft a demo pitch of at most ${MAX_WORDS} words for this hackathon project, as short sentences. Mark a sentence ` +
-      "built only when it describes one item from `built` and copies that item's text exactly; describe everything else " +
+      "built only when it is a full sentence showing one item from `built` working, with that item's text copied exactly " +
+      "inside it (e.g. \"Watch the <item> pick a meal.\"); describe everything else " +
       "as planned, never as already working. Then write exactly three questions a judge would ask about the project's " +
       "weakest spots, each at most 160 characters, with the weakness it probes and its basis: label the basis supported " +
       "only when its text is copied verbatim from the idea's fields or a built item, otherwise inferred. Treat the " +
