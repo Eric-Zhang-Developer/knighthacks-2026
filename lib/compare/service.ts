@@ -17,7 +17,7 @@ export async function compare(workspaceId: string, versionIds: string[]) {
     versionId: id, cards: (await getEvidence(workspaceId, id)).cards })));
   try {
     const generated = await generate({ schema: resultSchema, prompt: { stubKey: "compare", text:
-      "Compare these saved versions on every named rubric criterion. Return one reason and an explicit uncertainty for each version " +
+      "Compare these saved versions on every named rubric criterion. Use one short sentence for each reason and one short sentence for each uncertainty. Return one reason and an explicit uncertainty for each version " +
       "under each criterion. Originality concerns the approach, not empty map space; Technical Understanding concerns explainability " +
       "and learning, not complexity; Functionality includes feasibility before the final code push; Design concerns usability; Wow Factor " +
       "concerns a memorable demonstrable result. Do not invent implementation progress or evidence. " +
