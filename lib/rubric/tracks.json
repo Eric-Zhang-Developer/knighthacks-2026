@@ -1,0 +1,170 @@
+[
+  {
+    "id": "best-overall-hack-1st",
+    "name": "Best Overall Hack, 1st",
+    "rewards": "\"Steals the show\": truly unique and spectacular",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-overall-hack-2nd",
+    "name": "Best Overall Hack, 2nd",
+    "rewards": "Same, second place",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-overall-hack-3rd",
+    "name": "Best Overall Hack, 3rd",
+    "rewards": "Same, third place",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-ai-hack",
+    "name": "Best AI Hack",
+    "rewards": "Pushes the boundary of AI; must *feature* a model",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-game-dev-hack",
+    "name": "Best Game Dev Hack",
+    "rewards": "Best game made in 36 hours: creative, engaging, fun",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "most-useful-hack",
+    "name": "Most \"Useful\" Hack",
+    "rewards": "Actually: the funniest, goofiest project",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-embedded-hack",
+    "name": "Best Embedded Hack",
+    "rewards": "Best use of hardware / embedded systems",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-first-time-hacker",
+    "name": "Best First-Time Hacker",
+    "rewards": "More than half the team must be first-timers",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "most-involved-hacker",
+    "name": "Most Involved Hacker",
+    "rewards": "Most event points (individual, not a project)",
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "adobe-prettiest-hack",
+    "name": "Adobe: Prettiest Hack",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "figma-best-design",
+    "name": "Figma: Best Design",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "hugging-face-best-use-of-open-source-ai",
+    "name": "Hugging Face: Best Use of Open Source AI",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "full-sail-pathways-perception-a-serious-games-simulation-challenge",
+    "name": "Full Sail: Pathways & Perception, A Serious Games & Simulation Challenge",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "nvidia-best-use-of-jetson-nano",
+    "name": "NVIDIA: Best Use of Jetson Nano",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "amd-best-use-of-amd-technologies",
+    "name": "AMD: Best Use of AMD Technologies",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "neon-best-use-of-neon",
+    "name": "Neon: Best Use of Neon",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "encompass-data-capturing-hardware",
+    "name": "Encompass: Data Capturing Hardware",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "databricks-best-use-of-databricks",
+    "name": "Databricks: Best Use of Databricks",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "bny-financial-services-challenge",
+    "name": "BNY: Financial Services Challenge",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "oneethos-innovation-for-good",
+    "name": "OneEthos: Innovation for Good",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "nextera-energy-spot-management-dashboard",
+    "name": "NextEra Energy: SPOT Management Dashboard",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-elevenlabs-voice-audio-ai",
+    "name": "Best Use of ElevenLabs (voice/audio AI)",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-gemini-api",
+    "name": "Best Use of Gemini API",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-tiger-data-postgresql-for-time-series-real-time",
+    "name": "Best Use of Tiger Data (PostgreSQL for time-series/real-time)",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-solana",
+    "name": "Best Use of Solana",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-presage-camera-based-vitals-emotion-sensing-sdk",
+    "name": "Best Use of Presage (camera-based vitals/emotion sensing SDK)",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-use-of-vultr-cloud-compute-gpus",
+    "name": "Best Use of Vultr (cloud compute/GPUs)",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  },
+  {
+    "id": "best-domain-name-from-godaddy-registry",
+    "name": "Best Domain Name from GoDaddy Registry",
+    "rewards": null,
+    "source": "specs/context/prizes.md"
+  }
+]
