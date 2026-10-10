@@ -32,7 +32,7 @@ test("plans are scoped, append-only and grounded, with a freeze inside the deadl
     const post = () => owner.post(path, { headers, data: body, timeout: 120000 });
     expect((await owner.get(path)).status()).toBe(404);
     // Snapshot one real neighbor excerpt as evidence; never invent corpus records.
-    await db`insert into evidence_cards(version_id,project_id,url,title,excerpt,overlaps,differences,uncertainty)
+    await db`insert into evidence_cards(version_id,project_id,url,title,excerpt,"overlaps",differences,uncertainty)
       select ${versionId}::uuid,id,url,title,left(coalesce(description,tagline,title),6000),'[]'::jsonb,'[]'::jsonb,
       '{"text":"Evidence has not been assessed in this fixture","label":"unverified","sourceIds":[]}'::jsonb
       from projects where id=${version.neighborIds[0]}`;
