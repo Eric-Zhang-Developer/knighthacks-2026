@@ -90,7 +90,8 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
 - Sections, in pitch order, with demo keys 1-5 to jump and space to play the replay: the tour (below), milestones (countdown, freeze,
   cells per feature, what's left with in-flight ages at snapshot, pace forecast when 3 or more are left); needs a
   person, beside build stats (features built, PRs merged, agents active in 3 h, median PR open to merge, merged PRs
-  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the crew (open PRs per worker with CI dots). Plus a ticker of the latest merges, an intro sentence, and a "since
+  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the crew (open PRs per worker with CI dots). Plus an intro sentence (who built it, under which rule, since when, read when; the tour's counters carry the
+  numbers when PR data is there), and a "since
   you last looked" banner (browser storage only).
 - Sections that need PR data say so in place when it's missing, instead of rendering empty.
 
@@ -116,6 +117,10 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
   - A counter bumps when its number changes. The ticker's newest merge slides in.
   - At the snapshot, heat and the critical path fade in instead of appearing.
   - With reduced motion the playhead still moves (it is the content), but nothing else animates or transitions.
+- **Hierarchy** (#337): in replay, built is the brightest state and everything not yet built recedes (ready and
+  blocked draw as one quiet "not yet"); in flight stays amber. The snapshot keeps the full state colours: the team
+  reads "ready" as pickable. The tour's ticker is the page's only merge ticker. At rest the caption slot invites
+  ("press space to watch it get built"). Heat halos are an accent, capped well below full opacity.
 - Without PR data the graph still renders; the replay, counters, chapters and ticker say they need PR data.
 
 **Charts.** Both are drawn from the snapshot alone (no extra API call), server-rendered SVG, with a hover tooltip, a
