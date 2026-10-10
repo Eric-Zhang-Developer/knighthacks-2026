@@ -111,6 +111,11 @@ test("since you last looked: an earlier visit shows what merged after it; a relo
 
 test("clicking a feature opens its card in place; Escape closes it", async ({ page }) => {
   await page.goto("/foreman");
+  // Before hydration a click would follow the link to GitHub; demo key 4 landing proves the page is live.
+  await expect(async () => {
+    await page.keyboard.press("4");
+    await expect(page.getByRole("heading", { name: /the site plan/i })).toBeInViewport({ timeout: 1000 });
+  }).toPass();
   await page.locator('svg a[data-slug="galaxy"]').click();
   const card = page.getByRole("region", { name: "Feature galaxy" });
   await expect(card).toBeVisible();

@@ -157,3 +157,9 @@ test("heat ranks by lines changed when every recent PR has a count, else by PR a
   const missing = buildBoard({ ...raw, prs: prs.map((p) => (p.number === 2 ? { ...p, lines: undefined } : p)) }, NOW);
   expect(missing.heatBasis).toBe("activity");
 });
+
+test("a feature on the cut list that someone is building shows as in flight", () => {
+  const prs = [...raw.prs, pr(8, "feat(e): build it anyway")];
+  const e = buildBoard({ ...raw, prs }, NOW).features.find((f) => f.slug === "e");
+  expect(e?.state).toBe("flight");
+});

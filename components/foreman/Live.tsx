@@ -132,7 +132,7 @@ export function Milestones({ now: initial, milestones, features }: { now: number
             </div>
             <div className={styles.count}>
               <b>{m.done}</b> of {m.total} features done
-              {m.cut.length > 0 && ` · ${m.cut.length} cut`}
+              {m.cut.length > 0 && ` · ${m.cut.length} on cut list`}
             </div>
             {passed && (
               <span className={`${styles.stamp} ${styles.stencil}`} data-bad={m.done < m.total ? "" : undefined}>

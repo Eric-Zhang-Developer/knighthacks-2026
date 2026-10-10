@@ -15,7 +15,7 @@ export const STATE: Record<State, { label: string; fill: string; stroke: string;
   flight: { label: "under construction", fill: "#3a2a0e", stroke: "#ffb547", text: "#ffe3b3" },
   ready: { label: "ready to start", fill: "#14110c", stroke: "#f4ecdc", text: "#f4ecdc" },
   blocked: { label: "blocked", fill: "#14110c", stroke: "#4a4338", text: "#8a806e", dash: "4 3" },
-  cut: { label: "cut", fill: "#14110c", stroke: "#e2674a", text: "#a0574a", dash: "2 4" },
+  cut: { label: "on cut list", fill: "#14110c", stroke: "#e2674a", text: "#a0574a", dash: "2 4" },
   backlog: { label: "backlog", fill: "#0c0a07", stroke: "#2c261c", text: "#5a5244", dash: "1 3" },
 };
 

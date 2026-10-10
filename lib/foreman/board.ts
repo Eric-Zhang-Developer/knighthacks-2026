@@ -175,12 +175,13 @@ export function buildBoard(raw: Raw, now: number): Board {
       const feats = titled.filter((p) => p.t?.kind === "feature" && p.t.scope === slug);
       const merged = feats.filter((p) => p.mergedAt).map((p) => p.mergedAt!).sort();
       const opened = feats.map((p) => p.createdAt).sort();
+      // An open PR wins over the cut list: cut means "drop first if late" (milestones.toml), not "don't build".
       const state: State = note
         ? "done"
-        : cut.has(slug)
-          ? "cut"
-          : open
-            ? "flight"
+        : open
+          ? "flight"
+          : cut.has(slug)
+            ? "cut"
             : !scheduled.has(slug)
               ? "backlog"
               : deps.every((d) => notes.has(d))
@@ -303,8 +304,8 @@ export function statesAt(features: Feature[], t: number): Map<string, State> {
   return new Map(
     features.map((f): [string, State] => {
       if (done.has(f.slug)) return [f.slug, "done"];
-      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
       if (f.claims.some(([a, b]) => Date.parse(a) <= t && (!b || Date.parse(b) > t))) return [f.slug, "flight"];
+      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
       return [f.slug, f.deps.every((d) => done.has(d)) ? "ready" : "blocked"];
     }),
   );

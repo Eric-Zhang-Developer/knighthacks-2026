@@ -810,6 +810,13 @@
   color: var(--dim);
 }
 
+/* Below this the hint would wrap the header onto two lines; the keys still work. */
+@media (max-width: 1439px) {
+  .keys {
+    display: none;
+  }
+}
+
 .keys kbd {
   font: inherit;
   color: var(--amber);
