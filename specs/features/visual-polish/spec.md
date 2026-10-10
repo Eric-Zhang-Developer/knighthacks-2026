@@ -1,6 +1,6 @@
 ---
 name: Shared panel states, claim badges and one visual pass over the finished panels
-depends_on: [bootstrap]
+depends_on: [search, project-drawer, galaxy-explainer, voice]
 owns: [app/globals.css, app/page.module.css, components/ui/, components/search/, components/drawer/, components/explainer/, components/voice/, tests/visual-polish/, tests/e2e/visual-polish/]
 assignee: ""
 ---
@@ -28,13 +28,13 @@ shared pieces each builds its own. The colour tokens already exist in `app/globa
 - The finished panels' own e2e tests still pass unchanged.
 
 ## Validation
-1. `pnpm test` -> `tests/visual-polish/` checks the token contrast pairs and that each `ClaimBadge` renders its
-   label text.
-2. Open `/`, run a search, open a star -> search, drawer, explainer and voice share the panel style; screenshots
-   at desktop and phone widths.
-3. Force each `PanelState` kind in a test page under `tests/` -> each renders its message.
-4. `tests/e2e/visual-polish/` covers 2–3, and the search, project-drawer, galaxy-explainer and voice e2e suites
-   still pass. Keep the screenshots.
+1. `pnpm test` -> `tests/visual-polish/` checks the token contrast pairs, and renders each `ClaimBadge` label and
+   each `PanelState` kind with `react-dom/server`, asserting its text (no new dependency, no test page).
+2. Open `/`, run a search, open a star -> the e2e reads `getComputedStyle` on the search, drawer, explainer and
+   voice panels and fails unless background, border and heading size all equal the panel tokens. Screenshots at
+   desktop and phone widths are kept as evidence, not as the check.
+3. `tests/e2e/visual-polish/` covers 2, and the search, project-drawer, galaxy-explainer and voice e2e suites
+   still pass.
 
 ## Defaults
 Keep the existing tokens; add new ones only for states. No new dependency.
