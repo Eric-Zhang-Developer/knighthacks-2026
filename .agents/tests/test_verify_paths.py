@@ -45,7 +45,7 @@ class VerifyPaths(unittest.TestCase):
             with patch.object(verify, "root_from", return_value=root), patch.object(verify, "load_config", return_value={"verify": {"command": command, "timeout": 10}}), patch.object(verify, "evidence_dir", return_value=out), patch.object(verify, "git", return_value="test-sha"), contextlib.redirect_stdout(io.StringIO()) as output:
                 result = verify.main(["--slug", "test", "--worktree", str(root)])
             self.assertEqual(result, 0, output.getvalue())
-            self.assertEqual(json.loads((out / "args.json").read_text()), [str(root), str(out)])
+            self.assertEqual(json.loads((out / "args.json").read_text()), [str(root.resolve()), str(out)])
             self.assertIn(" pass at ", output.getvalue())
 
     @unittest.skipUnless(os.name == "nt", "Exercises native cmd.exe argv parsing")
