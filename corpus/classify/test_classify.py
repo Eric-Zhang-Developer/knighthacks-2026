@@ -145,6 +145,15 @@ def test_exact_tool_evidence_preserved(state):
     assert classifier.project_value(value, {"description": quote}) == value
 
 
+def test_replit_editor_is_not_evidence_of_coding_assistant_use():
+    quote = "Built, styled, and deployed completely within the Replit ecosystem, ensuring a fast development cycle and a live production-ready deployment."
+    value = {**classifier.UNKNOWN, "dev_tools": "reported", "dev_tools_evidence": quote}
+    assert classifier.project_value(value, {"description": quote}) == classifier.UNKNOWN
+    agent_quote = "We imported and iterated on the project with Replit Agent ."
+    value["dev_tools_evidence"] = agent_quote
+    assert classifier.project_value(value, {"description": agent_quote}) == value
+
+
 @pytest.mark.parametrize("value,text", [
     ({"kind": "placement", "place": 1, "sponsor": None}, "$100 prize"),
     ({"kind": "sponsor", "place": None, "sponsor": "Invented"}, "Best use of API"),

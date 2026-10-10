@@ -15,13 +15,14 @@ Alternatively, `--from-jsonl records.jsonl` accepts complete source rows, includ
 `--stars` and `--output` allow isolated fixtures. Each source ID must match the star manifest exactly.
 The default output is `public/classify/classes.json`. Its categories are **inferred**, never verified facts.
 
-Batches contain at most25 full descriptions, with at most4 concurrent calls (both configurable downward).
+Batches contain at most 25 full descriptions, with at most 4 concurrent calls (both configurable downward).
 Each returned index must occur exactly once; response ordering cannot silently swap project labels.
 Invalid results retry once, then become unknown. Authentication/model/request-configuration failures abort
 after one retry. A first batch runs before the rest to detect configuration problems cheaply.
 The saved artifact contains no prompt, source description, source URL, credential or database connection string;
 reported development-tool use includes only a checked verbatim evidence quote from the source description.
 Product integrations with AI models do not establish coding-assistant use.
+Replit editor/hosting mentions alone remain unknown; the quote must identify Replit Agent or AI.
 
 Successful batches are cached by model, prompt revision and full source content in ignored `.cache/`.
 Interrupted runs reuse checked cached results; failed results are not cached. This bounds repeated API spend.
@@ -31,4 +32,6 @@ Keep it private and local; only the validated public artifact and agent review a
 The final summary reports per-domain/status counts, prize kinds, failures and actual provider calls.
 
 Before shipping, follow the source-sampling and complete distinct-prize review in the feature spec.
+`python corpus/classify/review.py` prepares deterministic samples with complete source text and artifact hashes
+in the ignored cache. It assigns no review verdict; an agent must compare source and classification.
 Missing evidence remains unknown; a prize classification is not an estimate of winning likelihood.

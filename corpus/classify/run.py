@@ -32,7 +32,7 @@ KINDS = {"placement", "sponsor", "category", "participation", "other"}
 UNKNOWN = {"domain": None, "status": "insufficient_text", "runner_up": None,
            "dev_tools": "unknown", "dev_tools_evidence": None}
 TOOL = re.compile(r"\b(chatgpt|copilot|cursor|claude(?:\s+code)?|codex|v0|lovable|windsurf|gemini|"
-                  r"tabnine|codeium|replit|bolt|coding\s+assistant|ai[- ](?:assisted|generated)\s+code)\b", re.I)
+                  r"tabnine|codeium|replit\s+(?:agent|ai)|bolt|coding\s+assistant|ai[- ](?:assisted|generated)\s+code)\b", re.I)
 PROMPT_VERSION = "3"
 
 
