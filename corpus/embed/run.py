@@ -109,6 +109,9 @@ def load(records: list[dict], vectors: np.ndarray, xyz: np.ndarray, version: str
             "insert into projects (id, url, title, tagline, description, technologies, events, date, date_kind, source,"
             " fetched_at, content_hash, embedding, x, y, z, corpus_version)"
             " values (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s)", rows)
+        # Rebuild the graph after replacing every row; stale HNSW entries can miss true nearest neighbors.
+        cur.execute("REINDEX INDEX projects_embedding_hnsw")
+        cur.execute("ANALYZE projects")
         cur.execute("select count(*) from projects where corpus_version = %s", (version,))
         return cur.fetchone()[0]
 
