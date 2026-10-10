@@ -56,22 +56,28 @@ test("freeze saved evidence and a proposed test, then keep identical bytes after
       expect(body.snapshotId).toMatch(/^[a-f0-9-]{36}$/i);
       return body;
     }
-    const sparse = await snapshot();
-    expect(sparse.data.mainUncertainty).toBeNull(); expect(sparse.data.nextTest).toBeNull();
-    expect(sparse.data.nearestAlternatives.map((p: { projectId: string }) => p.projectId)).toEqual(version.neighborIds);
-    expect(sparse.data.whatDiffers).toEqual([]);
-    const records = await query(sql`select id, title, url, description, tagline from projects where id = any(${version.neighborIds}::text[])`);
-    for (const id of version.neighborIds.slice(0, 3)) {
-      const record = records.find((row) => row.id === id);
-      expect(record).toBeTruthy();
-      const excerpt = [record!.description, record!.tagline, record!.title].find((value) => typeof value === "string" && value.trim()) as string;
-      await fixture(`evidence-${id}`, {
-        overlaps: [{ text: excerpt.trim().slice(0, 100), label: "supported", sourceIds: [id] }],
-        differences: [{ text: "Whether this idea serves a different meal-coordination need is unverified.", label: "unverified", sourceIds: [] }],
-        uncertainty: { text: "The value of a shared meal-selection trial is not yet known.", label: "unverified", sourceIds: [] },
-      });
+    async function evidenceFixtures(neighborIds: string[]) {
+      const records = await query(sql`select id, title, url, description, tagline from projects where id = any(${neighborIds}::text[])`);
+      for (const id of neighborIds.slice(0, 3)) {
+        if (fixtures.has(join(fixtureRoot!, `evidence-${id}.json`))) continue;
+        const record = records.find((row) => row.id === id);
+        expect(record).toBeTruthy();
+        const excerpt = [record!.description, record!.tagline, record!.title].find((value) => typeof value === "string" && value.trim()) as string;
+        await fixture(`evidence-${id}`, {
+          overlaps: [{ text: excerpt.trim().slice(0, 100), label: "supported", sourceIds: [id] }],
+          differences: [{ text: "Whether this idea serves a different meal-coordination need is unverified.", label: "unverified", sourceIds: [] }],
+          uncertainty: { text: "The value of a shared meal-selection trial is not yet known.", label: "unverified", sourceIds: [] },
+        });
+      }
+      return records;
     }
-    const evidenceResponse = await owner.post(`/api/evidence/${version.versionId}`, { headers });
+    const records = await evidenceFixtures(version.neighborIds);
+    // Choose before the evidence panel has requested any cards (#177).
+    const initial = await snapshot();
+    expect(initial.data.whatDiffers, "Choosing a version must generate its missing evidence before freezing").toHaveLength(3);
+    expect(initial.data.mainUncertainty).not.toBeNull(); expect(initial.data.nextTest).toBeNull();
+    expect(initial.data.nearestAlternatives.map((p: { projectId: string }) => p.projectId)).toEqual(version.neighborIds);
+    const evidenceResponse = await owner.get(`/api/evidence/${version.versionId}`);
     expect(evidenceResponse.status()).toBe(200);
     const { cards } = await evidenceResponse.json(); expect(cards).toHaveLength(3);
     const proposedTest = "Run a ten-minute meal-selection trial with teammates and record where a decision stalls.";
@@ -85,7 +91,7 @@ test("freeze saved evidence and a proposed test, then keep identical bytes after
     expect((await owner.post(`/api/challenge/${sessionId}/round`, { headers })).status()).toBe(200);
     expect((await owner.post(`/api/challenge/${sessionId}/answer`, { headers, data: { answer: privateAnswer } })).status()).toBe(200);
     const frozen = await snapshot(), endpoint = `/api/snapshots/${frozen.snapshotId}`;
-    expect(frozen.snapshotId).not.toBe(sparse.snapshotId);
+    expect(frozen.snapshotId).not.toBe(initial.snapshotId);
     expect(Object.keys(frozen.data).sort()).toEqual(["audience", "idea", "mainUncertainty", "nearestAlternatives", "nextTest", "versionId", "whatDiffers"]);
     expect(frozen.data).toMatchObject({ versionId: version.versionId, audience: fields.audience,
       idea: { title: fields.title, description: fields.description, problem: fields.problem, workflow: fields.workflow, constraints: null },
@@ -115,15 +121,48 @@ test("freeze saved evidence and a proposed test, then keep identical bytes after
     expect(await after.text(), "Stored snapshot bytes must survive a later accepted revision").toBe(bytes);
     const chosenAgain = await snapshot(); expect(chosenAgain.snapshotId).not.toBe(frozen.snapshotId);
     expect(chosenAgain.data).toEqual(frozen.data);
+    await evidenceFixtures(revised.neighborIds);
     const revisedSnapshot = await snapshot(revised.versionId);
     expect(revisedSnapshot.data.idea.workflow).toBe(suggestions[0].change);
     expect(revisedSnapshot.data.nextTest, "Tests from the parent version must not leak into a different version").toBeNull();
-    expect(revisedSnapshot.data.mainUncertainty).toBeNull();
-    const sparseAfter = await owner.get(`/api/snapshots/${sparse.snapshotId}`);
-    expect(await sparseAfter.json()).toEqual(sparse.data);
+    expect(revisedSnapshot.data.mainUncertainty).not.toBeNull();
+    expect(revisedSnapshot.data.whatDiffers).toHaveLength(3);
+
+    const branchResponse = await owner.post("/api/branches/manual", { headers, data: {
+      versionId: version.versionId, fields: { workflow: "Choose separate meals when teammates cannot share an order" },
+    } });
+    expect(branchResponse.status()).toBe(201);
+    const branch = await branchResponse.json();
+    expect(branch.parentId).toBe(version.versionId);
+    expect((await (await owner.get(`/api/evidence/${branch.versionId}`)).json()).cards).toEqual([]);
+    await evidenceFixtures(branch.neighborIds);
+    // Missing generation fixtures force the real service's safe failure path.
+    const unavailablePath = join(fixtureRoot!, `evidence-${branch.neighborIds[0]}.json`);
+    await unlink(unavailablePath); fixtures.delete(unavailablePath);
+    const failedChoice = await owner.post("/api/snapshots", { headers, data: { versionId: branch.versionId } });
+    expect(failedChoice.status()).toBe(502);
+    expect(await failedChoice.json()).toEqual({ error: "Evidence generation is temporarily unavailable. Please try again." });
+    expect(await query(sql`select id from snapshots where workspace_id = ${workspaceId}::uuid and data->>'versionId' = ${branch.versionId}`)).toEqual([]);
+    await evidenceFixtures(branch.neighborIds);
+    const branchSnapshot = await snapshot(branch.versionId);
+    const branchCards = (await (await owner.get(`/api/evidence/${branch.versionId}`)).json()).cards;
+    expect(branchCards).toHaveLength(3);
+    expect(branchSnapshot.data.whatDiffers).toEqual(branchCards.map((card: { projectId: string; differences: unknown[] }) => ({ projectId: card.projectId, claims: card.differences })));
+    // A repeated choice must succeed even when generation is unavailable.
+    for (const id of branch.neighborIds.slice(0, 3)) {
+      const path = join(fixtureRoot!, `evidence-${id}.json`);
+      await unlink(path); fixtures.delete(path);
+    }
+    const branchAgain = await snapshot(branch.versionId);
+    expect(branchAgain.snapshotId).not.toBe(branchSnapshot.snapshotId);
+    expect(branchAgain.data).toEqual(branchSnapshot.data);
+    const initialAfter = await owner.get(`/api/snapshots/${initial.snapshotId}`);
+    expect(await initialAfter.json()).toEqual(initial.data);
     const report = JSON.stringify({ mode: "generation-fixture-real-corpus-and-database", retainedWorkspace: workspaceId,
-      versionId: version.versionId, revisedVersionId: revised.versionId, snapshotIds: [sparse, frozen, chosenAgain, revisedSnapshot].map((s) => s.snapshotId),
-      data: frozen.data, identicalBytesAfterRevision: true, privateFieldsExcluded: true, newChoiceGetsFreshId: true }, null, 2);
+      versionId: version.versionId, revisedVersionId: revised.versionId, branchVersionId: branch.versionId,
+      snapshotIds: [initial, frozen, chosenAgain, revisedSnapshot, branchSnapshot, branchAgain].map((s) => s.snapshotId),
+      data: frozen.data, branchData: branchSnapshot.data, evidenceFailureSavedNothing: true, repeatedChoiceReusedCards: true,
+      identicalBytesAfterRevision: true, privateFieldsExcluded: true, newChoiceGetsFreshId: true }, null, 2);
     await writeFile(info.outputPath("frozen-snapshot.json"), report);
     await info.attach("frozen-snapshot", { body: report, contentType: "application/json" });
     retainedWorkspace = workspaceId;
