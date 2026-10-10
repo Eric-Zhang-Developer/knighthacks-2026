@@ -9,7 +9,7 @@ const helper = join(process.cwd(), "scripts/verify-server.mjs");
 afterEach(() => vi.unstubAllEnvs());
 
 test("actual verifier concurrent launch regression runs in the canonical unit suite", async () => {
-  const { stdout } = await run(process.execPath, ["--test", "tests/verify-isolation/launch.test.mjs"], { windowsHide: true });
+  const { stdout } = await run(process.execPath, ["--test", "--test-reporter=tap", "tests/verify-isolation/launch.test.mjs"], { windowsHide: true });
   expect(stdout).toContain("# fail 0");
 });
 test.each(["", "0", "65536", "no", "1e3", "-1"])("invalid requested port %s fails before launch", async (port) => {

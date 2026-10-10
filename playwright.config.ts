@@ -19,7 +19,8 @@ export default defineConfig({
   testDir: "tests/e2e",
   outputDir: process.env.VERIFY_OUT ?? "test-results",
   timeout: 30_000,
-  use: { baseURL: `http://127.0.0.1:${port}`, screenshot: "on", trace: "retain-on-failure" },
+  // NextRequest canonicalizes loopback URLs to localhost; Origin must match it.
+  use: { baseURL: `http://localhost:${port}`, screenshot: "on", trace: "retain-on-failure" },
   webServer: {
     command: `pnpm build && pnpm start --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/api/health/verify/${token}`,
