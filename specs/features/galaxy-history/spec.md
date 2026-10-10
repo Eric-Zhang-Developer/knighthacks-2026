@@ -7,7 +7,8 @@ assignee: ""
 
 # Historical reveal (F02)
 
-Backlog. It touches the shared shell and the galaxy, so it takes two small helper PRs before its own.
+Frontend: Mac workers only (user decision 2026-10-10). It touches the shared shell and the galaxy (done, so a
+`fix(galaxy)` PR may change it), so it takes two small helper PRs before its own.
 
 ## Plan
 1. `fix: add revealUntilYear to the shared store and mount history controls`: a `revealUntilYear: number | null`
@@ -19,6 +20,8 @@ Backlog. It touches the shared shell and the galaxy, so it takes two small helpe
 
 ## Requirements
 - No star's coordinates change at any point of the reveal.
+- `year` in `stars.json` is the project's created year, not its event date (corpus-embed Gaps); the controls say
+  "created" so the reveal isn't read as event history.
 - Projects with no year are counted and labelled "date unknown"; they stay visible and are never assigned a year.
 - `prefers-reduced-motion` turns play into stepping.
 
