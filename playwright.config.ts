@@ -1,7 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
 // scripts/verify.mjs sets VERIFY_OUT to a fresh evidence folder; screenshots and traces land there.
-const port = 3100;
+const port = Number(process.env.UNCHARTED_VERIFY_PORT ?? 3100);
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error("UNCHARTED_VERIFY_PORT must be an integer from 1 to 65535");
+}
 
 export default defineConfig({
   testDir: "tests/e2e",
