@@ -12,8 +12,10 @@ function gitCommit(): string {
 }
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: __dirname, // ancestor lockfiles must not widen tracing beyond this app
   output: "standalone", // lets the Vultr add-on run the same build in a container
   env: { GIT_COMMIT: gitCommit() },
 };
 
 export default nextConfig;
+
