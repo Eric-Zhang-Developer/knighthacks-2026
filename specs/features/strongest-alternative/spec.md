@@ -1,6 +1,6 @@
 ---
 name: Compare the idea with its strongest existing alternative on the user's actual task
-depends_on: [neighbor-evidence, ai-client]
+depends_on: [neighbor-evidence-ui, ai-client]
 owns: [app/api/alternative/, lib/alternative/, components/alternative/, db/schema/alternative.ts, tests/strongest-alternative/, tests/e2e/strongest-alternative/]
 assignee: ""
 ---
