@@ -2,6 +2,7 @@
 // UI features: Playwright runs tests/e2e/<slug>/ against a production build. Corpus features: pytest in corpus/<part>/.
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { prepareIdentity } from "./verify-server.mjs";
 
 const [slug, out] = process.argv.slice(2);
 if (!slug) {
@@ -16,8 +17,11 @@ const e2e = `tests/e2e/${slug}`;
 const part = slug.startsWith("corpus-") ? `corpus/${slug.slice("corpus-".length)}` : null;
 
 if (existsSync(e2e)) {
+  let identity;
+  try { identity = await prepareIdentity(); }
+  catch (error) { process.stderr.write(`verify: ${error.message}\n`); process.exit(1); }
   if (run("pnpm", ["exec", "playwright", "install", "chromium"])) process.exit(1);
-  process.exit(run("pnpm", ["exec", "playwright", "test", e2e], out ? { VERIFY_OUT: out } : {}));
+  process.exit(run("pnpm", ["exec", "playwright", "test", e2e], { ...(out ? { VERIFY_OUT: out } : {}), UNCHARTED_VERIFY_PORT: String(identity.port), UNCHARTED_VERIFY_TOKEN: identity.token }));
 }
 if (part && existsSync(part)) {
   const venv = `${part}/.venv/bin/python`;
