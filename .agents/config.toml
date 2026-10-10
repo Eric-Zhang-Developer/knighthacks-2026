@@ -26,8 +26,8 @@ exclude = []                     # prefixes not counted: lockfiles, generated da
 # How an agent sees its own change running: one deterministic command that drives the real software the way a user
 # would (a CLI smoke run, a headless-browser script, an HTTP check) and fails on a wrong result, not just a crash.
 # Shell template with {slug} {worktree} {out} (a fresh evidence folder, kept). Empty = not set up, and reported.
-command = ""
-timeout = 300                    # seconds; then it fails, and everything it started is stopped
+command = "node scripts/verify.mjs {slug} {out}"
+timeout = 600                    # seconds; then it fails, and everything it started is stopped
 
 [markers]
 debug_patterns = ['^\s*debugger;?\s*$', '^\s*breakpoint\(\)', '^\s*import pdb', 'console\.log\(']
