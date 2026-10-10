@@ -1,6 +1,6 @@
 ---
 name: Freeze a chosen version into an immutable snapshot
-depends_on: [neighbor-evidence-api, idea-revisions-api]
+depends_on: [neighbor-evidence-api, idea-revisions-api, challenge-api]
 owns: [app/api/snapshots/, lib/snapshots/, db/schema/snapshots.ts, tests/decision-snapshot-api/, tests/e2e/decision-snapshot-api/]
 assignee: ""
 ---
@@ -16,6 +16,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 ## Requirements
 - Later edits to the workspace don't change a saved snapshot.
 - Excludes votes, transcripts and private notes.
+- The next test is an explicit proposed-test claim saved by a challenge for this exact version, or null when none exists. Select the newest session containing one, then its highest qualifying round (sessions have timestamps; individual rounds do not). Reading that stored claim requires `challenge-api`; no challenge answer or question is copied.
 
 ## Validation
 1. Create a snapshot; accept a new revision; `GET` it -> byte-identical JSON.

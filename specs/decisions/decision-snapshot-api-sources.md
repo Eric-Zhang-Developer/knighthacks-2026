@@ -1,0 +1,11 @@
+# Snapshot source selection and immutability
+
+kiro-agent-1: POST accepts only {versionId}, authenticates the guest workspace and checks same-origin. It returns 201 {snapshotId,data}; each explicit choice gets a fresh UUID. GET returns the stored data object only with no-store headers and workspace authorization. Missing and foreign IDs both return 404. No model is called.
+
+Data contains versionId; idea {title,description,problem,workflow,constraints}; audience; nearestAlternatives [{projectId,title,url}]; whatDiffers [{projectId,claims}]; mainUncertainty {projectId,claim}|null; nextTest Claim|null. Idea values preserve nulls. Alternatives preserve saved-neighbor order, preferring frozen evidence metadata and otherwise the matching-corpus project. Missing metadata stays null. Difference claims are copied exactly from existing cards, with no generation for missing cards. Main uncertainty is the first available card's uncertainty in neighbor order; absent evidence gives [] differences and null uncertainty.
+
+The next test is an existing unverified source-free claim beginning 'Proposed test: ' from challenge rounds of the exact chosen version. The newest challenge session (created_at, then ID) with a qualifying claim wins, then its highest qualifying round. Challenge rounds have no timestamp, so this is not claimed to be wall-clock ordering of interleaved rounds across sessions. A revised version does not inherit its parent's tests. No qualifying test means null.
+
+One INSERT SELECT builds the explicit JSONB allowlist and freezes it under one PostgreSQL statement snapshot. It copies no votes, answers, questions, transcripts, private notes, whole source rows, or mutable workspace state. GET never rejoins source tables. POST returns database-returned JSONB, keeping serialization consistent with reads. Later revisions, corpus replacement or additional evidence cannot modify the saved data.
+
+Undo: coordinate public data-shape changes with the snapshot/share UI. A true chronological test order would need an upstream round timestamp; don't guess one. Tests of SQL structure and mocked routes do not prove live snapshot immutability; canonical real-Neon E2E verifies it separately.
