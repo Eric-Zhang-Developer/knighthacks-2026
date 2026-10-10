@@ -77,3 +77,11 @@ Image ownership is narrowed to `lib/ai/generate.ts` and a new image helper, avoi
 The page mount still needs the person's sequencing decision against open experience-shell plan #222; this refresh
 does not claim the overlap resolved. Do not implement sponsor intake before the plan is accepted.
 Current release blockers include main's font build (#226), live comparison (#179) and Anthropic configuration (#61).
+
+## Shell sequencing resolved: main 6d7a396
+
+Experience-shell's plan #222 has now merged. Sponsor UI depends on that feature, drops `app/page.tsx` ownership,
+and mounts through the existing rubric wrapper in the shell's Decide destination. This closes the proposed page
+ownership overlap without editing the shell's specification or implementing frontend work. Main's font rerun is
+green; the font hardening remains Mac-owned. Read-only production verification at 21:01 UTC instead found the
+missing `rehearsals` table (#171); its rollout remains with the production owner, not this plan.

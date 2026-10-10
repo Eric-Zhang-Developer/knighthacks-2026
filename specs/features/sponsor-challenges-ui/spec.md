@@ -1,7 +1,7 @@
 ---
 name: Upload sponsor challenge images or text and inspect fit, gaps and rubric estimates
-depends_on: [sponsor-challenges-api, rubric-overlay-ui]
-owns: [components/sponsor-challenges/, app/page.tsx, tests/sponsor-challenges-ui/, tests/e2e/sponsor-challenges-ui/]
+depends_on: [sponsor-challenges-api, rubric-overlay-ui, experience-shell]
+owns: [components/sponsor-challenges/, components/rubric/index.tsx, tests/sponsor-challenges-ui/, tests/e2e/sponsor-challenges-ui/]
 assignee: ""
 ---
 
@@ -9,10 +9,10 @@ assignee: ""
 
 Claude/Mac only. The static rubric UI shipped in #188; preserve its snapshot files and score-free policy.
 This feature adds `components/sponsor-challenges/` in the contextual decision area on desktop and phone.
-Coordinate the `app/page.tsx` mount with eric-frontend-agent's proposed experience-shell (#222): never edit that
-shared mount concurrently. Before implementation, resolve ownership/sequencing against the then-merged plan;
-if the shell has landed, integrate into its Decide destination and preserve its acceptance. This spec does not
-depend on or authorize implementation of the still-unmerged shell plan.
+Wait for experience-shell, then mount the new section through the existing `components/rubric/index.tsx` wrapper
+in its Decide destination. Keep the static track overlay's content and behavior unchanged. The shell retains
+`app/page.tsx` ownership; this feature does not edit the page or shell files. Coordinate the small wrapper change
+with the Mac shell owner and preserve its phone/desktop acceptance.
 
 ## Plan
 1. A discoverable "Sponsor challenges" section lets the user paste challenge text, select/drag one PNG or JPEG,
