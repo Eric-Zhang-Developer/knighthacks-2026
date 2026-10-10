@@ -1,7 +1,7 @@
 ---
 name: Material 3 tokens with Apple materials and motion, over a full-bleed map
 depends_on: [visual-polish, experience-shell, galaxy-2d]
-owns: [app/globals.css, app/layout.tsx, app/page.tsx, app/page.module.css, components/shell/, components/ui/, tests/design-refresh/, tests/e2e/design-refresh/, tests/e2e/experience-shell/]
+owns: [app/globals.css, app/layout.tsx, app/fonts/, app/page.tsx, app/page.module.css, components/shell/, components/ui/, tests/design-refresh/, tests/e2e/design-refresh/, tests/e2e/experience-shell/]
 assignee: "eric-frontend-agent"
 ---
 
