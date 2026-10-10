@@ -52,7 +52,7 @@ export default async function ForemanPage() {
     <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
       <header className={styles.header}>
         <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
-        <span className={`${styles.sub} ${styles.survey}`} data-sha={board.sha}>
+        <span className={`${styles.sub} ${styles.survey}`} data-sha={board.sha} data-snapshot={board.fetchedAt}>
           site office · <a href={`https://github.com/${REPO}`}>{REPO}</a> · surveyed <b>{clock(snapshot)}</b> · main @{" "}
           <b>{board.sha.slice(0, 7)}</b> ·{" "}
           <span className={styles.api} data-testid="api" data-api={!api.token ? "off" : api.error ? "failed" : "ok"}>
