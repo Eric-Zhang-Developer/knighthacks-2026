@@ -23,3 +23,5 @@ Frontend half: Mac workers only (user decision 2026-10-10). The share panel is d
 
 ## Defaults
 Steps render as a numbered list, readable at phone width.
+A stored moment loads with `GET` (no model call). When none is stored, a "Show me the moment" button generates one
+with `POST`, so switching versions never triggers a model call on its own.
