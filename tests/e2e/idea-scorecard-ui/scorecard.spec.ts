@@ -30,10 +30,12 @@ test("five criteria rows with scores and worded reasons; a cited project opens t
     const [n1] = neighborIds;
     for (const id of neighborIds)
       await put(`evidence-${id}.json`, JSON.stringify({ overlaps: [], differences: [], uncertainty: point("Not stated on the page", [], "unverified") }));
+    // Originality keeps only cited points, so both its sides cite the neighbour; Design has no point against, so the
+    // route returns it as "evidence is insufficient" with no score.
     await put(`scorecard-${versionId}.json`, JSON.stringify(Object.fromEntries(KEYS.map((k, i) => [k, {
       score: i + 1,
       for: [point(`${NAMES[i]} reason for`, i === 0 ? [n1] : [], i === 0 ? "supported" : "inferred")],
-      against: [point(`${NAMES[i]} reason against`)],
+      against: k === "design" ? [] : [point(`${NAMES[i]} reason against`, i === 0 ? [n1] : [])],
     }]))));
 
     // 1. Five rows in rubric order, each with its score as text and its reasons behind a disclosure.
@@ -46,19 +48,28 @@ test("five criteria rows with scores and worded reasons; a cited project opens t
     expect(await rows.evaluateAll((els) => els.map((e) => e.getAttribute("data-criterion")))).toEqual(NAMES);
     await expect(rows.nth(0).locator("summary")).toContainText("1 out of 5");
     await expect(rows.nth(4).locator("summary")).toContainText("5 out of 5");
+    await expect(rows.nth(3).locator("summary")).toContainText("evidence is insufficient");
+    await expect(rows.nth(3).locator("meter")).toHaveCount(0);
+    await expect(panel.locator("meter")).toHaveCount(4);
     await expect(panel).not.toContainText(/total|odds|chance of winning/i);
     const first = rows.nth(0);
     await first.locator("summary").click();
-    await expect(first.getByRole("list", { name: "For" })).toContainText("Originality reason for");
-    await expect(first.getByRole("list", { name: "Against" })).toContainText("inferred Originality reason against");
-    await panel.screenshot({ path: info.outputPath("scorecard.png") });
+    // Labels are the route's: a point citing a stored source reads supported, an uncited one inferred.
+    await expect(first.getByRole("list", { name: "For" })).toContainText("supported Originality reason for");
+    await expect(first.getByRole("list", { name: "Against" })).toContainText("supported Originality reason against");
+    await rows.nth(1).locator("summary").click();
+    await expect(rows.nth(1).getByRole("list", { name: "Against" })).toContainText("inferred Technical Understanding reason against");
+    // A page shot: an element shot inside the shell's scrolling column captures the wrong pixels.
+    await panel.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath("scorecard.png") });
 
     // 2. The cited neighbour is a button named by its card title; it opens that project in the drawer.
     const title = result.sources.find((s) => s.projectId === n1)?.title;
     expect(title, "the scorecard names the project it cites").toBeTruthy();
-    await first.getByRole("button", { name: title }).click();
+    await first.getByRole("list", { name: "For" }).getByRole("button", { name: title }).click();
     const drawer = page.getByRole("region", { name: "Project" });
     await expect(drawer).toContainText(title!);
+    await drawer.scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath("drawer.png") });
   } finally {
     await Promise.all(wrote.map((f) => unlink(f).catch(() => {})));
