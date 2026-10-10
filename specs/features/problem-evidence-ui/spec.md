@@ -10,7 +10,7 @@ assignee: ""
 Frontend half: Mac workers only (user decision 2026-10-10). The idea card is done, so this feature owns `components/idea/` and renders inside it: no shell change. Build on the shape pinned in `problem-evidence-api`.
 
 ## Plan
-1. Under the idea card's problem field: "Is this problem real?" runs the search for `activeIdeaVersionId`, then lists problem items first. Each shows its claim with a `ClaimBadge`, the source title and domain (linked when `url` is set), its date or "date not given", and its relevance with a `ClaimBadge`.
+1. Under the idea card's problem field: "Is this problem real?" runs the search for `activeIdeaVersionId`, then lists problem items first. Each shows its claim with a `ClaimBadge`, the source title and domain (linked when `url` is set), its published date or "date not given", the event date when set, and its relevance with a `ClaimBadge`.
 2. Solution items sit under a separate heading, "About solutions, not the problem".
 
 ## Requirements

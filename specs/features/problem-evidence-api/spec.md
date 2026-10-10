@@ -14,7 +14,8 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 2. `POST /api/problem-evidence/:versionId`: needs the version's `problem` (else 422 "no problem stated"). Ask for recent evidence that this problem exists. Each grounding support becomes a candidate item: its segment text and the chunk(s) it cites.
 3. Resolve each chunk's redirect URI server-side to its final URL (5 s timeout; unresolved keeps `url: null` and the title). Read `publishedAt` from that page's own metadata (`article:published_time`, JSON-LD `datePublished`), else `null`.
 4. One `generate` call sorts each candidate into `about: "problem" | "solution"` and writes a one-sentence `relevance` to the version's problem.
-5. Response and `GET`: `{"versionId", "problem", "items": [{"id", "claim": Claim, "about", "source": {"title", "domain", "url": string | null}, "publishedAt": string | null, "relevance": Claim}], "searchedAt", "model"}`.
+5. `eventDate`: when the grounded segment itself states a date (a year, a month and year, or a full date), the server copies that date text exactly as written; otherwise `null`. The model never supplies it.
+6. Response and `GET`: `{"versionId", "problem", "items": [{"id", "claim": Claim, "about", "source": {"title", "domain", "url": string | null}, "publishedAt": string | null, "eventDate": string | null, "relevance": Claim}], "searchedAt", "model"}`.
 
 ## Requirements
 - Same workspace session, same-origin and 404 rules as the other idea routes.
@@ -26,7 +27,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 
 ## Validation
 1. Live: `POST` for a saved version with a stated problem -> at least one `problem` item whose claim text appears verbatim in a grounding support and whose source names a domain; record the domains, dates found and model in the done note.
-2. A fixture whose text has a sentence with no grounding support -> that sentence isn't an item. A fixture page with no date metadata -> `publishedAt: null`.
+2. A fixture whose text has a sentence with no grounding support -> that sentence isn't an item. A fixture page with no date metadata -> `publishedAt: null`. A segment stating "in March 2025" -> `eventDate: "March 2025"`; one stating no date -> `eventDate: null`.
 3. A version with `problem: null` -> 422; `GEMINI_API_KEY` unset -> 503 with no item stored.
 4. `tests/e2e/problem-evidence-api/` covers 2–3 with fixtures (`AI_STUB_ALLOW=1`). Keep the stored row.
 
