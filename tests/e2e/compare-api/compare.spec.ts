@@ -45,7 +45,7 @@ test("compare two and three versions using their saved evidence without numeric 
         reason: { text: "The proposed workflow needs validation against the saved evidence", label: "inferred", sourceIds: cards[i].length ? [cards[i][0].projectId] : [] },
         uncertainty: "Implementation quality and user demand remain unknown" })) })) };
       await writeFile(join(fixtures, "compare.json"), JSON.stringify(fixture));
-      const response = await owner.post("/api/compare", { headers, data: { versionIds: selection } });
+      const response = await owner.post("/api/compare", { headers, data: { versionIds: selection.map((id) => id.toUpperCase()) } });
       expect(response.status()).toBe(200); const result = await response.json(); results.push(result);
       expect(result.criteria.map((c: { name: string }) => c.name)).toEqual(CRITERIA);
       for (const c of result.criteria) {

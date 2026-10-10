@@ -8,7 +8,7 @@ vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/evidence/service", () => ({ getEvidence }));
 vi.mock("@/lib/workspace/service", () => ({ lookupSession }));
 import { compare } from "@/lib/compare/service";
-import { CRITERIA } from "@/lib/compare/contract";
+import { CRITERIA, requestSchema } from "@/lib/compare/contract";
 import { POST } from "@/app/api/compare/route";
 import { COOKIE } from "@/lib/workspace/tokens";
 const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
@@ -75,4 +75,10 @@ test("missing citations, incomplete matrices, duplicate criteria and numeric rat
     await expect(compare("owner", ids)).rejects.toMatchObject({ status: 502 }); }
   getEvidence.mockResolvedValue({ cards: [{ projectId: "source", excerpt: "Known text" }] });
   await expect(compare("owner", ids)).rejects.toMatchObject({ status: 502 });
+});
+
+test("UUID casing cannot duplicate a selection or hide authorized version text", () => {
+  const id = "abcdefab-abcd-4abc-8abc-abcdefabcdef";
+  expect(requestSchema.safeParse({ versionIds: [id, id.toUpperCase()] }).success).toBe(false);
+  expect(requestSchema.parse({ versionIds: [id.toUpperCase(), ids[0]] }).versionIds).toEqual([id, ids[0]]);
 });
