@@ -8,33 +8,51 @@ import { useAppState } from "@/lib/store";
 import { pickNearest, STYLE, styleFor } from "./stars";
 
 const PICK_RADIUS = 10; // CSS px
+// Default camera distance in cloud radii: close enough that the cloud fills the chart; the bounding radius is set by a
+// few outliers.
+const VIEW_DISTANCE = 1.7;
 
-// Fixed-pixel round points with a per-star colour and size, so every corpus star is one draw call.
+// Round points with a per-star colour and size, so every corpus star is one draw call.
+// Base stars are bare, dimmed dots so dense regions read brighter than sparse ones; only marked stars (bigger than
+// base) glow. Base stars also shrink and fade with distance for depth; marked stars keep a fixed size.
 const material = () =>
   new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    uniforms: { pixelRatio: { value: 1 } },
+    blending: THREE.NormalBlending,
+    uniforms: { pixelRatio: { value: 1 }, refDist: { value: 1 } },
     vertexShader: `
       attribute vec3 starColor;
       attribute float size;
       uniform float pixelRatio;
+      uniform float refDist; // the default camera distance, where a base star has its nominal size
       varying vec3 vColor;
+      varying float vAlpha;
+      varying float vGlow;
       void main() {
         vColor = starColor;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vGlow = step(${STYLE.base.size + 0.5}, size); // 1 for any marked star: every marked style is bigger than base
+        // Perspective size, clamped so far ones stay visible and a near base star (3 x 1.6) stays well under a highlighted
+        // one (7): size, not just colour, still marks a star.
+        float att = mix(clamp(refDist / -mv.z, 0.4, 1.6), 1.0, vGlow);
+        // Base stars are translucent (0.6 at the default distance) so overlaps build up in dense regions; far ones fade.
+        vAlpha = mix(clamp(0.6 * att, 0.3, 0.9), 1.0, vGlow);
         // Room for a halo around the core; the core keeps the star's nominal size.
-        gl_PointSize = size * 2.2 * pixelRatio;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = size * 2.2 * pixelRatio * att;
+        gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
       varying vec3 vColor;
+      varying float vAlpha;
+      varying float vGlow;
       void main() {
         float d = length(gl_PointCoord - 0.5) * 2.0;
         if (d > 1.0) discard;
-        // A solid core (the exact star colour) inside a soft glow.
+        // A solid core (the exact star colour), inside a soft glow for marked stars only.
         float core = 1.0 - smoothstep(0.38, 0.46, d);
-        float halo = pow(1.0 - d, 2.2) * 0.45;
-        gl_FragColor = vec4(vColor, max(core, halo));
+        float halo = pow(1.0 - d, 2.2) * 0.45 * vGlow;
+        gl_FragColor = vec4(vColor, max(core, halo) * vAlpha);
       }`,
   });
 
@@ -44,8 +62,13 @@ const HIDDEN: Style = { color: STYLE.base.color, size: 0 };
 // The e2e reads the live position buffer through this to prove a reveal never moves a star.
 export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number> };
 
-function StarPoints(props: { positions: Float32Array; styleAt: (i: number) => Style; expose?: boolean }) {
-  const { positions, styleAt, expose } = props;
+function StarPoints(props: {
+  positions: Float32Array;
+  styleAt: (i: number) => Style;
+  refDist: number;
+  expose?: boolean;
+}) {
+  const { positions, styleAt, refDist, expose } = props;
   const dpr = useThree((s) => s.viewport.dpr);
   const dom = useThree((s) => s.gl.domElement) as StarCanvas;
   const mat = useMemo(material, []);
@@ -65,7 +88,8 @@ function StarPoints(props: { positions: Float32Array; styleAt: (i: number) => St
   useEffect(() => () => mat.dispose(), [mat]);
   useEffect(() => {
     mat.uniforms.pixelRatio.value = dpr;
-  }, [mat, dpr]);
+    mat.uniforms.refDist.value = refDist;
+  }, [mat, dpr, refDist]);
   useEffect(() => {
     const color = geometry.getAttribute("starColor") as THREE.BufferAttribute;
     const size = geometry.getAttribute("size") as THREE.BufferAttribute;
@@ -87,8 +111,7 @@ function Controls({ center, radius, locked }: { center: THREE.Vector3; radius: n
 
   useEffect(() => () => controls.dispose(), [controls]);
   useEffect(() => {
-    // Close enough that the cloud fills the chart; the bounding radius is set by a few outliers.
-    camera.position.set(center.x, center.y, center.z + radius * 1.7);
+    camera.position.set(center.x, center.y, center.z + radius * VIEW_DISTANCE);
     camera.near = radius / 1000;
     camera.far = radius * 100;
     camera.updateProjectionMatrix();
@@ -200,8 +223,8 @@ export default function Scene(props: {
 
   return (
     <Canvas camera={{ fov: 60 }} aria-hidden>
-      <StarPoints positions={positions} styleAt={corpusStyle} expose />
-      {ideaStars.length > 0 && <StarPoints positions={ideaPositions} styleAt={ideaStyle} />}
+      <StarPoints positions={positions} styleAt={corpusStyle} refDist={radius * VIEW_DISTANCE} expose />
+      {ideaStars.length > 0 && <StarPoints positions={ideaPositions} styleAt={ideaStyle} refDist={radius * VIEW_DISTANCE} />}
       <Controls center={center} radius={radius} locked={selectedId !== null} />
       <Picker positions={positions} visible={visible} onHover={onHover} onPick={onPick} />
     </Canvas>
