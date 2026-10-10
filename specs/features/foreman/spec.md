@@ -87,6 +87,27 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
   the crew (open PRs per worker with CI dots). Plus a ticker of the latest merges, an intro sentence, and a "since
   you last looked" banner (browser storage only).
 - Sections that need PR data say so in place when it's missing, instead of rendering empty.
+
+**Charts.** Both are drawn from the snapshot alone (no extra API call), server-rendered SVG, with a hover tooltip, a
+legend or direct labels so identity is never colour alone, and a table view (`<details>`) for screen readers.
+- **Build-up** (in "Will we make it?"): features built over time, one stepped line from the first PR to the
+  snapshot; a step per feature whose feat PR merged, at its merge time. The x axis runs to the final milestone's
+  freeze (its ship if it has none): the one real deadline for features. One target marker there: every live
+  feature across all milestones. No marker for interim milestones (person's direction 2026-10-10: interim
+  deadlines distort decisions and add nothing). A dashed line projects the last 3 h's pace (`pace()`) from the
+  snapshot until it reaches the target or the freeze, whichever is first (never past the target: there are no
+  features beyond it); the legend says when all land, or how many by the freeze. None when pace is unknown or the
+  target is met. Hover: the time, built count and the
+  feature that landed. Features done before the visible PR history (done note, no merged feat PR) count from the
+  start.
+- **Crew timeline** (top of "The crew"): one row per named worker with a merged or open PR, ordered by their
+  first PR; one bar per PR from opened to merged, closed (hollow, dashed) or the snapshot (still open: outlined,
+  pulsing). Colour by PR type: feature `#41ae61`, fix/refactor/perf/test `#a65d00`, plan/contract `#4b77cc`, any
+  other type the neutral `#4a4338`. Validated (dataviz `validate_palette.js`, dark, surface `#14110c`): all checks
+  pass, worst adjacent CVD ΔE 12.0. A worker's overlapping PRs stack into sub-rows, so no bar hides another. A strip
+  above the rows counts PRs open at each moment; its peak is stated in the heading ("up to N open at once"). Hover:
+  number, title, worker, opened → merged/closed/open. Click opens the PR.
+- Neither chart renders without PR data; each says so in place.
 - `noindex`, linked from nowhere in the product. No database tables, no product code changes, so it can't break the
   demo. `GITHUB_TOKEN` never reaches the browser or the HTML.
 
@@ -103,11 +124,14 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
    Playwright on the production build: milestones as in the checkout's `milestones.toml`; one graph node per spec
    on disk; every open non-draft `plan:`/`contract:` PR and `needs-human` issue not updated since the snapshot is
    listed; header SHA = `/api/health` commit; hover trace, replay scrub, demo keys, since banner, card; screenshots.
-4. **Production, after each deploy of this feature:**
+4. **Charts:** unit tests pin the build-up series (steps, the freeze target, projection or none) and the timeline
+   rows (one per named worker, bar ends, open bars end at the snapshot, sub-rows for overlaps, the concurrency peak) on fixed inputs; the
+   e2e hovers one bar and one step and sees the tooltip, and finds both table views. Screenshot each chart.
+5. **Production, after each deploy of this feature:**
    `FOREMAN_URL=https://knighthacks-2026.vercel.app pnpm exec vitest run tests/foreman/production.test.ts` -> the
    live HTML has every section, `API: token`, no failure banner, and its SHA equals the live `/api/health` commit.
    Run it again after the next merge to main: the SHA must have moved (one snapshot per deploy).
-5. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
+6. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
    the done note.
 
 ## Defaults
