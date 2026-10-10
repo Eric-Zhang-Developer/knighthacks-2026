@@ -59,12 +59,20 @@ export function DemoKeys() {
 }
 
 // A dashboard left open on a laptop should keep up without a reload. Client state (a replay in progress) survives.
-export function AutoRefresh({ every = 60_000 }: { every?: number }) {
+// The cached page can be old after a quiet spell (served stale while it regenerates), so a load with data
+// older than STALE_MS refreshes once a few seconds later instead of waiting the full minute.
+const STALE_MS = 120_000;
+export function AutoRefresh({ fetchedAt, every = 60_000 }: { fetchedAt?: string; every?: number }) {
   const router = useRouter();
   useEffect(() => {
+    const stale = fetchedAt && Date.now() - Date.parse(fetchedAt) > STALE_MS;
+    const soon = stale ? setTimeout(() => router.refresh(), 5_000) : undefined;
     const id = setInterval(() => document.visibilityState === "visible" && router.refresh(), every);
-    return () => clearInterval(id);
-  }, [router, every]);
+    return () => {
+      clearTimeout(soon);
+      clearInterval(id);
+    };
+  }, [router, every, fetchedAt]);
   return null;
 }
 

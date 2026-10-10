@@ -13,7 +13,10 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variabl
 
 // Unlisted: nothing links here and search engines are told to stay out. Everything shown is already public.
 export const metadata: Metadata = { title: "Foreman · Uncharted", robots: { index: false, follow: false } };
-export const dynamic = "force-dynamic";
+// Regenerated at most once a minute and served from cache in between. Rendering per request meant ~70 reads of
+// Vercel's remote data cache each time (0.9–4.6 s to first byte). The data was already a minute stale at most,
+// the header shows its real age, and the clocks correct themselves on the first client tick.
+export const revalidate = 60;
 
 const ASK_LABEL: Record<Ask["kind"], string> = {
   stop: "stop",
@@ -62,7 +65,7 @@ export default async function ForemanPage() {
             <DemoKeys />
           </HeaderClock>
         )}
-        <AutoRefresh />
+        <AutoRefresh fetchedAt={board?.fetchedAt} />
       </header>
 
       {!board ? (
