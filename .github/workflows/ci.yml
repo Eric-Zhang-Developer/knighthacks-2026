@@ -1,0 +1,66 @@
+# Make `ci` a required check on main. Keep it fast: a slow CI caps how fast anything merges.
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]   # edited: fixing a PR title reruns the checks
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Spec lint
+        run: python3 .agents/scripts/check_ownership.py --lint-specs
+
+      - name: Ownership, gates, markers (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE: origin/${{ github.event.pull_request.base.ref }}
+        run: |
+          python3 .agents/scripts/check_ownership.py --title "$TITLE" --base "$BASE"
+          python3 .agents/scripts/check_gates.py --title "$TITLE" --base "$BASE"
+          python3 .agents/scripts/check_markers.py --base "$BASE"
+
+      - name: Markers (main)
+        if: github.event_name == 'push'
+        run: python3 .agents/scripts/check_markers.py --all
+
+      # Your project's own checks go here: tests, lint, build.
+      - name: Project checks
+        run: echo "Add your test command here (see specs/tech-stack.md, Checks)"
+
+  issues:
+    # After a merge: one issue per feature spec (closed when done), one GitHub milestone per milestone, and a
+    # fresh pinned Status issue.
+    if: github.event_name == 'push'
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      pull-requests: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: python3 .agents/scripts/sync_issues.py
+      - run: python3 .agents/scripts/status.py --issue
