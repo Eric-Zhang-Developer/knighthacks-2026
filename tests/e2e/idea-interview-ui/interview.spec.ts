@@ -46,6 +46,12 @@ test("questions appear for a vague idea; answers are re-read into the fields and
   await expect(rows.nth(0)).toContainText(round1.questions[0].why);
   expect(asked[0].fields.problem).toBeNull(); // the route saw the interpretation, gaps and all
   await page.screenshot({ path: test.info().outputPath("questions.png"), fullPage: true });
+  // Phone width: the same rows, full-width inputs and 44px targets.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await questions(page).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: test.info().outputPath("questions-phone.png") });
+  expect((await questions(page).boundingBox())!.width).toBeLessThanOrEqual(390);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // The model reads the answers from the re-sent text; the stub stands in for that reading.
   await useInterpretation(stub, "idea-interpret-answered");
