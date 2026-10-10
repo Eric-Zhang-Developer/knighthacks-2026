@@ -23,6 +23,7 @@ const ASK_LABEL: Record<Ask["kind"], string> = {
   ci: "main red",
   merge: "merge me",
   clash: "clash",
+  pickable: "cut?",
   issue: "decide",
   stale: "dead?",
   review: "review",

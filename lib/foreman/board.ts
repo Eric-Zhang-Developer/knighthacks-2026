@@ -81,7 +81,7 @@ export type Milestone = {
   done: number;
   total: number;
 };
-export type Ask = { kind: "merge" | "clash" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
+export type Ask = { kind: "merge" | "clash" | "pickable" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
 export type Lane = { worker: string; note: string | null; prs: (PR & { scope: string | null; kind: string | null })[]; merged: number };
 export type Board = {
   repo: string;
@@ -261,6 +261,19 @@ export function buildBoard(raw: Raw, now: number): Board {
   for (const i of raw.issues) {
     const flags = i.labels.filter((l) => ["needs-human", "blocked", "one-way-door", "contract-change"].includes(l));
     if (flags.length) asks.push({ kind: "issue", title: i.title, detail: `#${i.number} · ${flags.join(" · ")}`, url: i.url });
+  }
+  // Cut means "drop first if late", but a cut feature left in its milestone's features is still in pick order: the
+  // next agent can start it. Only a person (a plan: PR) can take it out, so it's an ask, until the freeze rejects it.
+  for (const f of features) {
+    const m = milestones.find((x) => x.cut.includes(f.slug) && x.features.includes(f.slug));
+    const open = m && (m.ship === null || m.ship > now) && (m.freeze === null || m.freeze > now);
+    if (f.state === "cut" && open && f.deps.every((d) => notes.has(d)))
+      asks.push({
+        kind: "pickable",
+        title: `${f.slug} is cut but still pickable`,
+        detail: `on ${m!.name}'s cut list and in its features, dependencies done: the next agent may start it. A plan: PR can drop it`,
+        url: `https://github.com/${raw.repo}/blob/main/specs/milestones.toml`,
+      });
   }
   for (const f of features)
     if (f.state === "done" && (!f.verified || f.gap))
