@@ -30,10 +30,12 @@ export default function SharedSnapshot({ token }: { token: string }) {
   useEffect(() => {
     fetch(`/api/shares/${encodeURIComponent(token)}`)
       .then(async (r) => {
+        // Read the body on every status: an unread error body leaves the request open.
+        const body = await r.json().catch(() => null);
         if (r.status === 410) return setLoad({ state: "revoked" });
         if (r.status === 404) return setLoad({ state: "missing" });
-        if (!r.ok) return setLoad({ state: "failed" });
-        setLoad({ state: "ready", data: (await r.json()) as SnapshotData });
+        if (!r.ok || !body) return setLoad({ state: "failed" });
+        setLoad({ state: "ready", data: body as SnapshotData });
       })
       .catch(() => setLoad({ state: "failed" }));
   }, [token]);
