@@ -13,13 +13,13 @@ start = "2026-10-09T19:00:00-04:00"   # Opening Ceremony, Fri Oct 9 (specs/conte
 
 [[milestone]]
 name = "safe-demo"        # R0: something trustworthy to show, early
-ship = "2026-10-10T14:00:00-04:00"   # unfinished features drop out of pick order after this
+ship = ""                 # no deadline (person, 2026-10-10): order only; the one real deadline is submission's
 features = ["bootstrap", "corpus-fetch", "galaxy", "corpus-embed", "search", "project-drawer", "galaxy-explainer", "corpus-release"]
 cut = []
 
 [[milestone]]
 name = "core"             # R1: what the judges score
-ship = "2026-10-10T23:00:00-04:00"
+ship = ""                 # no deadline (person, 2026-10-10): order only
 features = ["visual-polish", "ai-client", "guest-workspace", "guest-workspace-ui", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui", "galaxy-history"]
 cut = ["voice-replies-api", "voice-replies-ui"]   # person's decision 2026-10-10: push-to-talk input stays
 
