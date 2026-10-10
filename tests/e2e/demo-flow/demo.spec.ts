@@ -32,7 +32,7 @@ test("type an idea, see evidence, challenge, revise, branch, vote as two, choose
     await expect(a.locator("[data-star-count]")).not.toHaveAttribute("data-star-count", "0", { timeout: 30_000 });
     await a.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals around everyone's dietary constraints.");
     await a.getByRole("button", { name: "Interpret" }).click();
-    await region(a, "Your idea").getByRole("button", { name: "Save" }).click({ timeout: 90_000 });
+    await region(a, "Your idea").getByRole("button", { name: "Save", exact: true }).click({ timeout: 90_000 });
     await expect(region(a, "Revisions")).toHaveAttribute("data-trail-length", "1", { timeout: 60_000 });
     // Saved and placed: the idea is a star at its embedded position.
     await expect(region(a, "Your idea")).toHaveAttribute("data-position", /\S/);
