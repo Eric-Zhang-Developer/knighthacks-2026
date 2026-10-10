@@ -72,7 +72,7 @@ export default function Drawer() {
         <dd>{p.events.length ? p.events.map((e) => e.name).join(", ") : <Unknown what="event" />}</dd>
         {/* corpus-fetch records when the project page was created, not when it was submitted. */}
         <dt>{p.dateKind === "created" ? "Created" : "Date"}</dt>
-        <dd>{p.date ?? <Unknown what="date" />}</dd>
+        <dd>{p.date ? (/^\d{4}-\d{2}-\d{2}T/.test(p.date) ? p.date.slice(0, 10) : p.date) : <Unknown what="date" />}</dd>
         <dt>Built with</dt>
         <dd>{p.technologies.length ? p.technologies.join(", ") : <Unknown what="technologies" />}</dd>
       </dl>
