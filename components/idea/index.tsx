@@ -6,6 +6,7 @@ import { initWorkspace } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
 import { FIELDS, fromForm, galaxyState, hasText, latest, toForm, type FieldName, type Fields, type Version } from "./fields";
 import ProblemEvidence from "./ProblemEvidence";
+import ResearchSection from "./Research";
 import styles from "./idea.module.css";
 
 type Form = Record<FieldName, string>;
@@ -130,6 +131,7 @@ export default function Idea() {
           </p>
         )}
         <ProblemEvidence key={v.versionId} versionId={v.versionId} />
+        <ResearchSection key={`research-${v.versionId}`} versionId={v.versionId} />
         {error && <PanelState kind="failed" message={error} />}
         <button type="button" className={styles.secondary} onClick={() => setView({ step: "write" })}>
           New idea

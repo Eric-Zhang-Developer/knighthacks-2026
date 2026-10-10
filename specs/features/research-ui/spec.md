@@ -33,3 +33,7 @@ holds that folder; the idea card is free and already holds the idea's other outs
 
 ## Defaults
 Collapsed to the first two items per group; expand for the rest.
+A stored result loads with `GET` (no outside call); otherwise the "What already exists?" button runs the search with
+`POST`, so viewing a version never triggers GitHub, Hugging Face or model calls on its own. The client also files a
+Hugging Face model or dataset marked direct-alternative under building blocks, so the V3 F14 rule holds even if
+the API's rewrite regresses.
