@@ -26,6 +26,7 @@ export type PR = {
   body: string | null;
   headSha: string;
   ci?: Ci;
+  lines?: number; // additions + deletions, fetched only for PRs touched in the heat window
 };
 export type Issue = { number: number; title: string; url: string; labels: string[]; createdAt: string };
 export type Ci = "success" | "failure" | "pending" | "none";
@@ -53,7 +54,7 @@ export type Feature = {
   gap: string;
   shipped: string; // first line of the done note
   fixes: number;
-  heat: number; // 0..1, PR activity on this feature in the last HEAT_HOURS
+  heat: number; // 0..1, lines changed (or, failing that, PR activity) on this feature in the last HEAT_HOURS
   doneAt: string | null; // when its feat PR merged (null if done some other way)
   startedAt: string | null; // when its first feat PR opened
   claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
@@ -83,6 +84,7 @@ export type Board = {
   asks: Ask[];
   lanes: Lane[];
   stats: { merged: number; byKind: Record<string, number>; medianOpenMin: number | null; workers: number; reverts: number };
+  heatBasis: "lines" | "activity";
   replay: { at: string; number: number; title: string; slug: string | null; kind: string | null }[];
 };
 
@@ -137,16 +139,21 @@ export function buildBoard(raw: Raw, now: number): Board {
       fixes.set(t.scope, (fixes.get(t.scope) ?? 0) + 1);
   }
 
-  // Heat: PRs on a feature touched in the window, weighted toward the most recent. A feature with an open PR
-  // updated a minute ago is hottest.
+  // Heat: lines changed in PRs on a feature touched in the window, weighted toward the most recent. Square root,
+  // so one 2,000-line PR doesn't make every other feature look cold. If any line count in the window is missing,
+  // every PR counts as one instead: mixing the two would rank by whichever we happened to fetch.
+  const inWindow = titled.filter((p) => {
+    const age = now - Date.parse(p.updatedAt);
+    return p.t?.scope && age >= 0 && age <= HEAT_HOURS * 3_600_000;
+  });
+  const heatBasis: Board["heatBasis"] = inWindow.length && inWindow.every((p) => p.lines !== undefined) ? "lines" : "activity";
   const heatRaw = new Map<string, number>();
-  for (const p of titled) {
-    if (!p.t?.scope) continue;
-    const age = (now - Date.parse(p.updatedAt)) / 3_600_000;
-    if (age < 0 || age > HEAT_HOURS) continue;
-    heatRaw.set(p.t.scope, (heatRaw.get(p.t.scope) ?? 0) + (1 - age / HEAT_HOURS));
+  for (const p of inWindow) {
+    const recency = 1 - (now - Date.parse(p.updatedAt)) / (HEAT_HOURS * 3_600_000);
+    const size = heatBasis === "lines" ? Math.sqrt(p.lines!) : 1;
+    heatRaw.set(p.t!.scope!, (heatRaw.get(p.t!.scope!) ?? 0) + size * recency);
   }
-  const maxHeat = Math.max(1, ...heatRaw.values());
+  const maxHeat = Math.max(1e-9, ...heatRaw.values());
 
   const scheduled = new Map<string, string>();
   for (const m of milestones) for (const s of m.features) if (!scheduled.has(s)) scheduled.set(s, m.name);
@@ -266,6 +273,7 @@ export function buildBoard(raw: Raw, now: number): Board {
     features,
     asks,
     lanes,
+    heatBasis,
     stats: {
       merged: merged.length,
       byKind,

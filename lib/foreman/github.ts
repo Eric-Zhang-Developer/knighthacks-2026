@@ -1,20 +1,20 @@
 import "next/dist/compiled/server-only";
-import type { Ci, PR, Raw } from "./board";
+import { HEAT_HOURS, type Ci, type PR, type Raw } from "./board";
 
 export const REPO = "Eric-Zhang-Developer/knighthacks-2026";
 // GitHub allows 60 unauthenticated API calls an hour; a token (read-only, server-only) raises that to 5000.
 const TOKEN = process.env.GITHUB_TOKEN;
 export const REVALIDATE = TOKEN ? 60 : 600;
 
-async function api<T>(path: string): Promise<T> {
-  return (await apiWithDate<T>(path)).data;
+async function api<T>(path: string, cache?: "force-cache"): Promise<T> {
+  return (await apiWithDate<T>(path, cache)).data;
 }
 
 // GitHub's Date header survives Next's data cache, so the page can say how old the cached data really is.
-async function apiWithDate<T>(path: string): Promise<{ data: T; date: string }> {
+async function apiWithDate<T>(path: string, cache?: "force-cache"): Promise<{ data: T; date: string }> {
   const res = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
     headers: { Accept: "application/vnd.github+json", ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) },
-    next: { revalidate: REVALIDATE },
+    ...(cache ? { cache } : { next: { revalidate: REVALIDATE } }),
   });
   if (!res.ok) throw new Error(`GitHub ${res.status} on ${path}${res.status === 403 ? " (rate limit?)" : ""}`);
   return { data: (await res.json()) as T, date: new Date(res.headers.get("date") ?? Date.now()).toISOString() };
@@ -89,6 +89,14 @@ export async function readRaw(): Promise<Raw> {
     body: p.body,
     headSha: p.head.sha,
   }));
+  // Line counts only for PRs the heat window can see; a merged PR's count never changes, so it's cached for good.
+  const recent = prs.filter((p) => Date.now() - Date.parse(p.updatedAt) <= HEAT_HOURS * 3_600_000);
+  await Promise.all(
+    recent.map(async (p) => {
+      const d = await api<{ additions: number; deletions: number }>(`/pulls/${p.number}`, p.mergedAt ? "force-cache" : undefined).catch(() => null);
+      if (d) p.lines = d.additions + d.deletions;
+    }),
+  );
   const open = prs.filter((p) => p.state === "open");
   const [mainCi, ...openCi] = await Promise.all([ci(head.sha), ...open.map((p) => ci(p.headSha).catch((): Ci => "none"))]);
   open.forEach((p, i) => (p.ci = openCi[i]));
