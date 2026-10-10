@@ -21,8 +21,15 @@ assignee: ""
   `content_hash`. A field the page doesn't have stays null; never fill one in.
 - Reject a record with no URL, title or description; count rejections by reason.
 - One project in several events is one record with several `events`.
-- At most 1 request per second. Stop a source on 403/429 or a repeated page. One retry per request.
-- Print counts: discovered, fetched, parsed, rejected (by reason), deduplicated, written.
+- At most 2 requests per second (`--rps`; raised from 1 on 2026-10-10, person's call: Devpost publishes no limit and
+  robots.txt sets no crawl delay). The first 429 waits `Retry-After` (else 60 s, at most 300 s) and drops to 1 per
+  second for the rest of the run; a second 429 or any 403 stops the run. Stop a source on a repeated page. One retry
+  per request.
+- Every gallery page's cards go to `corpus/data/summaries.jsonl` at no extra request: one line per project per event
+  with `id`, `url`, `title`, `tagline`, `event` (name, URL, dates, `winner` badge), `detail: "summary"`, `source`,
+  `fetched_at`, `content_hash`. No description: it exists only on the project page. `fetch --gallery-only` writes
+  only these (~24 projects per request) and skips project pages.
+- Print counts: discovered, fetched, parsed, rejected (by reason), deduplicated, written, summarized, and the rate.
 
 ## Validation
 1. `python corpus/fetch/run.py fetch --limit 50` -> the count line prints and `corpus/data/projects.jsonl` has the
