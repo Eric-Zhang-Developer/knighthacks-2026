@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { buildBoard, layers, statesAt, type PR, type Raw } from "@/lib/foreman/board";
+import { buildBoard, layers, pace, statesAt, type PR, type Raw } from "@/lib/foreman/board";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
@@ -162,4 +162,12 @@ test("a feature on the cut list that someone is building shows as in flight", ()
   const prs = [...raw.prs, pr(8, "feat(e): build it anyway")];
   const e = buildBoard({ ...raw, prs }, NOW).features.find((f) => f.slug === "e");
   expect(e?.state).toBe("flight");
+});
+
+test("pace projects the remaining features at the last 3h's build rate, or says there's no pace", () => {
+  const at = (h: number) => ({ doneAt: new Date(NOW - h * 3_600_000).toISOString() });
+  // 3 built in the last 3h -> 1/h; 2 left -> done in 2h.
+  expect(pace({ done: 3, total: 5 }, [at(0.5), at(1), at(2.5), at(5)], NOW)).toEqual({ left: 2, perHour: 1, eta: NOW + 2 * 3_600_000 });
+  expect(pace({ done: 3, total: 5 }, [at(4), { doneAt: null }], NOW)).toBeNull();
+  expect(pace({ done: 5, total: 5 }, [at(1)], NOW)).toBeNull();
 });

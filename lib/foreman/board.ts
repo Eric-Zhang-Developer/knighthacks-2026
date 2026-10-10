@@ -42,6 +42,14 @@ export type Raw = {
 };
 
 export type State = "done" | "flight" | "ready" | "blocked" | "cut" | "backlog";
+export const STATE_TEXT: Record<State, string> = {
+  done: "built",
+  flight: "under construction",
+  ready: "ready to start",
+  blocked: "blocked",
+  cut: "on cut list",
+  backlog: "backlog",
+};
 export type Feature = {
   slug: string;
   name: string;
@@ -292,6 +300,21 @@ export function buildBoard(raw: Raw, now: number): Board {
       .map((p) => ({ at: p.mergedAt!, number: p.number, title: p.title, slug: p.t?.scope ?? null, kind: p.t?.kind ?? null }))
       .sort((a, b) => a.at.localeCompare(b.at)),
   };
+}
+
+export const PACE_HOURS = 3;
+
+/**
+ * When a milestone's remaining features would land at the recent build rate: features finished in the last
+ * PACE_HOURS, per hour. null when nothing is left, or nothing was built in the window (no pace to project).
+ */
+// ponytail: straight-line rate, ignores dependency order and parallelism; good enough to say "on time / late"
+export function pace(m: Pick<Milestone, "done" | "total">, features: Pick<Feature, "doneAt">[], now: number) {
+  const left = m.total - m.done;
+  const recent = features.filter((f) => f.doneAt && now - Date.parse(f.doneAt) <= PACE_HOURS * 3_600_000).length;
+  if (left <= 0 || recent === 0) return null;
+  const perHour = recent / PACE_HOURS;
+  return { left, perHour, eta: now + (left / perHour) * 3_600_000 };
 }
 
 /**
