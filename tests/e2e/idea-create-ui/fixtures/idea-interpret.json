@@ -1,1 +1,8 @@
-{"title":"Team meal planner","description":"Help hackathon teams plan shared meals.","audience":null,"problem":null,"workflow":null,"constraints":null}
+{
+  "title": "Hackathon meal planning",
+  "description": "Help hackathon teams plan shared meals around their dietary constraints.",
+  "audience": "Hackathon teammates",
+  "problem": "Coordinating meals while building together",
+  "workflow": "Collect each teammate's dietary constraints and choose a shared meal",
+  "constraints": null
+}
