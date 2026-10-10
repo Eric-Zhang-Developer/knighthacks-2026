@@ -20,8 +20,8 @@ cut = []
 [[milestone]]
 name = "core"             # R1: what the judges score
 ship = "2026-10-10T23:00:00-04:00"
-features = ["visual-polish", "ai-client", "guest-workspace", "guest-workspace-ui", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui", "galaxy-history"]
-cut = ["voice-replies-api", "voice-replies-ui"]   # person's decision 2026-10-10: push-to-talk input stays
+features = ["visual-polish", "ai-client", "guest-workspace", "guest-workspace-ui", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "challenge-api", "challenge-ui", "galaxy-history"]
+cut = []   # voice-replies moved to Later (optional) in roadmap.md, person's decision 2026-10-10
 
 [[milestone]]
 name = "submission"       # R2/R3: the ambitious target and one stretch, then the freeze
@@ -29,6 +29,6 @@ ship = "2026-10-11T10:45:00-04:00"   # 15 min before the 11:00 final code push
 freeze = "4:45"           # from Sun 06:00: no new features
 final = true
 report_before = "1:45"    # from Sun 09:00: fixes, reverts and docs only; Devpost closes 10:00
-features = ["decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "demo-flow", "vultr-deploy"]
-cut = ["compare-api", "compare-ui", "vultr-deploy"]   # first to drop if late; rejected once the freeze starts
+features = ["decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "demo-flow"]
+cut = []                  # compare and vultr-deploy moved to Later (optional) in roadmap.md
 allow = []                # e.g. your reporter's feature
