@@ -1,0 +1,18 @@
+# Only app/build inputs enter the image; credentials and local corpus checkpoints never do.
+**
+!package.json
+!pnpm-lock.yaml
+!next.config.ts
+!next-env.d.ts
+!tsconfig.json
+!eslint.config.mjs
+!app/**
+!components/**
+!lib/**
+!db/**
+!public/**
+# Keep credential files excluded even if nested below an included directory.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
