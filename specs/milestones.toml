@@ -29,6 +29,6 @@ ship = "2026-10-11T10:45:00-04:00"   # 15 min before the 11:00 final code push
 freeze = "4:45"           # from Sun 06:00: no new features
 final = true
 report_before = "1:45"    # from Sun 09:00: fixes, reverts and docs only; Devpost closes 10:00
-features = ["decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "demo-flow", "vultr-deploy"]
+features = ["live-smoke", "decision-snapshot-api", "decision-snapshot-ui", "share-qr-api", "share-qr-ui", "team-vote-api", "team-vote-ui", "branches-api", "branches-ui", "compare-api", "compare-ui", "strongest-alternative-api", "strongest-alternative-ui", "prove-it-api", "prove-it-ui", "rubric-overlay-api", "rubric-overlay-ui", "demo-flow", "vultr-deploy"]
 cut = ["compare-api", "compare-ui", "vultr-deploy"]   # first to drop if late; rejected once the freeze starts
 allow = ["foreman"]       # the build-status page (specs/features/foreman): may merge through the freeze
