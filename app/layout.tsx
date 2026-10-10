@@ -3,17 +3,12 @@ import localFont from "next/font/local";
 import Workspace from "@/components/workspace";
 import "./globals.css";
 
-// A star chart's voice: engraved serif headings, a plain sans for reading, mono for the chart's annotations.
-// Self-hosted (latin subset from Google Fonts, SIL OFL): next/font/google fetched these at build time, and that
-// fetch failed CI intermittently (#226). Cormorant and Plex Sans are variable fonts, so one file covers each weight range.
-const display = localFont({
-  src: [
-    { path: "./fonts/cormorant-garamond-latin.woff2", weight: "500 600", style: "normal" },
-    { path: "./fonts/cormorant-garamond-italic-latin.woff2", weight: "500 600", style: "italic" },
-  ],
-  variable: "--font-display",
-});
-const sans = localFont({ src: [{ path: "./fonts/ibm-plex-sans-latin.woff2", weight: "400 600", style: "normal" }], variable: "--font-sans" });
+// Material 3's typeface, Roboto Flex, for every role (display, title, body, label): one variable file covers every
+// weight and optical size, so type can change shape with size (apple-design §15). Self-hosted (latin subset from
+// Google Fonts, SIL OFL), since next/font/google fetched at build time and that fetch failed CI intermittently (#226).
+// `--font-display` is aliased to it in globals.css, so every panel that uses either name changes without touching
+// its files.
+const sans = localFont({ src: [{ path: "./fonts/roboto-flex-latin.woff2", weight: "100 1000", style: "normal" }], variable: "--font-sans" });
 const mono = localFont({
   src: [
     { path: "./fonts/ibm-plex-mono-400-latin.woff2", weight: "400", style: "normal" },
@@ -29,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>
         <Workspace />
         {children}
