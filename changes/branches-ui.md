@@ -7,5 +7,5 @@ verify: `node scripts/verify.mjs branches-ui /Users/ericzhang/code/hackathons/kn
 Run with `DATABASE_URL` set to the Neon test branch and `AI_STUB_DIR=tests/e2e/branches-ui/fixtures AI_STUB_ALLOW=1`. The e2e checks against the real trail API that both branches have version 1 as parent, and was confirmed to fail if branch stars weren't restored on reload. 22 neighboring e2e tests pass.
 ## Gaps
 - Directions are stubbed in the e2e; this hasn't been run with live Gemini (#61).
-- Manual branching has a unit-level path but no e2e. The e2e covers suggested directions, as Validation asks.
+- Manual branching is untested: no unit test or e2e exercises it. The e2e covers suggested directions, as Validation asks.
 - Sibling branch stars can overlap when their five nearest projects match, because placement is the neighbors' centroid.
