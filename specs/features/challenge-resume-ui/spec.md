@@ -48,3 +48,6 @@ challenge panel is done (challenge-ui, prove-it-ui, change-mind-ui, constellatio
 
 ## Defaults
 "Check again" never polls on its own.
+Accepting a revision inside the challenge keeps the session on the new version (see
+`specs/decisions/challenge-resume-ui-followed-version.md`). The panel's buttons wait until the version's session has
+been read; if the read fails, the panel works as before and says the resume couldn't load.

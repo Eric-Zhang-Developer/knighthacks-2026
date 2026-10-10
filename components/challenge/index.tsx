@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AssumptionMap from "./AssumptionMap";
 import { lerpStar, replaceStar, type Suggestion as LegacySuggestion, type Version } from "@/components/revisions/trail";
 import type { Claim } from "@/lib/ai/claims";
@@ -12,7 +12,7 @@ import ChangeMind from "./ChangeMind";
 import type { Assumption } from "./change-mind";
 import { ExperimentList, useExperiments } from "./Experiments";
 import { findFor } from "./experiment";
-import { nextStep, reviseContext, type Outcome, type Perspective, type Round } from "./rounds";
+import { fromStored, MAX_ROUNDS, nextStep, reviseContext, type Outcome, type Perspective, type Round, type SessionState, type StoredSession } from "./rounds";
 import styles from "./challenge.module.css";
 
 type Suggestion = Omit<LegacySuggestion, "reason"> & { reason: string | Claim };
@@ -54,9 +54,46 @@ export default function Challenge() {
   const [assumptions, setAssumptions] = useState<{ versionId: string; items: Assumption[] } | null>(null);
   // Stable per version: ChangeMind refetches when this changes.
   const onAssumptions = useCallback((items: Assumption[]) => active && setAssumptions({ versionId: active, items }), [active]);
+  const [sessionState, setSessionState] = useState<SessionState>("idle");
+  // The version this panel moved to by accepting a revision: the same session continues there, so it isn't reloaded.
+  const followed = useRef<string | null>(null);
+  // The version whose session has been read: until it matches, actions wait, so a late read can't undo a new session.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  // Resume the version's latest session from the read-only state route: no model call, no new session.
+  const load = useCallback(async (versionId: string) => {
+    setBusy("load");
+    const res = await fetch("/api/workspace/state").catch(() => null);
+    const json = res?.ok ? ((await res.json()) as { challenges: StoredSession[] }) : null;
+    setBusy(null);
+    if (getState().activeIdeaVersionId !== versionId) return; // a newer load owns the panel
+    if (!json) {
+      setLoadedFor(versionId); // the panel still works; only the resume is lost
+      return setError("Couldn't load this version's challenge. Reload to try again.");
+    }
+    const s = json.challenges.find((c) => c.versionId === versionId);
+    setError(null);
+    setRevising(null);
+    setRevised([]);
+    setAnswer("");
+    setSessionId(s?.sessionId ?? null);
+    setPerspective(s?.perspective ?? "judge");
+    setSessionState(s?.state ?? "idle");
+    setRounds(s ? fromStored(s) : []);
+    setLoadedFor(versionId);
+  }, []);
+  useEffect(() => {
+    if (!active) return;
+    if (active === followed.current) {
+      followed.current = null; // once: switching away and back reloads
+      return;
+    }
+    void load(active);
+  }, [active, load]);
 
   if (!active) return null;
-  const step = nextStep(rounds);
+  const step = nextStep(rounds, sessionState);
+  const blocked = busy !== null || loadedFor !== active;
 
   async function run<T>(label: string, path: string, body?: unknown) {
     setBusy(label);
@@ -68,14 +105,22 @@ export default function Challenge() {
   }
 
   async function ask(id: string) {
-    const q = await run<Round>("ask", `/api/challenge/${id}/round`);
-    if (q) setRounds((rs) => [...rs, q]);
+    setBusy("ask");
+    setError(null);
+    const q = await post<Round>(`/api/challenge/${id}/round`);
+    setBusy(null);
+    if (!q.ok) return setError(q.status === 409 && step === "stuck" ? "Still working; try again shortly." : q.error);
+    // Skipping: the server marked the stuck round failed, so it reads as unfinished; the new round follows it.
+    const skipped = step === "stuck";
+    setRounds((rs) => [...rs.map((r, i) => (skipped && i === rs.length - 1 ? { ...r, unfinished: true } : r)), q.data]);
+    setSessionState("awaiting");
   }
 
   async function start() {
     setRounds([]);
     setRevising(null);
     setRevised([]);
+    setSessionState("idle");
     const s = await run<{ sessionId: string }>("ask", "/api/challenge", { versionId: active, perspective });
     if (!s) return;
     setSessionId(s.sessionId);
@@ -120,6 +165,8 @@ export default function Challenge() {
     if (!next) return;
     setRevised((r) => [...r, revising!.round]);
     setRevising(null);
+    followed.current = next.versionId;
+    setLoadedFor(next.versionId);
     if (from) moveStar(from, next);
     setState({ activeIdeaVersionId: next.versionId, highlightedIds: next.neighborIds });
   }
@@ -140,7 +187,7 @@ export default function Challenge() {
               ))}
             </select>
           </label>
-          <button type="button" className={styles.primary} disabled={busy !== null} onClick={start}>
+          <button type="button" className={styles.primary} disabled={blocked} onClick={start}>
             Challenge my idea
           </button>
         </div>
@@ -152,19 +199,24 @@ export default function Challenge() {
             <p className={styles.meta}>
               Round {r.round} of 3 · {perspective}
             </p>
-            <p className={styles.question}>{r.question}</p>
-            <p>
-              <span className={styles.label}>Assumption:</span> {r.assumption}
-            </p>
-            <p className={styles.source} aria-label="Source">
-              <ClaimBadge label={r.source.label} /> {r.source.text}
-              {r.source.sourceIds.length > 0 && (
-                <span className={styles.meta}>
-                  {" "}
-                  · from {r.source.sourceIds.length} project{r.source.sourceIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </p>
+            {r.question && <p className={styles.question}>{r.question}</p>}
+            {r.assumption && (
+              <p>
+                <span className={styles.label}>Assumption:</span> {r.assumption}
+              </p>
+            )}
+            {r.source && (
+              <p className={styles.source} aria-label="Source">
+                <ClaimBadge label={r.source.label} /> {r.source.text}
+                {r.source.sourceIds.length > 0 && (
+                  <span className={styles.meta}>
+                    {" "}
+                    · from {r.source.sourceIds.length} project{r.source.sourceIds.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </p>
+            )}
+            {(r.unfinished || !r.source) && step !== "stuck" && <p className={styles.meta}>This round didn&apos;t finish.</p>}
             {r.answer && (
               <p>
                 <span className={styles.label}>Your answer:</span> {r.answer}
@@ -180,12 +232,12 @@ export default function Challenge() {
               (findFor(experiments.items, sessionId, r.round) ? (
                 <p className={styles.meta}>Experiment below, under Experiments.</p>
               ) : (
-                <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => prove(r)}>
+                <button type="button" className={styles.primary} disabled={blocked} onClick={() => prove(r)}>
                   Prove it in ten minutes
                 </button>
               ))}
             {r.outcome === "revise" && revising?.round !== r.round && !revised.includes(r.round) && (
-              <button type="button" disabled={busy !== null} onClick={() => revise(r)}>
+              <button type="button" disabled={blocked} onClick={() => revise(r)}>
                 Suggest revisions for this
               </button>
             )}
@@ -201,10 +253,10 @@ export default function Challenge() {
                       </p>
                       <p className={styles.meta}><ChallengeRevisionReason reason={s.reason} /></p>
                       <div className={styles.row}>
-                        <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => decide(s, true)}>
+                        <button type="button" className={styles.primary} disabled={blocked} onClick={() => decide(s, true)}>
                           Accept
                         </button>
-                        <button type="button" disabled={busy !== null} onClick={() => decide(s, false)}>
+                        <button type="button" disabled={blocked} onClick={() => decide(s, false)}>
                           Reject
                         </button>
                       </div>
@@ -225,15 +277,37 @@ export default function Challenge() {
           }}
         >
           <textarea aria-label="Your answer" rows={3} maxLength={8000} value={answer} onChange={(e) => setAnswer(e.target.value)} />
-          <button type="submit" className={styles.primary} disabled={busy !== null || !answer.trim()}>
+          <button type="submit" className={styles.primary} disabled={blocked || !answer.trim()}>
             Answer
           </button>
         </form>
       )}
       {step === "next" && (
-        <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => sessionId && ask(sessionId)}>
+        <button type="button" className={styles.primary} disabled={blocked} onClick={() => sessionId && ask(sessionId)}>
           Next question
         </button>
+      )}
+      {step === "stuck" && (
+        <>
+          <PanelState kind="loading" message="Still working on this round." />
+          <div className={styles.row}>
+            <button type="button" disabled={blocked} onClick={() => load(active)}>
+              Check again
+            </button>
+            {rounds.length < MAX_ROUNDS ? (
+              <button type="button" className={styles.primary} disabled={blocked} onClick={() => sessionId && ask(sessionId)}>
+                Skip to the next round
+              </button>
+            ) : (
+              <>
+                <p className={styles.meta}>This challenge ended before its last round finished.</p>
+                <button type="button" className={styles.primary} disabled={blocked} onClick={start}>
+                  Start over
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
       {step === "done" && (
         <div className={styles.row}>
