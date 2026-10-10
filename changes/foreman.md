@@ -1,11 +1,11 @@
 ## What shipped
-`/foreman`, an unlisted (noindex) build-status page: milestone countdowns with per-feature cells, "needs a person" (plan/contract PRs to merge, duplicate feature claims, stale drafts, needs-human issues, red main), stats, the feature dependency graph with state, build time, missed features, heat, critical path and hover tracing, open PRs by worker, and demo keys (1–5 jump to sections, space plays the replay), and a replay that scrubs the graph from the first PR to now (states rebuilt from PR history). Reads main and GitHub live, using status.py's rules.
+`/foreman`, an unlisted (noindex) build-status page: milestone countdowns with per-feature cells, "needs a person" (plan/contract PRs to merge, duplicate feature claims, stale drafts, needs-human issues, red main), stats, the feature dependency graph with state, build time, missed features, heat, critical path and hover tracing, open PRs by worker, and demo keys (1–5 jump to sections, space plays the replay), a "since you last looked" banner, and a replay that scrubs the graph from the first PR to now (states rebuilt from PR history). Reads main and GitHub live, using status.py's rules.
 
 ## Where it lives
 `app/foreman/page.tsx`, `components/foreman/`, `lib/foreman/` (`github.ts` reads, `board.ts` + `parse.ts` model), `tests/foreman/`, `tests/e2e/foreman/`.
 
 ## How to check it
-- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T143758Z` pass at d683fa3
+- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T144250Z` pass at 549e34e
 
 ## Gaps
 - The replay rebuilds states from PR history on today's plan: features whose spec didn't exist yet show as ready/blocked rather than absent, and cut/backlog are today's lists.
