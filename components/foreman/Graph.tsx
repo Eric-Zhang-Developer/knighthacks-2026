@@ -10,6 +10,9 @@ const COL = 34; // gap between columns
 const ROW = 12; // gap between rows
 const PAD = 16;
 
+// In replay, what isn't built yet recedes so the build reads as filling in (spec § The tour, Hierarchy). The snapshot
+// keeps every state's colour: the team reads "ready" as pickable.
+const NOT_YET = { fill: "#14110c", stroke: "#3a3328", text: "#6f6656" };
 export const STATE: Record<State, { label: string; fill: string; stroke: string; text: string; dash?: string }> = {
   done: { label: "built", fill: "#14301b", stroke: "#8fef9a", text: "#c9f7cf" },
   flight: { label: "under construction", fill: "#3a2a0e", stroke: "#ffb547", text: "#ffe3b3" },
@@ -156,7 +159,7 @@ export default function Graph({
           {features.map((f) => {
             const p = pos.get(f.slug)!;
             const state = stateOf(f);
-            const s = STATE[state];
+            const s = shown && (state === "ready" || state === "blocked") ? { ...STATE[state], ...NOT_YET, dash: undefined } : STATE[state];
             const sub = shown
               ? ""
               : f.missed
@@ -197,7 +200,7 @@ export default function Graph({
                     height={H + 8}
                     rx={6}
                     fill="#ff8a1f"
-                    opacity={0.25 + f.heat * 0.6}
+                    opacity={0.15 + f.heat * 0.35} // an accent, not fog: at most 0.5
                     filter="url(#heat)"
                   />
                 )}

@@ -99,7 +99,6 @@ export default async function ForemanPage() {
 const NeedsPrs = ({ what }: { what: string }) => <p className={styles.needsPrs}>{what} needs PR data, missing from this snapshot (see above).</p>;
 
 function Sections({ board, now, build, crew }: { board: Board; now: number; build: BuildUpData | null; crew: Timeline | null }) {
-  const latest = board.replay.slice(-12).reverse();
   const blocking = board.asks.filter((a) => a.kind !== "review");
   const reviews = board.asks.filter((a) => a.kind === "review");
   const scheduled = board.features.filter((f) => f.milestone);
@@ -112,28 +111,14 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
 
   return (
     <>
-      {latest.length > 0 && (
-        <div className={styles.ticker} aria-label="Latest merges">
-          <div className={styles.tickerTrack}>
-            {[...latest, ...latest].map((r, i) => (
-              <span key={i}>
-                <b>#{r.number}</b> {r.title} · merged {hhmm(r.at)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
       <p className={styles.intro} data-testid="intro">
-        This is the build office for <b>Uncharted</b>.{" "}
         {board.prsKnown ? (
           <>
-            <b>{board.stats.crew}</b> agent workers, building in parallel under one rulebook (
-            <a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>), have merged <b>{board.stats.merged}</b> PRs
-            and built <b>{done}</b> of <b>{scheduled.length}</b> planned features
+            <b>Uncharted</b> was built by <b>{board.stats.crew}</b> agent workers in parallel, under one rulebook (
+            <a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>)
             {board.stats.firstPrAt && (
               <>
-                {" "}
-                since the first PR at <b>{at(board.stats.firstPrAt)}</b>
+                , from the first PR at <b>{at(board.stats.firstPrAt)}</b>
               </>
             )}
             .
@@ -141,17 +126,17 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
         ) : (
           <>
             Agent workers under one rulebook (<a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>) have
-            built <b>{done}</b> of <b>{scheduled.length}</b> planned features.
+            built <b>Uncharted</b>&apos;s <b>{done}</b> of <b>{scheduled.length}</b> planned features.
           </>
         )}{" "}
-        Every number here was read from the repo and GitHub when this page was built, at <b>{at(board.fetchedAt)}</b>.
+        Every number here was read from the repo and GitHub at <b>{at(board.fetchedAt)}</b>.
       </p>
       {board.prsKnown && <Since replay={board.replay} features={board.features} now={now} />}
 
       <section className={styles.section} aria-labelledby="graph">
         <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
           Watch it get built{" "}
-          <small>every feature, left to right in dependency order · press space to replay · hover to trace · click for its spec and PR</small>
+          <small>every feature in dependency order · hover to trace · click one for its spec and PR</small>
         </h2>
         <div className={styles.panel}>
           <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} crew={crew} chapters={chapters(board, crew)} />
