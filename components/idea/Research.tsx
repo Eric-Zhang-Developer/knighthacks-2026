@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
-import { GROUPS, kindOf, popularity, SOURCE_TEXT, unavailableText, type Item, type Research } from "./research-groups";
+import { GROUPS, kindOf, moment, popularity, SOURCE_TEXT, unavailableText, type Item, type Research } from "./research-groups";
 import styles from "./idea.module.css";
 
 type View = { kind: "loading" | "idle" | "searching" } | { kind: "failed"; error: string } | { kind: "ready"; research: Research };
@@ -38,7 +38,7 @@ function Group({ title, items }: { title: string; items: Item[] }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <>
-      <p className={styles.evidenceTitle}>{title}</p>
+      <p className={styles.groupTitle}>{title}</p>
       <ul className={styles.evidenceList} aria-label={title}>
         {(expanded ? items : items.slice(0, SHOWN)).map((i) => <ResearchItem key={i.id} item={i} />)}
       </ul>
@@ -85,7 +85,7 @@ export default function ResearchSection({ versionId }: { versionId: string }) {
       {view.kind === "ready" && (
         <>
           <p className={styles.evidenceTitle}>What already exists?</p>
-          <p className={styles.meta}>Searched on {new Date(view.research.searchedAt).toLocaleString()}.</p>
+          <p className={styles.meta}>Searched on {moment(view.research.searchedAt)}.</p>
           {view.research.unavailable.map((u) => (
             <PanelState key={u.source} kind="partial" message={unavailableText(u)} />
           ))}

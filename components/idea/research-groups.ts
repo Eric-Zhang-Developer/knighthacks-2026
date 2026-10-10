@@ -19,5 +19,9 @@ export const SOURCE_TEXT: Record<Source, string> = { github: "GitHub", "hf-model
 // A model or dataset is never proof the product exists (V3 F14), whatever the response says.
 export const kindOf = (i: Item): Kind => (i.kind === "direct-alternative" && (i.source === "hf-model" || i.source === "hf-dataset") ? "building-block" : i.kind);
 export const popularity = (p: Item["popularity"]) => (p ? `${p.value.toLocaleString("en-US")} ${p.metric}` : null);
+// Dates read as a day ("Mar 20, 2025"), in UTC so the day never shifts; text that isn't a date is shown as given.
+const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => (Number.isNaN(Date.parse(iso)) ? iso : new Date(iso).toLocaleString("en-US", { timeZone: "UTC", ...o }));
+export const day = (iso: string) => fmt(iso, { dateStyle: "medium" });
+export const moment = (iso: string) => `${fmt(iso, { dateStyle: "medium", timeStyle: "short" })} UTC`;
 export const unavailableText = ({ source, status }: Research["unavailable"][number]) =>
   `${SOURCE_TEXT[source]} didn't answer (${status || "timed out"}); try again later`;
