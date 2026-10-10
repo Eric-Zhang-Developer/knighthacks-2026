@@ -119,11 +119,12 @@ def prize_value(value, text):
         raise ValueError("sponsor not stated in prize")
     if value["kind"] in {"participation", "other"} and (place is not None or sponsor is not None):
         raise ValueError("non-award has placement or sponsor")
-    if place is not None:
-        words = {1: r"1st|first|1", 2: r"2nd|second|2", 3: r"3rd|third|3"}
-        if not re.search(r"\b(?:" + words[place] + r")\b", text, re.I):
-            raise ValueError("placement not stated in prize")
-    return dict(value)
+    result = dict(value)
+    words = {1: r"1st|first|1", 2: r"2nd|second|2", 3: r"3rd|third|3"}
+    # An inferred place ("Winner", "First Runner-Up") stays unknown rather than failing the other 24 in its batch.
+    if place is not None and not re.search(r"\b(?:" + words[place] + r")\b", text, re.I):
+        result["place"] = None
+    return result
 
 
 def prizes_for(record):
@@ -313,7 +314,9 @@ def validate_artifact(artifact, records, stars):
         if [(prize["event"], prize["text"]) for prize in entry["prizes"]] != prizes_for(row):
             raise ValueError("artifact prizes mismatch")
         for prize in entry["prizes"]:
-            prize_value({key: prize[key] for key in ("kind", "place", "sponsor")}, prize["text"])
+            saved = {key: prize[key] for key in ("kind", "place", "sponsor")}
+            if prize_value(saved, prize["text"]) != saved:
+                raise ValueError("artifact prize placement mismatch")
 
 
 def main(argv=None):

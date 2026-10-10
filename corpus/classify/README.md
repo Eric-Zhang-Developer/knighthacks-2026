@@ -3,6 +3,7 @@
 Run from the repository root with Python 3.11. Install the existing database dependency pinned in
 `corpus/embed/requirements.txt` (`psycopg[binary]==3.2.12`); Gemini uses only the standard library.
 Provide `DATABASE_URL`, `GEMINI_API_KEY` and `GEMINI_MODEL` through your local environment, never CLI arguments.
+A python.org macOS Python has no CA bundle; set `SSL_CERT_FILE=/etc/ssl/cert.pem`, or every call fails as a transport error.
 
 ```sh
 python corpus/classify/run.py

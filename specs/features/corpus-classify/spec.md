@@ -41,6 +41,8 @@ Communication & social · `security` Security & privacy · `science` Science & r
 transport. "AI agents" is a method, not a domain: an agent that books doctor visits is `health`.
 
 ## Requirements
+- A prize `place` that the prize text doesn't state ("Winner", "First Runner-Up") becomes null for that prize; it
+  doesn't fail the other prizes in its batch.
 - Every corpus id appears exactly once, and the counts and `corpus_version` match `public/corpus/stars.json`. The
   script exits non-zero otherwise.
 - `dev_tools_evidence` must be a verbatim substring of the stored description. Otherwise the script sets `dev_tools`

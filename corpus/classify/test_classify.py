@@ -155,13 +155,19 @@ def test_replit_editor_is_not_evidence_of_coding_assistant_use():
 
 
 @pytest.mark.parametrize("value,text", [
-    ({"kind": "placement", "place": 1, "sponsor": None}, "$100 prize"),
     ({"kind": "sponsor", "place": None, "sponsor": "Invented"}, "Best use of API"),
     ({"kind": "participation", "place": 1, "sponsor": None}, "1st round participation"),
 ])
 def test_prize_guesses_rejected(value, text):
     with pytest.raises(ValueError):
         classifier.prize_value(value, text)
+
+
+@pytest.mark.parametrize("text", ["$100 prize", "Winner", "First Runner-Up", "2st Place"])
+def test_unstated_place_becomes_unknown(text):
+    place = 1 if text == "$100 prize" else 2
+    assert classifier.prize_value({"kind": "placement", "place": place, "sponsor": None}, text) == \
+        {"kind": "placement", "place": None, "sponsor": None}
 
 
 def test_cli_unknown_summary_and_offline_check(data, tmp_path, monkeypatch, capsys):
