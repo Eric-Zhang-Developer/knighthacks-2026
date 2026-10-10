@@ -9,7 +9,10 @@ test("health reports the built commit", async ({ request }) => {
 
 test("home renders the layout and says the corpus isn't loaded", async ({ page }) => {
   const errors: string[] = [];
-  page.on("console", (m) => m.type() === "error" && !m.text().includes("stars.json") && errors.push(m.text()));
+  // The 404 for a missing stars.json is the expected "not loaded" state, not an error.
+  page.on("console", (m) => {
+    if (m.type() === "error" && !m.location().url.endsWith("/corpus/stars.json")) errors.push(m.text());
+  });
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   for (const name of ["Search", "Galaxy", "Idea and evidence", "Voice"]) {
