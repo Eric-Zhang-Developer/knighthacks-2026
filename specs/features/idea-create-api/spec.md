@@ -1,6 +1,6 @@
 ---
 name: Interpret, embed, place and save an idea as version 1
-depends_on: [guest-workspace, search-api, ai-client]
+depends_on: [guest-workspace, search, ai-client]
 owns: [app/api/ideas/, lib/ideas/, db/schema/ideas.ts, tests/idea-create-api/, tests/e2e/idea-create-api/]
 assignee: ""
 ---
