@@ -23,6 +23,6 @@ Frontend: Mac workers.
 
 ## Defaults
 Mount through the shell (#269).
-Until experience-shell mounts the panel (#299), every view state is checked by server-rendering `ScorecardView` in
-`tests/idea-scorecard-ui/`; the browser e2e lands with the mount. The newest stored scorecard loads by `GET`; scoring
-waits for the button. A cited project shows as a button named by its card title and opens the drawer.
+experience-shell mounts the panel (#321). The newest stored scorecard loads by `GET`; scoring waits for the button. A
+cited project shows as a button named by its card title and opens the drawer. `tests/idea-scorecard-ui/` server-renders
+every view state; `tests/e2e/idea-scorecard-ui/` runs Validation 1 against the real route with stubbed model output.
