@@ -13,7 +13,7 @@ Frontend half: Mac workers only (user decision 2026-10-10). Build against the re
 1. Suggest, accept, or branch manually; the trail shows branches side by side; each is selectable.
 
 ## Requirements
-- Each branch's star is visible and selectable in the galaxy.
+- Each branch's star is visible in the galaxy (through `ideaStars`); selection happens in the trail, so this half needs no change to `components/galaxy/`.
 
 ## Validation
 1. Suggest -> 3 directions; accept 2 -> 2 sibling stars; select each -> its details.

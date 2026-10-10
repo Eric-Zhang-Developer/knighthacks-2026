@@ -1,6 +1,6 @@
 ---
 name: Evidence cards: what an idea shares with and how it differs from each neighbor
-depends_on: [neighbor-evidence-api, idea-create-ui]
+depends_on: [neighbor-evidence-api, idea-create-ui, project-drawer]
 owns: [components/evidence/, tests/neighbor-evidence-ui/, tests/e2e/neighbor-evidence-ui/]
 assignee: ""
 ---

@@ -17,7 +17,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 - No audio is stored.
 
 ## Validation
-1. `POST` a short text -> 200 audio bytes; a long text -> 400; the provider down (stubbed) -> 503.
+1. `POST` a short text -> 200 audio bytes; a long text -> 400; the provider down (stubbed) -> 503. No response body or header contains the ElevenLabs key.
 2. `tests/e2e/voice-replies-api/` covers 1. Keep the response headers.
 
 ## Defaults

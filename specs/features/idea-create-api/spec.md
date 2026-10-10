@@ -12,7 +12,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 ## Plan
 1. Tables `ideas` and `idea_versions` (`parent_id`, `title`, `description`, `audience`, `problem`, `workflow`, `constraints`, `embedding`, `x/y/z`, `neighbor_ids`, `corpus_version`, `created_at`). Versions are insert-only.
 2. `POST /api/ideas/interpret` `{"text"}` -> `{"title", "description", "audience", "problem", "workflow", "constraints"}` (any may be `null`), or 502 `{"error"}` when Gemini fails.
-3. `POST /api/ideas` (those fields + `Idempotency-Key` header): embed, take neighbors through `lib/search/neighbors.ts`, place per decision D1, insert version 1 -> `{"versionId", "x", "y", "z", "neighborIds", "corpusVersion"}`.
+3. `POST /api/ideas` (those fields + `Idempotency-Key` header): embed, take neighbors through `lib/search/neighbors.ts`, place per decision D1, insert version 1 -> the version shape `{"ideaId", "versionId", "parentId", "title", "description", "audience", "problem", "workflow", "constraints", "x", "y", "z", "neighborIds", "corpusVersion", "createdAt"}`.
 4. `GET /api/ideas` -> the workspace's ideas with their latest version, same shape.
 
 ## Requirements
