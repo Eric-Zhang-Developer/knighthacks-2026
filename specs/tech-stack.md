@@ -33,6 +33,22 @@ The bootstrap feature creates them and installs every dependency the table names
 dependency opens a `contract:` PR changing this table and `package.json` together.
 Schema changes go through `drizzle-kit push`, with no migration files: demo data is disposable.
 
+### Shared database schema safety (#125)
+The schema rule above and default D6 are subject to these shared-database safeguards:
+- Never run `drizzle-kit push` from a feature branch against the shared test database. Its checkout can omit
+  another feature's tables, so a push can propose dropping them.
+- On the test database, apply a feature's new tables with reviewed additive SQL (`CREATE TABLE IF NOT EXISTS`
+  plus the required constraints and indexes), matching its owned `db/schema/` definitions. Record the SQL and
+  validation in `specs/decisions/<slug>-schema.md`; keep schema files as the source of truth, not migration files.
+  Confirm existing tables match the expected shape: `IF NOT EXISTS` alone does not validate their definitions.
+- Whole-schema pushes run only from a clean checkout of the freshly fetched `origin/main` commit. Inspect the
+  proposed SQL before applying it, reject every proposed `DROP` or other destructive change, and never use
+  `--force`. Even current main can omit an in-flight feature's test tables; abort rather than remove them.
+- Coordinate changes to existing tables with their owning feature; do not overwrite another agent's schema.
+  The feature's database validation must pass after its additive SQL is applied.
+- Production schema application remains a separately approved, coordinated operation (#113), after the
+  intended schema features have merged. This rule authorizes no production writes or destructive cleanup.
+
 ## Checks (run before marking a PR ready)
 <!-- Keep CI under ~5 minutes: a slow CI caps how fast every agent can merge. Docs-only changes can skip heavy jobs. -->
 ```bash
