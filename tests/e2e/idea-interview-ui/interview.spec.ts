@@ -1,4 +1,4 @@
-import { copyFile, writeFile } from "node:fs/promises";
+import { copyFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import answeredFields from "./fixtures/idea-interpret-answered.json";
