@@ -4,7 +4,7 @@ import { AutoRefresh, HeaderClock, Milestones } from "@/components/foreman/Live"
 import Pipeline from "@/components/foreman/Pipeline";
 import SitePlan from "@/components/foreman/SitePlan";
 import styles from "@/components/foreman/foreman.module.css";
-import { buildBoard, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
+import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
 import { readRaw, REPO } from "@/lib/foreman/github";
 
 const stencil = Big_Shoulders_Stencil({ subsets: ["latin"], weight: ["600", "800"], variable: "--font-stencil" });
@@ -78,6 +78,10 @@ function Sections({ board, now }: { board: Board; now: number }) {
   const scheduled = board.features.filter((f) => f.milestone);
   const done = scheduled.filter((f) => f.state === "done").length;
   const kinds = Object.entries(board.stats.byKind).sort((a, b) => b[1] - a[1]);
+  const slowest = board.features
+    .filter((f) => f.buildMin !== null)
+    .sort((a, b) => b.buildMin! - a.buildMin!)
+    .slice(0, 4);
 
   return (
     <>
@@ -166,6 +170,20 @@ function Sections({ board, now }: { board: Board; now: number }) {
                 ))}
               </div>
             </div>
+            {slowest.length > 0 && (
+              <div className={styles.mix}>
+                <div className={styles.statLabel}>longest builds · first PR to merge</div>
+                <ol className={styles.slow}>
+                  {slowest.map((f) => (
+                    <li key={f.slug}>
+                      <span>{f.slug}</span>
+                      <span className={styles.slowBar} style={{ width: `${(f.buildMin! / slowest[0].buildMin!) * 100}%` }} />
+                      <b>{dur(f.buildMin!)}</b>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </div>
       </section>

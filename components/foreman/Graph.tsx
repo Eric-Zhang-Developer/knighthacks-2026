@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { layers, type Feature, type State } from "@/lib/foreman/board";
+import { dur, layers, type Feature, type State } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
 
 const W = 158;
@@ -137,7 +137,9 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
             const s = STATE[state];
             const sub = shown
               ? ""
-              : [f.pr ? `#${f.pr.number}` : null, f.worker, f.state === "done" && f.verified === false ? "unverified" : null]
+              : f.missed
+                ? `missed ${f.milestone}`
+                : [f.pr ? `#${f.pr.number}` : null, f.worker, f.buildMin !== null ? dur(f.buildMin) : null]
                   .filter(Boolean)
                   .join(" · ");
             const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/specs/features/${f.slug}`;
@@ -156,7 +158,7 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
                 data-state={state}
                 aria-label={`${f.slug}: ${s.label}${sub ? `, ${sub}` : ""}`}
               >
-                <title>{`${f.slug} — ${s.label}\n${f.name}${f.gap ? `\nGap: ${f.gap}` : ""}`}</title>
+                <title>{`${f.slug} — ${s.label}${f.missed ? ` · missed ${f.milestone}` : ""}\n${f.name}${f.buildMin !== null ? `\nBuilt in ${dur(f.buildMin)}, first PR to merge` : ""}${f.gap ? `\nGap: ${f.gap}` : ""}`}</title>
                 {!shown && f.heat > 0.05 && (
                   <rect x={p.x - 4} y={p.y - 4} width={W + 8} height={H + 8} rx={6} fill="#ff8a1f" opacity={0.25 + f.heat * 0.6} filter="url(#heat)" />
                 )}
@@ -175,7 +177,7 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
                 <text x={p.x + 8} y={p.y + 19} fill={s.text} fontSize={13.5} fontWeight={500}>
                   {f.slug.length > 19 ? `${f.slug.slice(0, 18)}…` : f.slug}
                 </text>
-                <text x={p.x + 8} y={p.y + 35} fill={s.text} opacity={0.7} fontSize={11}>
+                <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#e2674a" : s.text} opacity={!shown && f.missed ? 1 : 0.7} fontSize={11}>
                   {(sub || s.label).slice(0, 24)}
                 </text>
                 {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}

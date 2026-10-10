@@ -136,3 +136,11 @@ test("replay states come from PR history: in flight while open, done once merged
   expect(at("2026-10-10T12:45:00Z")).toMatchObject({ a: "done", b: "ready", d: "ready" });
   expect(at("2026-10-10T13:30:00Z")).toMatchObject({ a: "done", b: "flight", d: "flight" });
 });
+
+test("build time runs from the first feat PR to its merge; unfinished features of a shipped milestone are missed", () => {
+  const f = buildBoard(raw, NOW).features;
+  expect(f.find((x) => x.slug === "a")?.buildMin).toBe(30);
+  expect(f.some((x) => x.missed)).toBe(false); // core ships 15:00 EDT, after NOW
+  const later = buildBoard(raw, Date.parse("2026-10-10T16:00:00-04:00")).features;
+  expect(later.filter((x) => x.missed).map((x) => x.slug)).toEqual(["b", "c", "d"]); // e is cut, a is done
+});
