@@ -17,6 +17,7 @@
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
     "@elevenlabs/elevenlabs-js": "2.71.0",
     "@elevenlabs/react": "1.17.0",
     "@google/genai": "2.28.0",
