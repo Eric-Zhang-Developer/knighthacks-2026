@@ -71,7 +71,6 @@
 }
 .explain { position: absolute; inset: 0; pointer-events: none; }
 .explain > * { pointer-events: auto; }
-.explain :global(summary) { font-size: 17px; white-space: nowrap; }
 
 /* The chart: a faint graticule and a nebula glow behind a transparent canvas. */
 .chart {
@@ -127,6 +126,8 @@
   }
   .top { flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2) var(--space-4); }
   .search { flex-basis: 100%; max-width: none; }
+  /* Results drop over the map; on a phone they stop short of the rail and composer below it. */
+  .search :global([data-panel="search"]) { max-height: 40dvh; }
   .map { flex: 1; grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .chart { grid-column: 1; grid-row: 1; }
   .rail { grid-column: 1; grid-row: 2; max-height: 40dvh; border-right: 0; border-top: 1px solid var(--rule); }
@@ -134,18 +135,19 @@
   .composer { display: none; flex: none; border-top: 0; padding: var(--space-3) var(--space-4) 0; background: none; }
   .side { flex: none; border-left: 0; padding: 0; }
   .ideaPath, .decide { display: none; }
-  /* The open project is a sheet over any destination; Back closes it (components/shell). */
+  /* The open project is a sheet from the top of any destination, clear of the rail's controls below; Back closes
+     it (components/shell). */
   .drawer:not(:empty) {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(var(--nav) + env(safe-area-inset-bottom));
+    top: 0;
     z-index: 30;
-    max-height: 70dvh;
+    max-height: 60dvh;
     overflow-y: auto;
-    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     background: var(--bg);
-    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   }
 
   :global(html[data-dest="talk"]) .top,
@@ -154,7 +156,14 @@
   :global(html[data-dest="talk"]) .map,
   :global(html[data-dest="idea"]) .map,
   :global(html[data-dest="decide"]) .map { display: none; }
+  /* Push-to-talk also sits under Explore's map: speak while looking (visual-polish's phone check needs it there). */
+  :global(html:not([data-dest])) .composer,
+  :global(html[data-dest="explore"]) .composer,
   :global(html[data-dest="talk"]) .composer { display: flex; }
+  :global(html[data-dest="explore"]) .composer { padding: var(--space-2) var(--space-4); }
+  /* One row under the map: the buttons say what it is; Talk keeps the heading. */
+  :global(html[data-dest="explore"]) .composer :global(.ui-heading),
+  :global(html:not([data-dest])) .composer :global(.ui-heading) { display: none; }
   :global(html[data-dest="idea"]) .ideaPath,
   :global(html[data-dest="decide"]) .decide { display: block; }
   /* Talk: speak above the Idea card, where the words land and Interpret is; the rest of the path is under Idea. */

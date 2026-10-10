@@ -20,7 +20,8 @@ keeps the tokens, fonts and panel styles; `app/page.module.css` moves here from 
    order); a 72px composer along the bottom of the centre column.
 2. Composer: push-to-talk in one bar under the galaxy. Talking writes the shared `ideaDraft`, which the Idea card's
    textbox shows; the textbox and Interpret stay in the card (idea-create-ui's suite finds them there; see
-   `specs/decisions/experience-shell-composer.md`). On the phone, Talk shows the composer above the Idea card.
+   `specs/decisions/experience-shell-composer.md`). On the phone, Talk shows the composer above the Idea card, and
+   Explore shows it under the map (visual-polish's phone check expects voice beside search and the drawer).
 3. Voice states, shown in the composer as text: idle, requesting permission, connecting, listening, committing,
    committed, connected-idle, mic-denied, unavailable, ending. They land in a `fix(voice)` PR that adds them to
    voice's own spec; `components/voice/` stays with voice (and voice-replies-ui), and the shell only places the

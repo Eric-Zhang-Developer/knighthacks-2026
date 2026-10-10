@@ -57,9 +57,10 @@ test("phone: one destination per screen, 44px navigation, and Back closes a proj
     const b = (await link.boundingBox())!;
     expect(b.width).toBeGreaterThanOrEqual(44);
     expect(b.height).toBeGreaterThanOrEqual(44);
-    // Exactly one destination: the others' content is hidden (Talk includes the Idea card, on purpose), and nothing
-    // scrolls past the screen or sideways.
-    for (const [other, hidden] of Object.entries(shows)) if (other !== name && !(name === "Talk" && other === "Idea")) await expect(hidden(page)).toBeHidden();
+    // Exactly one destination: the others' content is hidden, and nothing scrolls past the screen or sideways. On
+    // purpose, Talk includes the Idea card and Explore includes push-to-talk.
+    const shared = new Set(["Talk>Idea", "Explore>Talk"]);
+    for (const [other, hidden] of Object.entries(shows)) if (other !== name && !shared.has(`${name}>${other}`)) await expect(hidden(page)).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth)).toBe(false);
     await page.screenshot({ path: info.outputPath(`phone-${name.toLowerCase()}.png`) });
   }
