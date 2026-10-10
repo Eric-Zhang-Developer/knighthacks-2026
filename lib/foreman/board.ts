@@ -57,6 +57,8 @@ export type Feature = {
   doneAt: string | null; // when its feat PR merged (null if done some other way)
   startedAt: string | null; // when its first feat PR opened
   claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
+  buildMin: number | null; // first feat PR opened -> the merge that finished it
+  missed: boolean; // its milestone shipped without it
 };
 export type Milestone = {
   name: string;
@@ -87,6 +89,7 @@ export type Board = {
 export const HEAT_HOURS = 3;
 export const STALE_MIN = 45; // .agents/config.toml [watchdog] stale_claim_minutes
 
+export const dur = (m: number) => (m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`);
 const minutes = (a: number, b: number) => Math.round((a - b) / 60_000);
 
 export function buildBoard(raw: Raw, now: number): Board {
@@ -187,6 +190,8 @@ export function buildBoard(raw: Raw, now: number): Board {
         doneAt: note ? (merged.at(-1) ?? null) : null,
         startedAt: opened[0] ?? null,
         claims: feats.map((p): [string, string | null] => [p.createdAt, p.mergedAt ?? p.closedAt]),
+        buildMin: note && merged.length && opened.length ? minutes(Date.parse(merged.at(-1)!), Date.parse(opened[0])) : null,
+        missed: !note && milestones.some((m) => m.ship !== null && m.ship <= now && m.features.includes(slug) && !m.cut.includes(slug)),
       };
     });
 
