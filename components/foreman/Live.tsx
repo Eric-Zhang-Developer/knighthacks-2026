@@ -83,7 +83,17 @@ export function HeaderClock({
   );
 }
 
-export function Milestones({ now: snapshot, milestones, features }: { now: number; milestones: Milestone[]; features: Feature[] }) {
+export function Milestones({
+  now: snapshot,
+  milestones,
+  features,
+  prsKnown,
+}: {
+  now: number;
+  milestones: Milestone[];
+  features: Feature[];
+  prsKnown: boolean;
+}) {
   const now = useNow(snapshot);
   const bySlug = new Map(features.map((f) => [f.slug, f]));
   const current = milestones.find((m) => m.ship && m.ship > now)?.name;
@@ -129,7 +139,8 @@ export function Milestones({ now: snapshot, milestones, features }: { now: numbe
                   ))}
               </div>
             )}
-            {!passed && m.ship !== null && <Pace m={m} features={features} now={snapshot} ship={m.ship} />}
+            {/* Pace reads build times from PR history: without it there is no rate, not a rate of zero. */}
+            {!passed && m.ship !== null && prsKnown && <Pace m={m} features={features} now={snapshot} ship={m.ship} />}
             {passed && (
               <span className={`${styles.stamp} ${styles.stencil}`} data-bad={m.done < m.total ? "" : undefined}>
                 {m.done < m.total ? `${m.total - m.done} missed` : "shipped"}

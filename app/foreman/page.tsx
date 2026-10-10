@@ -141,7 +141,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
         <h2 id="ms" className={`${styles.h2} ${styles.stencil}`}>
           Will we make it? <small>countdown to each milestone · cells = its features</small>
         </h2>
-        <Milestones now={now} milestones={board.milestones} features={board.features} />
+        <Milestones now={now} milestones={board.milestones} features={board.features} prsKnown={board.prsKnown} />
       </section>
 
       <section className={styles.section} aria-labelledby="ask">
@@ -197,6 +197,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
             <Stat n={board.prsKnown ? board.stats.merged : "—"} label="PRs merged" />
             <Stat n={board.prsKnown ? board.stats.workers : "—"} label={`agents active, ${HEAT_HOURS}h`} />
             <Stat n={board.stats.medianOpenMin === null ? "—" : `${board.stats.medianOpenMin}m`} label="median PR open→merge" />
+            {board.prsKnown && (
             <div className={styles.mix}>
               <div className={styles.statLabel}>merged PRs by type</div>
               <div className={styles.mixBar}>
@@ -213,6 +214,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
                 ))}
               </div>
             </div>
+            )}
             {slowest.length > 0 && (
               <div className={styles.mix}>
                 <div className={styles.statLabel}>longest builds · first PR to merge</div>

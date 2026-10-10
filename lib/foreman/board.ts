@@ -270,7 +270,8 @@ export function buildBoard(raw: Raw, now: number): Board {
   for (const f of features) {
     const m = milestones.find((x) => x.cut.includes(f.slug) && x.features.includes(f.slug));
     const open = m && (m.ship === null || m.ship > now) && (m.freeze === null || m.freeze > now);
-    if (f.state === "cut" && open && f.deps.every((d) => notes.has(d)))
+    // Without PR data someone may already be building it, so don't claim it's free to pick.
+    if (raw.prsKnown && f.state === "cut" && open && f.deps.every((d) => notes.has(d)))
       asks.push({
         kind: "pickable",
         title: `${f.slug} is cut but still pickable`,

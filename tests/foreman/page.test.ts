@@ -24,6 +24,10 @@ test("built without a token: the board from the repo files, a banner, and no net
   expect(html).toContain("PR data missing");
   expect(html).toContain("API: no token");
   expect(html).toContain('data-state="unknown"');
+  // PR-derived numbers are unknown, not zero: no pace, no merge mix, no guardrail counts.
+  expect(html).not.toContain("no pace to project");
+  expect(html).not.toContain("merged PRs by type");
+  expect(html).toMatch(/Guardrails: <b>—<\/b> plan PRs/);
 });
 
 // The production failure of 2026-10-10: the API answered 403 and the page showed nothing but the error.

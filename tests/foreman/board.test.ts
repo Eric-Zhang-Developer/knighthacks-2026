@@ -175,6 +175,7 @@ test("without PR data, features that could be in flight are unknown; done, cut a
   const state = Object.fromEntries(b.features.map((f) => [f.slug, f.state]));
   expect(state).toEqual({ a: "done", b: "unknown", c: "unknown", d: "unknown", e: "cut", f: "backlog", foreman: "unknown" });
   expect(b.asks.map((a) => a.kind)).not.toContain("ci");
+  expect(b.asks.map((a) => a.kind)).not.toContain("pickable"); // e may already be in flight: not a guess we make
 });
 
 test("a STOP file and a red main are the first asks", () => {

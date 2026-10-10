@@ -39,8 +39,8 @@ export default function Pipeline({ board }: { board: Board }) {
         </div>
       ))}
       <p className={styles.guard}>
-        Guardrails: <b>{k.plan ?? 0}</b> plan PRs and <b>{k.contract ?? 0}</b> contract PRs (scope and frozen-file changes) merged ·{" "}
-        <b>{board.stats.reverts}</b> reverts · a STOP file on main halts every agent.
+        Guardrails: <b>{pr(`${k.plan ?? 0}`)}</b> plan PRs and <b>{pr(`${k.contract ?? 0}`)}</b> contract PRs (scope and frozen-file changes) merged ·{" "}
+        <b>{pr(`${board.stats.reverts}`)}</b> reverts · a STOP file on main halts every agent.
       </p>
     </div>
   );
