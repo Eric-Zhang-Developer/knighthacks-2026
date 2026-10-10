@@ -49,3 +49,12 @@
 .field { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--muted); }
 .field textarea { font: inherit; color: var(--text); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
 .actions { display: flex; gap: var(--space-2); }
+
+/* Past snapshots and their share links. */
+.history { display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.subheading { font-size: var(--text-md); font-weight: 600; }
+.historyList { list-style: none; display: grid; gap: var(--space-2); }
+.historyList > li { display: grid; gap: var(--space-1); }
+.panel .historyList button[aria-current="true"] { border-color: var(--idea); color: var(--idea); }
+.shareRows { list-style: none; display: grid; gap: var(--space-1); padding-left: var(--space-3); font-size: var(--text-sm); color: var(--muted); }
+.shareRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }

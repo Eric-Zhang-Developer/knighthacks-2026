@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { initWorkspace, post } from "@/components/workspace/api";
 import { useAppState } from "@/lib/store";
+import History, { type ListedShare, type ListedSnapshot } from "./History";
+import { useRememberedVersion } from "./restore";
 import Rubric from "./Rubric";
 import styles from "./snapshot.module.css";
 
@@ -31,8 +33,29 @@ export default function Snapshot() {
   const [snapshot, setSnapshot] = useState<{ id: string; data: SnapshotData } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<{ snapshots: ListedSnapshot[]; shares: ListedShare[] }>({ snapshots: [], shares: [] });
+  useRememberedVersion();
 
-  if (!active && !snapshot) return null;
+  // Past snapshots and their links, newest first, from the workspace's saved state.
+  const loadHistory = useCallback(async () => {
+    const res = await fetch("/api/workspace/state").catch(() => null);
+    if (res?.ok) {
+      const { snapshots, shares } = await res.json();
+      setHistory({ snapshots, shares });
+    }
+  }, []);
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  async function open(id: string) {
+    setError(null);
+    const stored = await fetch(`/api/snapshots/${id}`).then((r) => (r.ok ? (r.json() as Promise<SnapshotData>) : null), () => null);
+    if (!stored) return setError("Couldn't open that snapshot.");
+    setSnapshot({ id, data: stored });
+  }
+
+  if (!active && !snapshot && !history.snapshots.length) return null;
 
   async function choose() {
     setBusy(true);
@@ -47,12 +70,13 @@ export default function Snapshot() {
     if (!created.ok) return setError(`Couldn't save the snapshot: ${created.error}`);
     if (!stored) return setError("Saved, but couldn't read the snapshot back.");
     setSnapshot({ id: created.data.snapshotId, data: stored });
+    loadHistory();
   }
 
   const d = snapshot?.data;
   const titles = new Map(d?.nearestAlternatives.map((a) => [a.projectId, a.title]) ?? []);
   return (
-    <section className={`ui-panel ${styles.panel}`} aria-label="Decision">
+    <section className={`ui-panel ${styles.panel}`} aria-label="Decision" data-active-version={active ?? ""}>
       <h2 className="ui-heading">Decide</h2>
       {active && (
         <button type="button" className={styles.primary} disabled={busy} onClick={choose}>
@@ -122,6 +146,7 @@ export default function Snapshot() {
         </article>
       )}
       {snapshot && d && <Rubric versionId={d.versionId} />}
+      <History snapshots={history.snapshots} shares={history.shares} current={snapshot?.id ?? null} onOpen={open} onRevoked={loadHistory} />
     </section>
   );
 }
