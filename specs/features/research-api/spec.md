@@ -26,7 +26,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 ## Validation
 1. Fixtures (`AI_STUB_ALLOW=1`) and recorded search responses -> items keep the recorded names, URLs and popularity exactly; a fixture labelling an `hf-model` `direct-alternative` stores `building-block`; a fixture classifying an unknown `id` drops it. `POST` again -> the same row, no outside call.
 2. A recorded GitHub 403 -> GitHub listed in `unavailable`, Hugging Face items still returned.
-3. One live run against the real GitHub and Hugging Face APIs for a saved version -> at least one item, every item's `url` on `github.com` or `huggingface.co`, and every source either returning items or listed in `unavailable` (all sources empty with none unavailable fails). Record the queries and count per source in the done note.
+3. One live run against the real GitHub and Hugging Face APIs for a saved version -> at least one item, every item's `url` on `github.com` or `huggingface.co`; zero items from every source fails. A source with no matches is fine. Record the queries, count per source and any `unavailable` in the done note.
 4. `tests/e2e/research-api/` covers 1–2. Keep the stored row.
 
 ## Defaults

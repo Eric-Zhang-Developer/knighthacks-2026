@@ -21,7 +21,7 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 - Same workspace session, same-origin and 404 rules as the other idea routes.
 - Stored per version; a second `POST` returns the stored result with no outside call. Apply the table with additive SQL on the test branch and record it in `specs/decisions/<slug>-schema.md` (tech-stack: shared database schema safety); never `drizzle-kit push` from a feature branch.
 - A `claim` is the grounding segment's own text and is `supported` only with its cited chunk; model text with no grounding support is dropped, never shown as evidence.
-- Source, title, URL and date come only from grounding metadata and the fetched page; a date the page doesn't state stays `null` (V3 F12: date and source visible when available).
+- Source, title, URL and `publishedAt` come only from grounding metadata and the fetched page; a publication date the page doesn't state stays `null`. `eventDate` comes only from the grounded text (V3 F12: dates and source visible when available).
 - `relevance` is `inferred`. Problem items and solution items are never merged into one list.
 - A missing `GEMINI_API_KEY` or a grounding failure returns a typed 503; it never falls back to Claude or to ungrounded text.
 
