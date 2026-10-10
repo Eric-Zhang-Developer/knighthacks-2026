@@ -25,6 +25,39 @@ export function span(ms: number) {
 export const clock = (t: number) =>
   new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(t);
 
+// Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay.
+const SECTIONS = ["ms", "ask", "how", "graph", "crew"];
+const jump = (id: string) =>
+  document
+    .getElementById(id)
+    ?.closest("section")
+    ?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+
+export function DemoKeys() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Leave modified keys to the browser, and space on a focused control to that control.
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target as Element).closest?.("input, textarea, select, button, a")) return;
+      const i = Number(e.key) - 1;
+      if (Number.isInteger(i) && i >= 0 && i < SECTIONS.length) {
+        e.preventDefault();
+        jump(SECTIONS[i]);
+      } else if (e.key === " ") {
+        e.preventDefault();
+        jump("graph");
+        window.dispatchEvent(new Event("foreman:replay"));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  return (
+    <span className={styles.keys} aria-hidden>
+      <kbd>1</kbd>–<kbd>5</kbd> sections · <kbd>space</kbd> replay
+    </span>
+  );
+}
+
 // A dashboard left open on a laptop should keep up without a reload. Client state (a replay in progress) survives.
 export function AutoRefresh({ every = 60_000 }: { every?: number }) {
   const router = useRouter();
