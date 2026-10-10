@@ -37,7 +37,7 @@ test("desktop: top bar, rails and composer at their sizes, the galaxy filling th
   await page.screenshot({ path: info.outputPath("desktop.png") });
 });
 
-test("phone: one destination per screen, 44px navigation, and Back closes a project", async ({ page }, info) => {
+test("phone: one destination per screen (five with Plan), 44px navigation, and Back closes a project", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
@@ -47,6 +47,7 @@ test("phone: one destination per screen, 44px navigation, and Back closes a proj
     Talk: (p) => p.getByRole("button", { name: "Hold to talk" }),
     Idea: (p) => p.getByRole("region", { name: "Your idea" }),
     Decide: (p) => p.getByText("Save an idea to vote on it, decide, and share it."),
+    Plan: (p) => p.getByText("Save an idea, then plan its build here."),
   };
   for (const [name, shown] of Object.entries(shows)) {
     const link = nav.getByRole("link", { name });
@@ -116,4 +117,7 @@ test("mic denied: the composer says so, and a typed idea still interprets and sa
   await card.getByRole("button", { name: "Interpret" }).click();
   await card.getByRole("button", { name: "Save" }).click({ timeout: 60_000 });
   await expect(card).toHaveAttribute("data-version-id", /.+/, { timeout: 60_000 });
+  // The mounted step panels (Plan 6-7): the scorecard in the idea path, then the plan after Decide.
+  await expect(page.getByRole("region", { name: "Scorecard" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Plan" })).toBeVisible();
 });

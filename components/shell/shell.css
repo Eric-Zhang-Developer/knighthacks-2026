@@ -11,7 +11,8 @@
   }
   /* The workspace and invite belong with Explore and Decide; elsewhere the destination gets the whole screen. */
   html[data-dest="talk"] body > section[aria-label="Workspace"],
-  html[data-dest="idea"] body > section[aria-label="Workspace"] { display: none; }
+  html[data-dest="idea"] body > section[aria-label="Workspace"],
+  html[data-dest="plan"] body > section[aria-label="Workspace"] { display: none; }
 
   .shell-nav {
     position: fixed;
@@ -20,7 +21,7 @@
     bottom: 0;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     height: calc(60px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--rule);

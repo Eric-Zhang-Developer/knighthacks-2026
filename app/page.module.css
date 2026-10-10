@@ -134,7 +134,7 @@
   .railControls { padding-bottom: 56px; }
   .composer { display: none; flex: none; border-top: 0; padding: var(--space-3) var(--space-4) 0; background: none; }
   .side { flex: none; border-left: 0; padding: 0; }
-  .ideaPath, .decide { display: none; }
+  .ideaPath, .decide, .plan { display: none; }
   /* The open project is a sheet from the top of any destination, clear of the rail's controls below; Back closes
      it (components/shell). */
   .drawer:not(:empty) {
@@ -153,9 +153,11 @@
   :global(html[data-dest="talk"]) .top,
   :global(html[data-dest="idea"]) .top,
   :global(html[data-dest="decide"]) .top,
+  :global(html[data-dest="plan"]) .top,
   :global(html[data-dest="talk"]) .map,
   :global(html[data-dest="idea"]) .map,
-  :global(html[data-dest="decide"]) .map { display: none; }
+  :global(html[data-dest="decide"]) .map,
+  :global(html[data-dest="plan"]) .map { display: none; }
   /* Push-to-talk also sits under Explore's map: speak while looking (visual-polish's phone check needs it there). */
   :global(html:not([data-dest])) .composer,
   :global(html[data-dest="explore"]) .composer,
@@ -165,12 +167,15 @@
   :global(html[data-dest="explore"]) .composer :global(.ui-heading),
   :global(html:not([data-dest])) .composer :global(.ui-heading) { display: none; }
   :global(html[data-dest="idea"]) .ideaPath,
-  :global(html[data-dest="decide"]) .decide { display: block; }
+  :global(html[data-dest="decide"]) .decide,
+  :global(html[data-dest="plan"]) .plan { display: block; }
   /* Talk: speak above the Idea card, where the words land and Interpret is; the rest of the path is under Idea. */
-  .decide:not(:has(:global(.ui-panel))) .empty { display: block; padding: var(--space-5) var(--space-4); color: var(--muted); }
+  .decide:not(:has(:global(.ui-panel))) .empty,
+  .plan:not(:has(:global(.ui-panel))) .empty { display: block; padding: var(--space-5) var(--space-4); color: var(--muted); }
   :global(html[data-dest="talk"]) .ideaPath { display: block; }
   :global(html[data-dest="talk"]) .ideaPath > :not(:first-child) { display: none; }
   :global(html[data-dest="talk"]) .side,
   :global(html[data-dest="idea"]) .side,
-  :global(html[data-dest="decide"]) .side { flex: 1; padding-bottom: var(--space-4); }
+  :global(html[data-dest="decide"]) .side,
+  :global(html[data-dest="plan"]) .side { flex: 1; padding-bottom: var(--space-4); }
 }
