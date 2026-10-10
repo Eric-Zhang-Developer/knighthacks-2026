@@ -1,0 +1,168 @@
+{
+ "tracks": [
+  {
+   "trackId": "best-overall-hack-1st",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-overall-hack-2nd",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-overall-hack-3rd",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-ai-hack",
+   "stated": [
+    {
+     "text": "plan shared meals around their dietary constraints",
+     "label": "supported",
+     "sourceIds": []
+    }
+   ],
+   "speculative": [
+    {
+     "text": "A model that reads each teammate's dietary notes would be featured.",
+     "label": "inferred",
+     "sourceIds": []
+    }
+   ]
+  },
+  {
+   "trackId": "best-game-dev-hack",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "most-useful-hack",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-embedded-hack",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-first-time-hacker",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "most-involved-hacker",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "adobe-prettiest-hack",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "figma-best-design",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "hugging-face-best-use-of-open-source-ai",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "full-sail-pathways-perception-a-serious-games-simulation-challenge",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "nvidia-best-use-of-jetson-nano",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "amd-best-use-of-amd-technologies",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "neon-best-use-of-neon",
+   "stated": [
+    {
+     "text": "Every vote is stored in a Neon database.",
+     "label": "supported",
+     "sourceIds": []
+    }
+   ],
+   "speculative": []
+  },
+  {
+   "trackId": "encompass-data-capturing-hardware",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "databricks-best-use-of-databricks",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "bny-financial-services-challenge",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "oneethos-innovation-for-good",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "nextera-energy-spot-management-dashboard",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-use-of-elevenlabs-voice-audio-ai",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-use-of-gemini-api",
+   "stated": [],
+   "speculative": [
+    {
+     "text": "The interpretation step could run on the Gemini API.",
+     "label": "inferred",
+     "sourceIds": []
+    }
+   ]
+  },
+  {
+   "trackId": "best-use-of-tiger-data-postgresql-for-time-series-real-time",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-use-of-solana",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-use-of-presage-camera-based-vitals-emotion-sensing-sdk",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-use-of-vultr-cloud-compute-gpus",
+   "stated": [],
+   "speculative": []
+  },
+  {
+   "trackId": "best-domain-name-from-godaddy-registry",
+   "stated": [],
+   "speculative": []
+  }
+ ]
+}
