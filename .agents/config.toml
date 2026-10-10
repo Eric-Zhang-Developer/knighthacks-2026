@@ -46,7 +46,7 @@ restart = ""                     # shell template with {worker} {worktree}; empt
 alert = ""                       # shell template with {message}; empty = print only
 
 [release]
-url = ""                         # production origin, https://...
+url = "https://knighthacks-2026.vercel.app"   # production origin, https://...
 health_path = "/api/health"      # must return JSON {"commit": "<sha>"}
 smoke_paths = ["/"]
 snapshot_paths = ["/"]
