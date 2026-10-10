@@ -31,6 +31,20 @@ def evidence_dir(root: Path, slug: str) -> Path:
     return heartbeat_dir(root).parent / "agent-evidence" / slug / stamp
 
 
+def quote_path(value: str, *, windows: bool | None = None) -> str:
+    """Quote a standalone placeholder argument for the shell used by run()."""
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows:
+        return shlex.quote(value)
+    # list2cmdline alone leaves shell metacharacters unquoted when no spaces
+    # exist. Always quote; reject characters cmd expands even inside quotes.
+    if any(char in value for char in '\x00\r\n"%!'):
+        raise ValueError("Windows verifier paths cannot contain quotes, control characters, % or !")
+    trailing = len(value) - len(value.rstrip("\\"))
+    return '"' + value + "\\" * trailing + '"'
+
+
 def run(command: str, cwd: Path, timeout: float) -> int | None:
     """Exit code, or None on timeout. The command gets its own process group, which is stopped afterwards."""
     posix = hasattr(os, "killpg")
@@ -67,8 +81,13 @@ def main(argv=None) -> int:
     worktree = Path(args.worktree).resolve() if args.worktree else root
     out = evidence_dir(root, args.slug) if "{out}" in template else None
     try:
-        command = template.format(slug=args.slug, worktree=shlex.quote(str(worktree)),
-                                  out=shlex.quote(str(out)) if out else "")
+        quoted_worktree = quote_path(str(worktree))
+        quoted_out = quote_path(str(out)) if out else ""
+    except ValueError as e:
+        print(f"verify: unsupported path ({e})")
+        return 1
+    try:
+        command = template.format(slug=args.slug, worktree=quoted_worktree, out=quoted_out)
     except (KeyError, IndexError, ValueError) as e:
         print(f"verify: [verify].command has a bad placeholder ({e}); use only {{slug}}, {{worktree}} and {{out}}")
         return 1
