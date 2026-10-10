@@ -2,8 +2,8 @@ import "next/dist/compiled/server-only";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { generate } from "@/lib/ai/generate";
-import { classify, classifySchema, dedupe, queriesSchema, ResearchError, SOURCES, type Found, type Research, type Source } from "./contract";
-import { search } from "./search";
+import { classify, classifySchema, dedupe, queriesSchema, ResearchError, type Found, type Research, type Source } from "./contract";
+import { search, searchCalls } from "./search";
 
 async function stored(workspaceId: string, versionId: string): Promise<Research | null> {
   const result = await db().execute(sql`select r.data from research r join idea_versions v on v.id = r.version_id
@@ -34,7 +34,7 @@ export async function createResearch(workspaceId: string, versionId: string) {
   } catch { throw new ResearchError(502, "Research is temporarily unavailable. Please try again."); }
 
   const searchedAt = new Date().toISOString();
-  const calls = queries.flatMap((q) => SOURCES.map((source) => ({ source, q })));
+  const calls = searchCalls(queries);
   const results = await Promise.all(calls.map(({ source, q }) => search(source, q).then((r) => ({ source, r }))));
   const found: Found[] = [];
   const failed = new Map<Source, number>();

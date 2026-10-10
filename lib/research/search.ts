@@ -1,5 +1,5 @@
 import "next/dist/compiled/server-only";
-import { fromGitHub, fromHuggingFace, type Found, type Source } from "./contract";
+import { fromGitHub, fromHuggingFace, SOURCES, type Found, type Source } from "./contract";
 
 // Only the public search endpoints; nothing is cloned, installed, downloaded or executed (V3 F13). Tests point both at
 // a recorded-response server with RESEARCH_SEARCH_BASE, honoured under the same opt-in as the AI fixtures and never
@@ -10,6 +10,22 @@ function bases() {
   return base && allowed ? { github: `${base}/github`, hf: `${base}/hf` } : { github: "https://api.github.com", hf: "https://huggingface.co" };
 }
 const HF_ENDPOINT = { "hf-model": "models", "hf-space": "spaces", "hf-dataset": "datasets" } as const;
+
+// Hub search matches repository IDs, not prose. Prefer longer content terms without another model call.
+const HF_STOP = new Set(["a", "an", "the", "and", "or", "for", "with", "from", "into", "using", "based", "on", "to", "of"]);
+export function searchCalls(queries: string[]): { source: Source; q: string }[] {
+  const seen = new Set<string>();
+  return queries.flatMap((query) => {
+    const terms = [...new Set(query.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}_-]*/gu) ?? [])]
+      .filter((term) => !HF_STOP.has(term)).sort((a, b) => b.length - a.length).slice(0, 2);
+    return SOURCES.flatMap((source) => (source === "github" ? [query] : terms).map((q) => ({ source, q })));
+  }).filter(({ source, q }) => {
+    const key = `${source}:${q}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 type Result = { found: Found[] } | { status: number };
 async function get(url: string, headers: Record<string, string>): Promise<{ status: number; body?: unknown }> {

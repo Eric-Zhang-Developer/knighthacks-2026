@@ -25,9 +25,11 @@ test("recorded results kept exactly, models never direct alternatives, unknown i
   expect(process.env.RESEARCH_SEARCH_BASE, "Start the server with RESEARCH_SEARCH_BASE=http://127.0.0.1:3197").toBe(`http://127.0.0.1:${PORT}`);
   expect(process.env.DATABASE_URL === process.env.TEST_DATABASE_URL, "App and verifier must both use the test branch").toBe(true);
   let calls = 0, githubStatus = 200;
+  const hfQueries: string[] = [];
   const server = createServer((req, res) => {
     calls++;
-    const path = new URL(req.url!, "http://x").pathname;
+    const url = new URL(req.url!, "http://x"), path = url.pathname;
+    if (path.startsWith("/hf/api/")) hfQueries.push(url.searchParams.get("search")!);
     const body = path === "/github/search/repositories" ? (githubStatus === 200 ? github : { message: "API rate limit exceeded" })
       : path.startsWith("/hf/api/") ? hf[path.slice("/hf/api/".length) as keyof typeof hf] : undefined;
     res.writeHead(path.startsWith("/github") ? githubStatus : body ? 200 : 404, { "content-type": "application/json" });
@@ -66,7 +68,9 @@ test("recorded results kept exactly, models never direct alternatives, unknown i
     expect(Object.keys(result).sort()).toEqual(["items", "queries", "searchedAt", "unavailable", "versionId"]);
     expect(result.queries).toEqual(["meal planner", "team meal"]);
     expect(result.unavailable).toEqual([]);
-    expect(calls).toBe(8); // 2 queries x (GitHub + 3 Hugging Face searches)
+    expect(calls).toBe(11); // 2 GitHub queries + 3 distinct HF terms x 3 sources
+    expect(hfQueries).toHaveLength(9);
+    expect([...new Set(hfQueries)].sort()).toEqual(["meal", "planner", "team"]);
     expect(result.items).toHaveLength(12);
     for (const item of result.items) {
       const a = all.find((x) => x.id === item.id)!;
@@ -87,7 +91,7 @@ test("recorded results kept exactly, models never direct alternatives, unknown i
     const again = await owner.post(`/api/research/${v1}`, { headers });
     expect(await again.json()).toEqual(result);
     expect(await (await owner.get(`/api/research/${v1}`)).json()).toEqual(result);
-    expect(calls).toBe(8);
+    expect(calls).toBe(11);
     expect((await sql`select count(*)::int as n from research where version_id = ${v1}::uuid`)[0].n).toBe(1);
 
     // 2. GitHub answers 403: listed in unavailable; Hugging Face items still return.
