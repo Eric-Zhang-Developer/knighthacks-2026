@@ -5,7 +5,9 @@
 `app/foreman/page.tsx`, `components/foreman/`, `lib/foreman/` (`collect.ts` takes the snapshot, `board.ts` + `parse.ts` model it, `time.ts` clocks), `tests/foreman/` (`production.test.ts` checks the live deploy), `tests/e2e/foreman/`.
 
 ## How to check it
-VERIFY_LINE
+- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T165718Z` pass at b281dbc (with `GITHUB_TOKEN`: 6/6)
+- verify: `node scripts/verify.mjs foreman /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/foreman/20261010T165608Z` pass at b281dbc (no token, the CI path: 3 passed, 3 PR-data tests skipped)
+- Build: `○ /foreman` static, no `api.github.com` entry in `.next/cache/fetch-cache`, no token pattern in the HTML.
 
 ## Gaps
 - Fresh as of the last deploy: a PR opened after the last merge to main appears with the next deploy. The header shows the snapshot's age (amber past 30 min). A scheduled redeploy needs a Vercel deploy hook from a person.
