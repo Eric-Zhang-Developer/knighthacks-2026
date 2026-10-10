@@ -20,8 +20,8 @@ Nothing applies `db/schema/` to production. #113 was a hand push; two tables mer
 ## Requirements
 - The plan contains only `CREATE TABLE`, `CREATE INDEX` and `ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY` for
   objects whose names are absent. It never drops, alters a column or touches an existing object.
-- An existing table whose columns differ from the schema is listed as `drift: <table>.<column>` and makes the
-  script exit 2 before anything is applied. No automatic fix.
+- An existing table that lacks a column the schema defines (compared by column name; types aren't parsed) is
+  listed as `drift: <table>.<column>` and makes the script exit 2 before anything is applied. No automatic fix.
 - Refuse to run (exit 2) unless the checkout is clean and `HEAD` equals `origin/main`.
 - Health reads one `information_schema` query, cached for 60 seconds; it still returns `commit`
   (`verify_release.py` needs it). Missing tables make `verify_release.py` fail through the 503, with no change to it.
