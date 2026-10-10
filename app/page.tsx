@@ -18,9 +18,15 @@ import styles from "./page.module.css";
 export default function Home() {
   return (
     <div className={styles.shell}>
-      <header className={styles.top} aria-label="Search">
-        <Search />
-      </header>
+      <div className={styles.top}>
+        <p className={styles.brand}>
+          <span className={styles.wordmark}>Uncharted</span>
+          <span className={styles.tagline}>a star chart of hackathon ideas</span>
+        </p>
+        <header className={styles.search} aria-label="Search">
+          <Search />
+        </header>
+      </div>
       <main className={styles.map} aria-label="Galaxy">
         <Galaxy />
         <Explainer />
