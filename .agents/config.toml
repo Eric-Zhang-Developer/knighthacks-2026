@@ -10,7 +10,7 @@ reports = "reports"              # deploy receipts, final report
 
 [ownership]
 # Only `contract:` PRs may change these path prefixes.
-frozen = ["AGENTS.md", "CLAUDE.md", ".agents/", ".github/"]
+frozen = ["AGENTS.md", "CLAUDE.md", ".agents/", ".github/", "package.json", "pnpm-lock.yaml"]
 # Any PR may change these.
 open = []
 
