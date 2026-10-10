@@ -27,7 +27,9 @@ client and the rest would copy it.
 
 ## Requirements
 - Server only: importing `lib/ai/` from a client component fails the build (`import "server-only"` or equivalent).
-- `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` and `ANTHROPIC_WORKSPACE_ID` are read only here.
+- `GEMINI_API_KEY`, `GEMINI_API_KEY_SPARE`, `ANTHROPIC_API_KEY` and `ANTHROPIC_WORKSPACE_ID` are read only here.
+- `GEMINI_API_KEY_SPARE` (optional) is a second Gemini key: a provider error on the main key (spent credits,
+  rate limit, outage) retries the same request once on the spare, for structured output and grounded search alike.
 - A missing key or a provider error returns a typed error, never a thrown 500 with the key or prompt in it.
 - `checkClaims` never upgrades a label; it only downgrades `supported`.
 
