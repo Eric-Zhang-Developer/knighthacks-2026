@@ -51,6 +51,9 @@ export async function start(workspaceId: string, sessionId: string, round: numbe
   return { status: saved.rows[0]?.id === id ? 201 : 200, experiment: present(saved.rows[0]) };
 }
 
+// A result describes the experiment as it was run, so once one is recorded the draft is frozen: the edit's
+// `result is null` condition is rechecked under the row lock, so a concurrent result and edit can't interleave.
+// Recording a result again (correcting it) is still allowed.
 export async function update(workspaceId: string, id: string, patch: { hypothesis?: string; procedure?: string; observable?: string } | { result: string; note?: string | null }) {
   const isResult = "result" in patch;
   const updated = await db().execute(isResult
@@ -62,8 +65,14 @@ export async function update(workspaceId: string, id: string, patch: { hypothesi
         "procedure" = coalesce(${patch.procedure ?? null}, e."procedure"), "observable" = coalesce(${patch.observable ?? null}, e."observable"), "updated_at" = now()
         from "challenge_sessions" s, "idea_versions" v, "ideas" i
         where e."id" = ${id}::uuid and s."id" = e."session_id" and v."id" = s."version_id" and i."id" = v."idea_id" and i."workspace_id" = ${workspaceId}::uuid
+          and e."result" is null
         returning e."id"`);
-  if (!updated.rows.length) throw notFound();
+  if (!updated.rows.length) {
+    // Not ours or missing (404), or a draft edit after a result was recorded (409).
+    const exists = await db().execute(sql`${selectExperiment} where e."id" = ${id}::uuid and i."workspace_id" = ${workspaceId}::uuid`);
+    if (!exists.rows[0]) throw notFound();
+    throw new ExperimentError(409, "This experiment already has a result, so its hypothesis, procedure and observable can no longer change");
+  }
   const row = await db().execute(sql`${selectExperiment} where e."id" = ${id}::uuid`);
   return present(row.rows[0]);
 }

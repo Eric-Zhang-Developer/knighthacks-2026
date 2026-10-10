@@ -37,7 +37,7 @@ test("a `test` round starts a ten-minute experiment; results are recorded withou
   expect(session.status()).toBe(201);
   const { sessionId } = await session.json();
   const challenge = `/api/challenge/${sessionId}`;
-  for (const answer of ["We'd time it at the next team dinner.", "Whoever has the strictest diet decides."]) {
+  for (const answer of ["We'd time it at the next team dinner.", "Whoever has the strictest diet decides.", "We'd just order pizza."]) {
     expect((await owner.post(`${challenge}/round`, { headers })).status()).toBe(200);
     expect((await owner.post(`${challenge}/answer`, { headers, data: { answer } })).status()).toBe(200);
   }
@@ -71,8 +71,32 @@ test("a `test` round starts a ten-minute experiment; results are recorded withou
   expect(await recorded.json()).toMatchObject({ result: "refuted", note: "Two of three teams took over eight minutes." });
   expect(await versions(version.ideaId)).toEqual(before);
 
+  // Once a result is recorded the draft is frozen: the result keeps describing what was actually run.
+  const frozen = await owner.patch(endpoint, { headers, data: { hypothesis: "A different, untested hypothesis." } });
+  expect(frozen.status()).toBe(409);
+  // Correcting the result itself is still allowed.
+  expect((await owner.patch(endpoint, { headers, data: { result: "refuted", note: "Two of three teams took over eight minutes." } })).status()).toBe(200);
+
+  // A result and an edit racing on a fresh experiment (round 3, also `test`): whichever lands first, the stored
+  // result belongs to the stored draft. Either the edit went first and the result describes it, or it was refused.
+  const raced = await (await owner.post("/api/experiments", { headers, data: { sessionId, round: 3 } })).json();
+  const [resultRes, editRes] = await Promise.all([
+    owner.patch(`/api/experiments/${raced.id}`, { headers, data: { result: "confirmed" } }),
+    owner.patch(`/api/experiments/${raced.id}`, { headers, data: { hypothesis: "Edited while a result was being recorded." } }),
+  ]);
+  expect(resultRes.status()).toBe(200);
+  expect([200, 409]).toContain(editRes.status());
+  const [racedRow] = await sql`select hypothesis, result from experiments where id = ${raced.id}::uuid`;
+  expect(racedRow).toEqual({
+    result: "confirmed",
+    hypothesis: editRes.status() === 200 ? "Edited while a result was being recorded." : draft.hypothesis,
+  });
+
   const listed = await owner.get(`/api/experiments?versionId=${version.versionId}`);
-  expect(await listed.json()).toEqual([expect.objectContaining({ id: experiment.id, result: "refuted", hypothesis: expect.objectContaining({ label: "unverified" }) })]);
+  expect(await listed.json()).toEqual([
+    expect.objectContaining({ id: experiment.id, result: "refuted", hypothesis: expect.objectContaining({ text: draft.hypothesis, label: "unverified" }) }),
+    expect.objectContaining({ id: raced.id, result: "confirmed" }),
+  ]);
 
   // Another workspace sees nothing and can change nothing.
   expect((await stranger.post("/api/experiments", { headers, data: { sessionId, round: 1 } })).status()).toBe(404);
