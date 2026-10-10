@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import AssumptionMap from "./AssumptionMap";
 import { lerpStar, replaceStar, type Suggestion, type Version } from "@/components/revisions/trail";
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { post } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
 import ChangeMind from "./ChangeMind";
+import type { Assumption } from "./change-mind";
 import { ExperimentList, useExperiments } from "./Experiments";
 import { findFor } from "./experiment";
 import { nextStep, reviseContext, type Outcome, type Perspective, type Round } from "./rounds";
@@ -45,6 +47,9 @@ export default function Challenge() {
   const [revising, setRevising] = useState<{ round: number; suggestions: Suggestion[] } | null>(null);
   const [revised, setRevised] = useState<number[]>([]); // rounds whose suggestion was accepted
   const experiments = useExperiments(active);
+  const [assumptions, setAssumptions] = useState<{ versionId: string; items: Assumption[] } | null>(null);
+  // Stable per version: ChangeMind refetches when this changes.
+  const onAssumptions = useCallback((items: Assumption[]) => active && setAssumptions({ versionId: active, items }), [active]);
 
   if (!active) return null;
   const step = nextStep(rounds);
@@ -239,7 +244,8 @@ export default function Challenge() {
       {busy === "prove" && <PanelState kind="loading" message="Drafting a ten-minute experiment…" />}
       {error && <PanelState kind="failed" message={error} />}
       <ExperimentList items={experiments.items} failed={experiments.failed} onChange={experiments.reload} />
-      <ChangeMind key={active} versionId={active} />
+      <ChangeMind key={active} versionId={active} onLoaded={onAssumptions} />
+      <AssumptionMap key={`map-${active}`} versionId={active} items={assumptions?.versionId === active ? assumptions.items : []} />
     </section>
   );
 }
