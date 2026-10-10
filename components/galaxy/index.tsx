@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Legend from "@/components/classes";
 import History from "@/components/history";
 import { initWorkspace } from "@/components/workspace/api";
@@ -28,6 +29,9 @@ export default function Galaxy() {
   const focusOn = useClasses((s) => s.focus);
   const [neighbors, setNeighbors] = useState<string[] | null>(null);
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
+  // The page's discovery rail (experience-shell), if there is one; without it the controls float over the map.
+  const [rail, setRail] = useState<HTMLElement | null>(null);
+  useEffect(() => setRail(document.getElementById("discovery-rail")), []);
 
   useEffect(() => {
     fetch("/corpus/stars.json")
@@ -138,7 +142,9 @@ export default function Galaxy() {
           <Category data={data} id={hovered.id} />
         </div>
       )}
-      <div className={styles.controls}>
+      {portal(
+        rail,
+        <div className={rail ? styles.railControls : styles.controls}>
         <Legend ids={ids} shown={(i) => revealed[i] === 1} events={events} focusable={neighbors !== null} />
         {years.length > 0 && (
           <History
@@ -168,7 +174,7 @@ export default function Galaxy() {
             ))}
           </ul>
         </details>
-      </div>
+      </div>)}
     </div>
   );
 }
@@ -214,3 +220,5 @@ async function neighborsOf(versionId: string): Promise<string[] | null> {
   }
   return null;
 }
+
+const portal = (target: HTMLElement | null, node: React.ReactNode) => (target ? createPortal(node, target) : node);

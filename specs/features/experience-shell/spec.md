@@ -18,10 +18,9 @@ keeps the tokens, fonts and panel styles; `app/page.module.css` moves here from 
    (galaxy history, the keyboard project list, "What am I looking at?"); the galaxy in the centre; a 360px
    contextual rail on the right (the selected project's drawer when one is open, then the idea path panels in
    order); a 72px composer along the bottom of the centre column.
-2. Composer: the idea draft and push-to-talk in one bar. Typing and talking both write the shared `ideaDraft`;
-   Interpret stays in the Idea panel. The draft textbox moves out of `components/idea/` through a separate
-   `fix(idea-create-ui)` PR that exports it, coordinated in #212 with `problem-evidence-ui`, which also owns that
-   folder.
+2. Composer: push-to-talk in one bar under the galaxy. Talking writes the shared `ideaDraft`, which the Idea card's
+   textbox shows; the textbox and Interpret stay in the card (idea-create-ui's suite finds them there; see
+   `specs/decisions/experience-shell-composer.md`). On the phone, Talk shows the composer above the Idea card.
 3. Voice states, shown in the composer as text: idle, requesting permission, connecting, listening, committing,
    committed, connected-idle, mic-denied, unavailable, ending. They land in a `fix(voice)` PR that adds them to
    voice's own spec; `components/voice/` stays with voice (and voice-replies-ui), and the shell only places the

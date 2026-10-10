@@ -65,3 +65,6 @@
   visibility: hidden;
 }
 .region small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+
+/* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
+.railControls { display: contents; }
