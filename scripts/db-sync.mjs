@@ -16,11 +16,16 @@ export function classify(sql) {
   if ((m = /^CREATE TABLE "([^"]+)" \(([\s\S]*)\)$/.exec(sql)))
     return { kind: "table", name: m[1], columns: [...m[2].matchAll(/^\s*"([^"]+)"/gm)].map((c) => c[1]), sql };
   if ((m = /^CREATE (?:UNIQUE )?INDEX "([^"]+)" ON "([^"]+)"/.exec(sql))) return { kind: "index", name: m[1], sql };
-  if ((m = /^ALTER TABLE "([^"]+)" ADD CONSTRAINT "([^"]+)" FOREIGN KEY /.exec(sql))) return { kind: "fk", name: m[2], sql };
+  if ((m = /^ALTER TABLE "([^"]+)" ADD CONSTRAINT "([^"]+)" FOREIGN KEY \(([^)]*)\) REFERENCES "public"\."([^"]+)"/.exec(sql)))
+    return { kind: "fk", name: m[2], key: fkKey(m[1], m[3].replaceAll('"', "").split(","), m[4]), sql };
   return { kind: "other", sql };
 }
 
-// live: { columns: Map<table, Set<column>>, indexes: Set<name>, constraints: Set<name> }
+// A foreign key is matched by what it does, not its name: hand-written SQL on the test branch made the same keys
+// under Postgres's default names (votes_member_id_fkey), and adding them again would duplicate each one.
+export const fkKey = (table, columns, references) => `${table}(${columns.map((c) => c.trim()).join(",")})->${references}`;
+
+// live: { columns: Map<table, Set<column>>, indexes: Set<name>, foreignKeys: Set<fkKey> }
 export function plan(parsed, live) {
   const apply = [], drift = [];
   for (const s of parsed) {
@@ -28,7 +33,7 @@ export function plan(parsed, live) {
       const have = live.columns.get(s.name);
       if (!have) apply.push(s);
       else for (const c of s.columns) if (!have.has(c)) drift.push(`${s.name}.${c}`);
-    } else if (s.kind === "fk" && !live.constraints.has(s.name)) apply.push(s);
+    } else if (s.kind === "fk" && !live.foreignKeys.has(s.key)) apply.push(s);
     else if (s.kind === "index" && !live.indexes.has(s.name)) apply.push(s);
   }
   const order = { table: 0, fk: 1, index: 2 };
@@ -64,10 +69,14 @@ async function main(argv) {
     for (const r of (await client.query("select table_name, column_name from information_schema.columns where table_schema = 'public'")).rows)
       columns.set(r.table_name, (columns.get(r.table_name) ?? new Set()).add(r.column_name));
     const names = async (q) => new Set((await client.query(q)).rows.map((r) => r.name));
+    const fks = await client.query(`select c.conrelid::regclass::text as tbl, c.confrelid::regclass::text as ref,
+        array(select a.attname::text from unnest(c.conkey) with ordinality as k(n, o)
+              join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.n order by k.o) as cols
+      from pg_constraint c join pg_namespace ns on ns.oid = c.connamespace where c.contype = 'f' and ns.nspname = 'public'`);
     const live = {
       columns,
       indexes: await names("select indexname as name from pg_indexes where schemaname = 'public'"),
-      constraints: await names("select constraint_name as name from information_schema.table_constraints where constraint_schema = 'public'"),
+      foreignKeys: new Set(fks.rows.map((r) => fkKey(r.tbl, r.cols, r.ref))),
     };
     const { apply, drift } = plan(statements(exported).map(classify), live);
     for (const s of apply) process.stdout.write(`${label(s)}\n`);

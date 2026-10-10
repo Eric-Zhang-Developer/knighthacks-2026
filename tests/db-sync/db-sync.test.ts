@@ -3,7 +3,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { missingTables, tableNames } from "@/app/api/health/schema/tables";
-import { classify, plan, statements } from "@/scripts/db-sync.mjs";
+import { classify, fkKey, plan, statements } from "@/scripts/db-sync.mjs";
 
 const EXPORT = `CREATE TABLE "ideas" (
 	"id" uuid PRIMARY KEY NOT NULL,
@@ -23,10 +23,10 @@ ALTER TABLE "moments" ADD CONSTRAINT "moments_version_id_fk" FOREIGN KEY ("versi
 CREATE INDEX "ideas_latest" ON "ideas" USING btree ("workspace_id");`;
 
 const parsed = statements(EXPORT).map(classify);
-const live = (columns: Record<string, string[]>, indexes: string[] = [], constraints: string[] = []) => ({
+const live = (columns: Record<string, string[]>, indexes: string[] = [], foreignKeys: string[] = []) => ({
   columns: new Map(Object.entries(columns).map(([t, c]) => [t, new Set(c)])),
   indexes: new Set(indexes),
-  constraints: new Set(constraints),
+  foreignKeys: new Set(foreignKeys),
 });
 
 test("a DROP, an ALTER COLUMN or an extension never reaches the plan", () => {
@@ -46,8 +46,15 @@ test("an empty database gets tables, then foreign keys, then indexes", () => {
 test("only what is missing is planned; existing objects are never touched", () => {
   const { apply } = plan(parsed, live({ ideas: ["id", "workspace_id"] }, ["ideas_latest"]));
   expect(apply.map((s: { name: string }) => s.name)).toEqual(["moments", "moments_version_id_fk"]);
-  const synced = plan(parsed, live({ ideas: ["id", "workspace_id"], moments: ["version_id", "data"] }, ["ideas_latest"], ["moments_version_id_fk"]));
+  const synced = plan(parsed, live({ ideas: ["id", "workspace_id"], moments: ["version_id", "data"] }, ["ideas_latest"], [fkKey("moments", ["version_id"], "ideas")]));
   expect(synced.apply).toEqual([]);
+});
+
+test("a foreign key under another name (Postgres's default _fkey) counts as present", () => {
+  const fk = parsed.find((s: { kind: string }) => s.kind === "fk");
+  expect(fk.key).toBe("moments(version_id)->ideas");
+  const { apply } = plan(parsed, live({ ideas: ["id", "workspace_id"], moments: ["version_id", "data"] }, ["ideas_latest"], ["moments(version_id)->ideas"]));
+  expect(apply).toEqual([]);
 });
 
 test("a table lacking a schema column is drift, by column name; constraint lines aren't columns", () => {
