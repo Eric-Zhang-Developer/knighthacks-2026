@@ -2,7 +2,9 @@
 
 import { useCallback, useState } from "react";
 import AssumptionMap from "./AssumptionMap";
-import { lerpStar, replaceStar, type Suggestion, type Version } from "@/components/revisions/trail";
+import { lerpStar, replaceStar, type Suggestion as LegacySuggestion, type Version } from "@/components/revisions/trail";
+import type { Claim } from "@/lib/ai/claims";
+import { ChallengeRevisionReason } from "./revision-reason";
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { post } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
@@ -12,6 +14,8 @@ import { ExperimentList, useExperiments } from "./Experiments";
 import { findFor } from "./experiment";
 import { nextStep, reviseContext, type Outcome, type Perspective, type Round } from "./rounds";
 import styles from "./challenge.module.css";
+
+type Suggestion = Omit<LegacySuggestion, "reason"> & { reason: string | Claim };
 
 const PERSPECTIVES: Perspective[] = ["judge", "user", "engineer"];
 const OUTCOME_TEXT: Record<Outcome, string> = {
@@ -195,7 +199,7 @@ export default function Challenge() {
                       <p>
                         <strong>{s.field}:</strong> {s.change}
                       </p>
-                      <p className={styles.meta}>{s.reason}</p>
+                      <p className={styles.meta}><ChallengeRevisionReason reason={s.reason} /></p>
                       <div className={styles.row}>
                         <button type="button" className={styles.primary} disabled={busy !== null} onClick={() => decide(s, true)}>
                           Accept
