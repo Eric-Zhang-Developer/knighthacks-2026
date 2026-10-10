@@ -35,7 +35,8 @@ test("renders every star in stars.json", async ({ page }) => {
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.goto("/");
   await expect(galaxy(page)).toHaveAttribute("data-star-count", String(fixture.count));
-  await expect(page.getByRole("status")).toHaveText(`${fixture.count} projects indexed`);
+  // Scoped: other panels (the workspace badge) have their own status regions.
+  await expect(page.getByLabel("Galaxy", { exact: true }).getByRole("status")).toHaveText(`${fixture.count} projects indexed`);
   await expect(page.locator("canvas")).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("galaxy.png") });
   expect(errors).toEqual([]);

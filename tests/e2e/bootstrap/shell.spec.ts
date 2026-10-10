@@ -18,6 +18,7 @@ test("home renders the layout and says the corpus isn't loaded", async ({ page }
   for (const name of ["Search", "Galaxy", "Idea and evidence", "Voice"]) {
     await expect(page.getByLabel(name, { exact: true })).toBeVisible();
   }
-  await expect(page.getByRole("status")).toHaveText(/Corpus not loaded|projects indexed/);
+  // Scoped: other panels (the workspace badge) have their own status regions.
+  await expect(page.getByLabel("Galaxy", { exact: true }).getByRole("status")).toHaveText(/Corpus not loaded|projects indexed/);
   expect(errors).toEqual([]);
 });
