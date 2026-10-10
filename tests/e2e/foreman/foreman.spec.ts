@@ -154,8 +154,12 @@ test("charts: hovering the build-up and a timeline bar shows their tooltips; bot
   await build.screenshot({ path: test.info().outputPath("foreman-buildup.png") });
 
   const crew = page.getByRole("figure", { name: /every pr by worker/i });
-  await crew.scrollIntoViewIfNeeded();
-  await crew.locator("svg a rect").first().hover({ force: true });
+  // A bar mid-chart, not the first: the top row sits under the sticky header once scrolled to. No force, so
+  // Playwright checks the bar really receives the pointer.
+  const bars = crew.locator("svg a rect:first-child");
+  const bar = bars.nth(Math.floor((await bars.count()) / 2));
+  await bar.scrollIntoViewIfNeeded();
+  await bar.hover();
   await expect(page.getByTestId("timeline-tip")).toContainText(/#\d+/);
   await crew.screenshot({ path: test.info().outputPath("foreman-timeline.png") });
 
