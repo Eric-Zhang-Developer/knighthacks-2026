@@ -1,0 +1,35 @@
+.panel { margin: var(--space-3); padding: var(--space-4); display: grid; gap: var(--space-3); font-size: var(--text-md); }
+.meta { color: var(--muted); font-size: var(--text-sm); }
+.unknown { color: var(--muted); font-style: italic; }
+.panel button {
+  justify-self: start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  cursor: pointer;
+}
+.panel .primary { border-color: var(--idea); color: var(--idea); }
+.panel button:disabled { color: var(--muted); border-color: var(--border); cursor: default; }
+.snapshot { display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.snapshot h4 { font-size: var(--text-md); margin-top: var(--space-2); }
+.title { font-size: var(--heading); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-3); }
+.facts dt { color: var(--muted); }
+.list { padding-left: var(--space-4); }
+.snapshot a { color: var(--idea); }
+.group { display: grid; gap: var(--space-1); }
+
+/* Printing shows only the snapshot, in dark ink on white. */
+@media print {
+  :global(body):has(.snapshot) { background: #fff; }
+  :global(body):has(.snapshot) * { visibility: hidden; }
+  /* More specific than the hide rule above, which also matches the snapshot itself. */
+  :global(html) :global(body) .snapshot,
+  :global(html) :global(body) .snapshot * { visibility: visible; color: #000; }
+  .snapshot { position: absolute; inset: 0 auto auto 0; width: 100%; background: #fff; border: 0; padding: 24px; }
+  .snapshot a { text-decoration: underline; }
+  .print { display: none; }
+}
