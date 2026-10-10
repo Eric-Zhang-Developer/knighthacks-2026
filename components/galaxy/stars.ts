@@ -24,6 +24,8 @@ export const STYLE = {
   selected: { color: [1, 1, 1], size: 10 },
   idea: { color: [0.31, 0.84, 0.91], size: 12 }, // --idea cyan
   activeIdea: { color: [0.31, 0.84, 0.91], size: 16 },
+  // A prize winner: bigger than base and drawn with a ring (Scene.tsx), so the mark is a shape, not colour alone.
+  prize: { color: [0.62, 0.68, 0.8], size: 6 },
 } as const;
 
 export function styleFor(id: string, selectedId: string | null, highlighted: ReadonlySet<string>) {
