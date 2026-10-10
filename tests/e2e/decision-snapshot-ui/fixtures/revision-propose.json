@@ -1,0 +1,7 @@
+{
+  "suggestions": [
+    { "field": "audience", "change": "Teams of two to four at a 36-hour hackathon", "reason": "A narrower audience makes the meal plan concrete." },
+    { "field": "workflow", "change": "Each teammate taps their dietary limits once; the app proposes one shared order before dinner", "reason": "One tap per person keeps the interruption short." },
+    { "field": "constraints", "change": "Must work with the event's sponsor-provided food", "reason": "Most hackathon meals are provided, not ordered." }
+  ]
+}
