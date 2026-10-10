@@ -47,3 +47,21 @@
 }
 .list button:hover { background: var(--border); }
 .list button[aria-pressed="true"] { background: var(--border); font-weight: 600; }
+
+/* Region names over compact category clusters; positioned each frame by Scene.tsx. */
+.regions { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.region {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--paper);
+  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg);
+  white-space: nowrap;
+  visibility: hidden;
+}
+.region small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }

@@ -40,8 +40,11 @@
   .item { flex-direction: column; gap: 2px; }
   .meta { white-space: normal; }
 }
-.bar { display: flex; gap: var(--space-2); }
-.bar .input { flex: 1; min-width: 0; }
+/* The query gets its own row; the four filters share a compact row under it, so none squeezes the box. */
+.bar { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
+.bar .input { flex: 1 1 100%; min-width: 0; }
+.bar .filter { flex: 1 1 0; min-width: 0; }
+.bar .filter select { width: 100%; padding-top: 3px; padding-bottom: 3px; font-size: var(--text-sm); }
 .filter select {
   height: 100%;
   max-width: 140px;
