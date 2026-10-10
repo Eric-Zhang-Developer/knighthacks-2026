@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import BuildUp from "@/components/foreman/BuildUp";
 import CrewTimeline from "@/components/foreman/CrewTimeline";
@@ -15,7 +14,14 @@ import { clock } from "@/lib/foreman/time";
 
 // Self-hosted: Google sometimes serves this family from an extensionless URL, which crashes next/font at build time.
 const stencil = localFont({ src: "./fonts/big-shoulders-stencil-latin.woff2", weight: "600 800", variable: "--font-stencil" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
+// Same self-hosted Plex Mono as the root layout (#226): no Google fetch at build time.
+const mono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-400-latin.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-500-latin.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-mono",
+});
 
 // Unlisted: nothing links here and search engines are told to stay out. Everything shown is already public.
 export const metadata: Metadata = { title: "Foreman · Uncharted", robots: { index: false, follow: false } };
