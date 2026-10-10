@@ -41,15 +41,16 @@ test("a reload keeps the chosen version, lists past snapshots and their links, a
   // Branch once, so v1 is no longer the newest version, then choose v1 again.
   await branches(page).getByRole("button", { name: "Suggest directions" }).click();
   await branches(page).getByRole("list", { name: "Directions" }).getByRole("listitem").first().getByRole("button", { name: "Branch this way" }).click();
-  await expect(branches(page)).toHaveAttribute("data-branch-count", "1", { timeout: 60_000 });
-  const tree = branches(page).getByLabel("Branch trail");
-  await tree.getByRole("button").nth(1).click();
+  // The branch trail names versions "<title> v1", "<title> v2".
+  const version = (n: number) => branches(page).getByRole("button", { name: new RegExp(` v${n}$`) });
+  await expect(version(2)).toBeVisible({ timeout: 60_000 });
+  await version(2).click();
   const v2 = (await decide(page).getAttribute("data-active-version"))!;
   expect(v2).not.toBe(v1);
 
   // Validation 2: two snapshots, one per version.
   const older = await choose(page, /Choose this version/);
-  await tree.getByRole("button").nth(0).click();
+  await version(1).click();
   await expect(decide(page)).toHaveAttribute("data-active-version", v1);
   const newer = await choose(page, /Choose the current version instead/);
 
