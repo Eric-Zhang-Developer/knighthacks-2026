@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 // Real records from the corpus fixture; the loaded corpus contains them (changes/corpus-embed.md).
@@ -18,7 +18,7 @@ test("a fixture title finds that project first, by meaning", async ({ request })
     expect(body.results[0].similarity).toBeGreaterThan(body.results[1].similarity);
   }
   const res = await request.get(`/api/search?q=${encodeURIComponent(fixture[0].title)}`);
-  await test.info().attach("search-response.json", { body: await res.body(), contentType: "application/json" });
+  writeFileSync(test.info().outputPath("search-response.json"), await res.body());
 });
 
 test("type a query: results list; clear: list gone", async ({ page }) => {
