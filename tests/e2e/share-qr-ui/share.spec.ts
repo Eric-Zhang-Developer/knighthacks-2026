@@ -1,17 +1,27 @@
+import { copyFile, readdir, writeFile } from "node:fs/promises";
+import { isAbsolute, join } from "node:path";
 import { expect, test } from "@playwright/test";
 import interpretation from "./fixtures/idea-interpret.json";
 
-// Gemini is stubbed on the server through AI_STUB_DIR (this folder's fixtures); embeddings and Neon are real.
+// Gemini is stubbed on the server through AI_STUB_DIR, a fresh absolute folder this test copies its fixtures into;
+// embeddings and Neon are real.
 test.use({ trace: "off" }); // traces would hold the session cookie
 
 test("share a chosen snapshot: a fresh phone browser reads it with no cookie, and revoking makes it 410", async ({ page, browser }) => {
   test.setTimeout(180_000);
-  expect(process.env.AI_STUB_DIR, "Start the server with AI_STUB_DIR=tests/e2e/share-qr-ui/fixtures").toBeTruthy();
+  const stub = process.env.AI_STUB_DIR;
+  expect(Boolean(stub) && isAbsolute(stub!), "Start the server with a fresh absolute AI_STUB_DIR").toBe(true);
+  const fixtures = join(__dirname, "fixtures");
+  for (const f of await readdir(fixtures)) await copyFile(join(fixtures, f), join(stub!, f));
   await page.goto("/");
   await expect(page.locator("[data-workspace-id]")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals.");
   await page.getByRole("button", { name: "Interpret" }).click();
+  const saved = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/ideas" && r.request().method() === "POST", { timeout: 60_000 });
   await page.getByRole("region", { name: "Your idea" }).getByRole("button", { name: "Save" }).click();
+  // Choosing a version generates its neighbours' evidence first (#181): one fixture per neighbour, nothing claimed.
+  for (const id of ((await (await saved).json()) as { neighborIds: string[] }).neighborIds)
+    await writeFile(join(stub!, `evidence-${id}.json`), JSON.stringify({ overlaps: [], differences: [], uncertainty: { text: "Not stated on the page", label: "unverified", sourceIds: [] } }));
 
   // Nothing to share until a version is chosen.
   const share = page.getByRole("region", { name: "Share" });
