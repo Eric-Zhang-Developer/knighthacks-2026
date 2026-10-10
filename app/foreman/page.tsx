@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
-import { HeaderClock, Milestones } from "@/components/foreman/Live";
+import { AutoRefresh, HeaderClock, Milestones } from "@/components/foreman/Live";
 import SitePlan from "@/components/foreman/SitePlan";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
@@ -56,6 +56,7 @@ export default async function ForemanPage() {
           {board && ` · main @ ${board.sha.slice(0, 7)}`}
         </span>
         {board && <HeaderClock now={now} start={board.start} fetchedAt={board.fetchedAt} />}
+        <AutoRefresh />
       </header>
 
       {!board ? (
@@ -179,7 +180,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
 
       <section className={styles.section} aria-labelledby="crew">
         <h2 id="crew" className={`${styles.h2} ${styles.stencil}`}>
-          The crew <small>open PRs by worker · dot = CI</small>
+          The crew <small>open PRs by worker, as each describes itself · dot = CI</small>
         </h2>
         <div className={styles.crew}>
           {board.lanes.map((l) => (
@@ -188,6 +189,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
                 <span className={`${styles.laneName} ${styles.stencil}`}>{l.worker}</span>
                 <span className={styles.laneMerged}>{l.merged} merged</span>
               </div>
+              {l.note && <div className={styles.laneNote}>{l.note}</div>}
               {l.prs.map((p) => (
                 <a key={p.number} className={styles.lanePr} href={p.url} target="_blank" rel="noreferrer">
                   <span className={styles.ci} data-ci={p.ci ?? "none"} title={`CI: ${p.ci ?? "none"}`} />

@@ -146,6 +146,11 @@ export function firstLine(note: string): string {
 }
 
 /** `Worker: <name>` from a PR body; agents put their worker name there (AGENTS.md, the loop step 2). */
+/** The note agents put in parentheses after their worker name, e.g. "GPT-6 Astra / Windows". */
+export function workerNoteOf(body: string | null): string | null {
+  return /worker:\s*`?[\w.-]*\w`?\s*\(([^)\n]{1,60})\)/i.exec(body ?? "")?.[1].trim() ?? null;
+}
+
 export function workerOf(body: string | null): string | null {
   return /worker:\s*`?([\w.-]*\w)/i.exec(body ?? "")?.[1] ?? null;
 }

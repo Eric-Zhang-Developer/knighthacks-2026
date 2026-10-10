@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Feature, Milestone } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
@@ -23,6 +24,16 @@ export function span(ms: number) {
 }
 export const clock = (t: number) =>
   new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(t);
+
+// A dashboard left open on a laptop should keep up without a reload. Client state (a replay in progress) survives.
+export function AutoRefresh({ every = 60_000 }: { every?: number }) {
+  const router = useRouter();
+  useEffect(() => {
+    const id = setInterval(() => document.visibilityState === "visible" && router.refresh(), every);
+    return () => clearInterval(id);
+  }, [router, every]);
+  return null;
+}
 
 export function HeaderClock({ now: initial, start, fetchedAt }: { now: number; start: number | null; fetchedAt: string }) {
   const now = useNow(initial);

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { buildBoard, layers, statesAt, type PR, type Raw } from "@/lib/foreman/board";
-import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerOf } from "@/lib/foreman/parse";
+import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
 const NOW = Date.parse("2026-10-10T14:00:00Z");
 const spec = (deps: string[]) => `---\nname: x\ndepends_on: [${deps.join(", ")}]\nowns: []\nassignee: ""\n---\n`;
@@ -113,6 +113,8 @@ test("parsers match status.py on its edge cases", () => {
   expect(frontMatter("---\nowns:\n  - app/\n  - lib/\n---\n").owns).toEqual(["app/", "lib/"]);
   expect(parseMilestonesToml(TOML).milestone[0].features).toEqual(["a", "b", "c", "d", "e"]);
   expect(workerOf("Worker: `foreman`")).toBe("foreman");
+  expect(workerNoteOf("Worker: kiro-agent-1 (GPT-6 Astra / Windows). Git author: Kiro.")).toBe("GPT-6 Astra / Windows");
+  expect(workerNoteOf("Worker: planner. Self-merges (later)")).toBeNull();
 });
 
 test("layers put a feature one column right of its deepest dependency, and survive a cycle", () => {

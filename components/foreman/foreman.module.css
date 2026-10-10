@@ -525,6 +525,14 @@
   color: var(--dim);
 }
 
+.laneNote {
+  margin: -4px 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
 .lanePr {
   display: flex;
   gap: 8px;
@@ -582,7 +590,7 @@
 /* ---- replay ---- */
 .replay {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px 18px;
   align-items: center;
   padding: 14px 16px;
@@ -660,6 +668,30 @@
 .replayClock small {
   font-size: 15px;
   color: var(--dim);
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding: 0 16px 48px;
+  }
+  .replay {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .replayInfo,
+  .liveBtn {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .meta {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .clock {
+    font-size: 46px;
+  }
+  .ask {
+    grid-template-columns: 70px minmax(0, 1fr);
+  }
 }
 
 .replayLast {
