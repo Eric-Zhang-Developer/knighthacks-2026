@@ -72,9 +72,12 @@ function layout(features: Feature[]) {
   return { pos, width: PAD * 2 + cols.length * W + (cols.length - 1) * COL, height };
 }
 
-export default function Graph({ features, repo }: { features: Feature[]; repo: string }) {
+// `shown` replays earlier states on the same layout; heat, CI and the critical path are live-only.
+export default function Graph({ features, repo, shown }: { features: Feature[]; repo: string; shown?: Map<string, State> }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
-  const critical = useMemo(() => criticalPath(features), [features]);
+  const live = useMemo(() => criticalPath(features), [features]);
+  const critical = shown ? new Set<string>() : live;
+  const stateOf = (f: Feature) => shown?.get(f.slug) ?? f.state;
   const [focus, setFocus] = useState<string | null>(null);
 
   // Hovering a feature lights up everything it waits on and everything waiting on it.
@@ -97,7 +100,7 @@ export default function Graph({ features, repo }: { features: Feature[]; repo: s
         const b = pos.get(f.slug)!;
         const [x1, y1, x2, y2] = [a.x + W, a.y + H / 2, b.x, b.y + H / 2];
         const mid = (x1 + x2) / 2;
-        const done = features.find((x) => x.slug === d)?.state === "done";
+        const done = shown ? shown.get(d) === "done" : features.find((x) => x.slug === d)?.state === "done";
         return {
           key: `${d}>${f.slug}`,
           path: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
@@ -130,10 +133,13 @@ export default function Graph({ features, repo }: { features: Feature[]; repo: s
           ))}
           {features.map((f) => {
             const p = pos.get(f.slug)!;
-            const s = STATE[f.state];
-            const sub = [f.pr ? `#${f.pr.number}` : null, f.worker, f.state === "done" && f.verified === false ? "unverified" : null]
-              .filter(Boolean)
-              .join(" · ");
+            const state = stateOf(f);
+            const s = STATE[state];
+            const sub = shown
+              ? ""
+              : [f.pr ? `#${f.pr.number}` : null, f.worker, f.state === "done" && f.verified === false ? "unverified" : null]
+                  .filter(Boolean)
+                  .join(" · ");
             const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/specs/features/${f.slug}`;
             return (
               <a
@@ -147,23 +153,23 @@ export default function Graph({ features, repo }: { features: Feature[]; repo: s
                 onFocus={() => setFocus(f.slug)}
                 onBlur={() => setFocus(null)}
                 data-slug={f.slug}
-                data-state={f.state}
+                data-state={state}
                 aria-label={`${f.slug}: ${s.label}${sub ? `, ${sub}` : ""}`}
               >
                 <title>{`${f.slug} — ${s.label}\n${f.name}${f.gap ? `\nGap: ${f.gap}` : ""}`}</title>
-                {f.heat > 0.05 && (
+                {!shown && f.heat > 0.05 && (
                   <rect x={p.x - 4} y={p.y - 4} width={W + 8} height={H + 8} rx={6} fill="#ff8a1f" opacity={0.25 + f.heat * 0.6} filter="url(#heat)" />
                 )}
                 <rect
-                  className={`box ${f.state === "flight" ? styles.pulse : ""}`}
+                  className={`box ${state === "flight" ? styles.pulse : ""}`}
                   x={p.x}
                   y={p.y}
                   width={W}
                   height={H}
                   rx={2}
                   fill={s.fill}
-                  stroke={critical.has(f.slug) && f.state !== "flight" ? "#ffb547" : s.stroke}
-                  strokeWidth={f.state === "flight" || critical.has(f.slug) ? 1.6 : 1}
+                  stroke={critical.has(f.slug) && state !== "flight" ? "#ffb547" : s.stroke}
+                  strokeWidth={state === "flight" || critical.has(f.slug) ? 1.6 : 1}
                   strokeDasharray={s.dash}
                 />
                 <text x={p.x + 8} y={p.y + 19} fill={s.text} fontSize={13.5} fontWeight={500}>
@@ -172,8 +178,8 @@ export default function Graph({ features, repo }: { features: Feature[]; repo: s
                 <text x={p.x + 8} y={p.y + 35} fill={s.text} opacity={0.7} fontSize={11}>
                   {(sub || s.label).slice(0, 24)}
                 </text>
-                {f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}
-                {f.state === "flight" && f.pr && (
+                {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}
+                {!shown && f.state === "flight" && f.pr && (
                   <circle
                     cx={p.x + W - 9}
                     cy={p.y + 9}
@@ -190,7 +196,7 @@ export default function Graph({ features, repo }: { features: Feature[]; repo: s
         {(Object.keys(STATE) as State[]).map((k) => (
           <span key={k}>
             <i style={{ background: STATE[k].fill, border: `1px solid ${STATE[k].stroke}` }} />
-            {STATE[k].label} ({features.filter((f) => f.state === k).length})
+            {STATE[k].label} ({features.filter((f) => stateOf(f) === k).length})
           </span>
         ))}
         <span>

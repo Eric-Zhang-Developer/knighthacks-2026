@@ -55,6 +55,7 @@ export type Feature = {
   heat: number; // 0..1, PR activity on this feature in the last HEAT_HOURS
   doneAt: string | null; // when its feat PR merged (null if done some other way)
   startedAt: string | null; // when its first feat PR opened
+  claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
 };
 export type Milestone = {
   name: string;
@@ -184,6 +185,7 @@ export function buildBoard(raw: Raw, now: number): Board {
         heat: (heatRaw.get(slug) ?? 0) / maxHeat,
         doneAt: note ? (merged.at(-1) ?? null) : null,
         startedAt: opened[0] ?? null,
+        claims: feats.map((p): [string, string | null] => [p.createdAt, p.mergedAt ?? p.closedAt]),
       };
     });
 
@@ -268,6 +270,23 @@ export function buildBoard(raw: Raw, now: number): Board {
       .map((p) => ({ at: p.mergedAt!, number: p.number, title: p.title, slug: p.t?.scope ?? null, kind: p.t?.kind ?? null }))
       .sort((a, b) => a.at.localeCompare(b.at)),
   };
+}
+
+/**
+ * Each feature's state at an earlier time, from PR history: done once its feat PR merged, in flight while a feat PR
+ * was open. Cut and backlog are today's plan, not history. A done feature with no merged feat PR counts as done from
+ * the start, since it predates the PR history we can see.
+ */
+export function statesAt(features: Feature[], t: number): Map<string, State> {
+  const done = new Set(features.filter((f) => f.state === "done" && (!f.doneAt || Date.parse(f.doneAt) <= t)).map((f) => f.slug));
+  return new Map(
+    features.map((f): [string, State] => {
+      if (done.has(f.slug)) return [f.slug, "done"];
+      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
+      if (f.claims.some(([a, b]) => Date.parse(a) <= t && (!b || Date.parse(b) > t))) return [f.slug, "flight"];
+      return [f.slug, f.deps.every((d) => done.has(d)) ? "ready" : "blocked"];
+    }),
+  );
 }
 
 /** Longest-path layering: a feature sits one column right of its deepest dependency. */
