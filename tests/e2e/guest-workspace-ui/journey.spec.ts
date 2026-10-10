@@ -132,7 +132,7 @@ test("an expired invite shows unavailable on Join", async ({ browser }) => {
 test("no recovery: clearing cookies loses the workspace and the UI says so", async ({ browser }) => {
   const a = await browser.newContext();
   const page = await openHome(a);
-  await expect(page.getByRole("region", { name: "Workspace" })).toContainText("Clear cookies and it's gone for good.");
+  await expect(page.getByRole("region", { name: "Workspace" }).getByText("No accounts: clearing cookies loses it")).toBeVisible();
   const before = await workspaceId(page, "Workspace");
 
   await a.clearCookies();

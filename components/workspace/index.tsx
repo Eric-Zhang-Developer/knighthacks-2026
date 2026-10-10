@@ -35,31 +35,45 @@ function HomeWorkspace() {
     setInvite({ state: "failed", message });
   }
 
+  if (failed || !identity) {
+    return (
+      <section className={`ui-panel ${styles.status}`} aria-label="Workspace">
+        {failed ? (
+          <PanelState kind="failed" message={`Couldn't start your workspace: ${failed}`} onRetry={start} />
+        ) : (
+          <PanelState kind="loading" message="Starting your workspace…" />
+        )}
+      </section>
+    );
+  }
   return (
-    <section className={`ui-panel ${styles.workspace}`} aria-label="Workspace">
-      {failed ? (
-        <PanelState kind="failed" message={`Couldn't start your workspace: ${failed}`} onRetry={start} />
-      ) : !identity ? (
-        <PanelState kind="loading" message="Starting your workspace…" />
-      ) : (
-        <>
-          <div className={styles.row}>
-            <span>
-              Workspace{" "}
-              <span className={styles.id} data-workspace-id={identity.workspaceId} title={identity.workspaceId}>
-                {shortId(identity.workspaceId)}
-              </span>
-            </span>
-            {invite.state !== "ready" && (
-              <button type="button" className={styles.button} disabled={invite.state === "creating"} onClick={createInvite}>
-                Invite a teammate
-              </button>
-            )}
-          </div>
-          {invite.state === "ready" && <InviteLink invite={invite.invite} />}
-          {invite.state === "failed" && <PanelState kind="failed" message={invite.message} onRetry={createInvite} />}
+    <section className={styles.workspace} aria-label="Workspace">
+      <div className={styles.identity}>
+        <span>
+          Workspace{" "}
+          <span className={styles.id} data-workspace-id={identity.workspaceId} title={identity.workspaceId}>
+            {shortId(identity.workspaceId)}
+          </span>
+        </span>
+        <span className={styles.notice} title={NO_RECOVERY}>
+          No accounts: clearing cookies loses it
+        </span>
+      </div>
+      <button type="button" className={styles.button} disabled={invite.state === "creating"} onClick={createInvite}>
+        Invite a teammate
+      </button>
+      {(invite.state === "ready" || invite.state === "failed") && (
+        <div className={`ui-panel ${styles.dropdown}`}>
+          {invite.state === "ready" ? (
+            <InviteLink invite={invite.invite} />
+          ) : (
+            <PanelState kind="failed" message={invite.message} onRetry={createInvite} />
+          )}
           <p className={styles.notice}>{NO_RECOVERY}</p>
-        </>
+          <button type="button" className={styles.button} onClick={() => setInvite({ state: "idle" })}>
+            Done
+          </button>
+        </div>
       )}
     </section>
   );
