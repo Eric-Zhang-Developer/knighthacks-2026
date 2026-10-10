@@ -22,13 +22,15 @@ rows exist. Share links can't be revoked after the page that made them is gone.
 - A share's `id` is the first 16 hex characters of its stored `token_hash`. The token itself is never returned
   (it isn't stored), so the list can't be used to open a link.
 - `rounds` are the stored rows as the challenge API returns them; nothing is regenerated and no model is called.
-- Revoking twice returns the same `revokedAt`; the public `/s/:token` page then answers 410 as it does today.
+- Revoking twice returns the same `revokedAt`; `GET /api/shares/:token` then answers 410 and the existing
+  `/s/:token` page shows its revoked-link state. The public page is a client-rendered shell, not an HTTP 410 route.
 - One request; no N+1 queries per idea (one query per table).
 
 ## Validation
 1. A workspace with two ideas, one challenge session, one snapshot and one share -> one `GET` returns all of them.
 2. A second workspace's session -> none of the first workspace's rows.
-3. Revoke by `id` -> `/s/:token` answers 410; the list shows `revokedAt`.
+3. Revoke by `id` -> `GET /api/shares/:token` answers 410, `/s/:token` shows the revoked-link state, and the list
+   shows `revokedAt`. Repeating revocation preserves that timestamp.
 4. `tests/e2e/workspace-restore-api/` covers 1–3 against the test branch (`AI_STUB_ALLOW=1`). Keep the response.
 
 ## Defaults
