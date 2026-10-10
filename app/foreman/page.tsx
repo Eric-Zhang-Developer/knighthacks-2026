@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Big_Shoulders_Stencil, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import BuildUp from "@/components/foreman/BuildUp";
 import CrewTimeline from "@/components/foreman/CrewTimeline";
 import { DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
@@ -12,7 +13,8 @@ import { buildUp, timeline, type BuildUp as BuildUpData, type Timeline } from "@
 import { readRaw, REPO } from "@/lib/foreman/collect";
 import { clock } from "@/lib/foreman/time";
 
-const stencil = Big_Shoulders_Stencil({ subsets: ["latin"], weight: ["600", "800"], variable: "--font-stencil" });
+// Self-hosted: Google sometimes serves this family from an extensionless URL, which crashes next/font at build time.
+const stencil = localFont({ src: "./fonts/big-shoulders-stencil-latin.woff2", weight: "600 800", variable: "--font-stencil" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 // Unlisted: nothing links here and search engines are told to stay out. Everything shown is already public.
