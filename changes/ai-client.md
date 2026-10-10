@@ -1,8 +1,8 @@
 ## What shipped
-Server-only validated JSON, bounded retry, typed errors, source-membership claim downgrades; Claude preferred with Gemini fallback. Local production verification can explicitly opt into fixtures with `AI_STUB_ALLOW=1`; Vercel always rejects fixtures.
+Exported the existing guarded fixture reader so grounded search can share its restrictions; generation behavior is unchanged.
 ## Where it lives
-lib/ai/, tests/ai-client/, tests/e2e/ai-client/; specs/decisions/ai-client-contract.md and ai-client-local-verifier.md.
+`lib/ai/generate.ts`; `tests/ai-client/generate.test.ts`.
 ## How to check it
-verify: `node scripts/verify.mjs ai-client "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\ai-client\20261010T131109Z"` pass at 77b4102 — 2 tests, including actual production Next HTTP fixture success and denial without opt-in/on Vercel. Separate live Gemini `gemini-3.8-flash` returned `{"message":"AI client verified"}` with the new local environment.
+verify: `node scripts/verify.mjs ai-client /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/ai-client/20261010T175533Z` pass at 76c287b (uncommitted changes); 255 unit tests, typecheck and lint passed. Gemini `gemini-3.8-flash` returned schema-valid verification JSON; production stub opt-in/Vercel restrictions passed.
 ## Gaps
-Claude live remains unverified: the new local key returned sanitized PROVIDER_ERROR when tested alone; #61 tracks its workspace configuration. The canonical run used fixtures; Gemini's separate live run removed the Claude key. Claims check source membership, not factual entailment. PR preview deployment is blocked by Vercel build quota (#111).
+All-provider verification at 20261010T175314Z failed on the existing Claude PROVIDER_ERROR (#61); the passing run configured Gemini alone. Claude remains unverified; no provider or validation behavior changed.
