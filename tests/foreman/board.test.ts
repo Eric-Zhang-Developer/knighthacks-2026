@@ -95,7 +95,13 @@ test("milestones count done of total without cut features, and resolve every tim
 
 test("needs a person: plan PRs to merge, stale drafts, flagged issues, red main", () => {
   const asks = buildBoard({ ...raw, mainCi: "failure" }, NOW).asks.map((a) => `${a.kind}:${a.title}`);
-  expect(asks).toEqual(["ci:main is red", "merge:plan: move things", "stale:feat(b): old claim", "issue:Need a key"]);
+  expect(asks).toEqual([
+    "ci:main is red",
+    "merge:plan: move things",
+    "stale:feat(b): old claim",
+    "issue:Need a key",
+    "pickable:e is cut but still pickable",
+  ]);
 });
 
 test("two open feat PRs on one feature are flagged, naming the first claim", () => {
@@ -176,4 +182,11 @@ test("pace projects the remaining features at the last 3h's build rate, or says 
   expect(pace({ done: 3, total: 5 }, [at(0.5), at(1), at(2.5), at(5)], NOW)).toEqual({ left: 2, perHour: 1, eta: NOW + 2 * 3_600_000 });
   expect(pace({ done: 3, total: 5 }, [at(4), { doneAt: null }], NOW)).toBeNull();
   expect(pace({ done: 5, total: 5 }, [at(1)], NOW)).toBeNull();
+});
+
+test("a cut feature still in its milestone's features with dependencies done is flagged as pickable", () => {
+  const asks = buildBoard(raw, NOW).asks.filter((a) => a.kind === "pickable").map((a) => a.title);
+  expect(asks).toEqual(["e is cut but still pickable"]); // e: cut in core, no deps, core not shipped
+  const later = buildBoard(raw, Date.parse("2026-10-10T16:00:00-04:00")).asks.filter((a) => a.kind === "pickable");
+  expect(later).toEqual([]); // core has shipped: nothing left to pick
 });

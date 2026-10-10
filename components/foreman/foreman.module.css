@@ -329,6 +329,10 @@
   color: var(--rust);
 }
 
+.ask[data-kind="pickable"] .askKind {
+  color: var(--rust);
+}
+
 .ask[data-kind="stale"] .askKind {
   color: var(--dim);
 }
