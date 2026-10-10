@@ -21,7 +21,7 @@ cut = []
 name = "core"             # R1: what the judges score
 ship = "2026-10-10T23:00:00-04:00"
 features = ["ai-client", "guest-workspace", "voice", "idea-create-api", "idea-create-ui", "neighbor-evidence-api", "neighbor-evidence-ui", "idea-revisions-api", "idea-revisions-ui", "voice-replies-api", "voice-replies-ui", "challenge-api", "challenge-ui"]
-cut = []                  # decide now what drops if this runs late, not at the deadline
+cut = ["voice-replies-api", "voice-replies-ui"]   # person's decision 2026-10-10: push-to-talk input stays
 
 [[milestone]]
 name = "submission"       # R2/R3: the ambitious target and one stretch, then the freeze
