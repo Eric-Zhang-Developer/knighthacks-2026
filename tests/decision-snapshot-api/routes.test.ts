@@ -1,11 +1,13 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 const { lookupSession, createSnapshot, getSnapshot } = vi.hoisted(() => ({ lookupSession: vi.fn(), createSnapshot: vi.fn(), getSnapshot: vi.fn() }));
+vi.mock("next/dist/compiled/server-only", () => ({}));
 vi.mock("@/lib/workspace/service", () => ({ lookupSession }));
 vi.mock("@/lib/snapshots/service", () => ({ createSnapshot, getSnapshot }));
 import { POST } from "@/app/api/snapshots/route";
 import { GET } from "@/app/api/snapshots/[id]/route";
 import { COOKIE } from "@/lib/workspace/tokens";
+import { EvidenceError } from "@/lib/evidence/contract";
 const id = "00000000-0000-4000-8000-000000000001", context = { params: Promise.resolve({ id }) };
 function request(body: unknown = { versionId: id }, options: { method?: string; auth?: boolean; origin?: string; raw?: string } = {}) {
   return new NextRequest("https://uncharted.test/api/snapshots", { method: options.method ?? "POST", headers: { origin: options.origin ?? "https://uncharted.test", "content-type": "application/json", ...(options.auth === false ? {} : { cookie: `${COOKIE}=${"a".repeat(43)}` }) }, ...(options.method === "GET" ? {} : { body: options.raw ?? JSON.stringify(body) }) });
@@ -39,4 +41,10 @@ test("database errors are sanitized", async () => {
   createSnapshot.mockRejectedValue(new Error("postgres://secret private"));
   const response = await POST(request());
   expect(response.status).toBe(503); expect(await response.text()).not.toMatch(/postgres|secret|private/);
+});
+test.each([404, 502, 503])("evidence failures retain the safe status %s for the caller", async (status) => {
+  createSnapshot.mockRejectedValue(new EvidenceError(status, "Evidence unavailable. Please retry."));
+  const response = await POST(request());
+  expect(response.status).toBe(status);
+  expect(await response.json()).toEqual({ error: "Evidence unavailable. Please retry." });
 });

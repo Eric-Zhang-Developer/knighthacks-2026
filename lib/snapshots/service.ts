@@ -2,11 +2,16 @@ import "next/dist/compiled/server-only";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { createEvidence } from "@/lib/evidence/service";
 import { SnapshotError, type SnapshotData } from "./contract";
 export async function createSnapshot(workspaceId: string, versionId: string) {
+  // The chosen version may never have been opened in the evidence panel.
+  // This authorizes the version and reuses saved cards, generating only missing
+  // top-three cards. A failed batch must not freeze an incomplete choice.
+  await createEvidence(workspaceId, versionId, false);
   const snapshotId = randomUUID();
   // One statement sees one consistent source snapshot and persists only this
-  // explicit allowlist. No model calls, joins to votes, or transcript copying.
+  // explicit allowlist. No joins to votes or transcript copying.
   const result = await db().execute(sql`insert into "snapshots" ("id", "workspace_id", "data")
     select ${snapshotId}::uuid, i."workspace_id", jsonb_build_object(
       'versionId', v."id", 'idea', jsonb_build_object('title', v."title", 'description', v."description",

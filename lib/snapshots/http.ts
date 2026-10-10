@@ -5,12 +5,13 @@ import { requireWorkspace } from "@/lib/workspace/require";
 import { WorkspaceError } from "@/lib/workspace/tokens";
 import { readBody } from "@/lib/ideas/http";
 import { IdeaError } from "@/lib/ideas/contract";
+import { EvidenceError } from "@/lib/evidence/contract";
 import { createSchema, SnapshotError } from "./contract";
 import { createSnapshot, getSnapshot } from "./service";
 async function boundary(action: () => Promise<ReturnType<typeof respond>>) {
   try { return await action(); }
   catch (error) {
-    if (error instanceof SnapshotError || error instanceof WorkspaceError || error instanceof IdeaError) return respond({ error: error.message }, error.status);
+    if (error instanceof SnapshotError || error instanceof WorkspaceError || error instanceof IdeaError || error instanceof EvidenceError) return respond({ error: error.message }, error.status);
     return respond({ error: "Snapshots are temporarily unavailable. Please retry." }, 503);
   }
 }
