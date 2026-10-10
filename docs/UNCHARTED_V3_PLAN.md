@@ -1,5 +1,10 @@
 # Uncharted V3: complete product and autonomous two-computer implementation plan
 
+> **Superseded for stack, scope and process by `specs/`** (mission, tech-stack, roadmap, milestones). Still useful
+> as reference: the feature catalog (§2, F01–F32) and the product invariants (§1). Where this doc and `specs/`
+> disagree, `specs/` wins. The coordinator, supervisors, eve, the separate services and the self-merge ban
+> described below are not being built.
+
 ## 1. Mission, architecture, and success criteria
 
 ### Main goal
