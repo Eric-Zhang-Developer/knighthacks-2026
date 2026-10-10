@@ -20,11 +20,17 @@ test("the explainer's era board: rows sum to the corpus, tool use sums to each r
   const explainer = page.locator('[data-panel="explainer"]');
   await explainer.getByText("What am I looking at?").click();
   const board = explainer.getByRole("region", { name: "AI tools and eras" });
-  await expect(board.locator('td[data-count="reported"]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(board.locator('[data-count="reported"]').first()).toBeVisible({ timeout: 30_000 });
   const total = Number(await explainer.getByTestId("explainer-count").textContent());
   expect(total).toBe(stars.stars.length);
 
-  const num = async (era: string, col: string) => Number(await board.locator(`tr[data-era="${era}"] td[data-count="${col}"]`).textContent());
+  // Shown formatted ("7,908"); data-value carries the raw count, and the text must match it.
+  const num = async (era: string, col: string) => {
+    const cell = board.locator(`[data-era="${era}"] [data-count="${col}"]`);
+    const value = Number(await cell.getAttribute("data-value"));
+    expect(Number((await cell.textContent())!.replace(/,/g, "")), `${era} ${col} text`).toBe(value);
+    return value;
+  };
   let sum = 0;
   for (const [era, has] of Object.entries(ERA)) {
     const inEra = stars.stars.filter((s) => has(s.year ?? null));

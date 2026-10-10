@@ -3,12 +3,19 @@
 .title { margin: 0; font-family: var(--font-display); font-size: 19px; font-weight: 600; line-height: 1.2; color: var(--paper); }
 .note { margin: 0; font-size: var(--text-sm); color: var(--muted); }
 .label { margin: var(--space-1) 0 0; font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
-.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.table th, .table td { padding: var(--space-1) var(--space-2) var(--space-1) 0; text-align: left; vertical-align: bottom; border-bottom: 1px solid var(--border); }
-.table thead th { font-weight: 400; color: var(--muted); font-size: 12px; line-height: 1.25; }
-.table tbody th { font-weight: 400; color: var(--text); }
-.table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--paper); text-align: right; }
-.table thead th:not(:first-child) { text-align: right; }
+.eras { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.eras > li { display: grid; gap: 4px; padding-left: var(--space-2); border-left: 1px solid var(--brass); }
+.eraHead { margin: 0; display: flex; justify-content: space-between; gap: var(--space-2); color: var(--text); }
+.figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--paper); }
+/* Proportion of the row, in the row's own order; decoration only, the numbers below carry it. */
+.bar { display: flex; height: 3px; border-radius: 2px; overflow: hidden; background: var(--border); }
+.used { background: var(--idea); }
+.didnt { background: var(--brass); }
+.unstated { background: var(--border); }
+.tools { margin: 0; display: grid; gap: 1px; font-size: 12px; }
+.tools > div { display: flex; justify-content: space-between; gap: var(--space-2); }
+.tools dt { color: var(--muted); }
+.tools dd { margin: 0; }
 .releases { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
 .releases time { font-family: var(--font-mono); color: var(--brass); margin-right: var(--space-1); }
 .releases a { color: var(--idea); }

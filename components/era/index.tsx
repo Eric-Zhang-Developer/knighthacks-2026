@@ -5,6 +5,12 @@ import { eraRows, parseToolUse, RELEASES, type ToolUse } from "./era";
 import styles from "./era.module.css";
 
 type Star = { id: string; year?: number | null };
+const num = new Intl.NumberFormat("en");
+const TOOL_LABELS = [
+  ["reported", "Used AI tools"],
+  ["reported_non_use", "Said they didn't"],
+  ["unknown", "Not stated"],
+] as const;
 const fmt = new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 // When projects were started, beside the AI coding tools of the time. Grouped by start date only: whether a team
@@ -29,43 +35,47 @@ export default function EraBoard({ stars, corpusVersion }: { stars: Star[]; corp
     <section className={styles.board} aria-label="AI tools and eras">
       <h3 className={styles.title}>Before and after AI coding tools</h3>
       <p className={styles.note}>
-        Grouped by Devpost&apos;s &ldquo;started this project&rdquo; date, not by when a project was submitted.
+        Grouped by Devpost&apos;s &ldquo;started this project&rdquo; date, not by when a project was submitted. Tool use
+        is what each team&apos;s own description says.
       </p>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th scope="col">Started</th>
-            <th scope="col">Projects</th>
-            {known && (
+      <ol className={styles.eras} aria-label="Projects by start date">
+        {rows.map((r) => (
+          <li key={r.id} data-era={r.id}>
+            <p className={styles.eraHead}>
+              <span>{r.label}</span>
+              <span className={styles.figure} data-count="projects" data-value={r.count}>
+                {num.format(r.count)}
+              </span>
+            </p>
+            {known && r.tools && (
               <>
-                <th scope="col">Says it used AI coding tools</th>
-                <th scope="col">Says it didn&apos;t</th>
-                <th scope="col">Not stated</th>
+                {r.count > 0 && (
+                  <span className={styles.bar} aria-hidden="true">
+                    <span className={styles.used} style={{ flexGrow: r.tools.reported }} />
+                    <span className={styles.didnt} style={{ flexGrow: r.tools.reported_non_use }} />
+                    <span className={styles.unstated} style={{ flexGrow: r.tools.unknown }} />
+                  </span>
+                )}
+                <dl className={styles.tools}>
+                  {TOOL_LABELS.map(([key, label]) => (
+                    <div key={key}>
+                      <dt>{label}</dt>
+                      <dd className={styles.figure} data-count={key} data-value={r.tools![key]}>
+                        {num.format(r.tools![key])}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </>
             )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} data-era={r.id}>
-              <th scope="row">{r.label}</th>
-              <td data-count="projects">{r.count}</td>
-              {known && r.tools && (
-                <>
-                  <td data-count="reported">{r.tools.reported}</td>
-                  <td data-count="reported_non_use">{r.tools.reported_non_use}</td>
-                  <td data-count="unknown">{r.tools.unknown}</td>
-                </>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </li>
+        ))}
+      </ol>
       <p className={styles.note}>
         {tools === "loading"
           ? "Loading what teams say about their tools…"
           : known
-            ? "“Says it used” counts only teams whose description says they built with a coding assistant. Most don't say either way."
+            ? "“Used AI tools” counts only teams whose description says they built with a coding assistant. Most don't say either way."
             : "What teams say about their tools isn't loaded for this corpus, so only start dates are shown."}
       </p>
       <h4 className={styles.label}>Tool releases, for context</h4>
