@@ -11,18 +11,33 @@ const compiled = ts.transpileModule(readFileSync(source, "utf8"), { compilerOpti
 const ownedModule = { exports: {} };
 const serverRequire = (name) => name === "next/dist/compiled/server-only" ? {} : require(name);
 new Function("require", "module", "exports", compiled)(serverRequire, ownedModule, ownedModule.exports);
-const live = Boolean(process.env.GEMINI_API_KEY?.trim());
+// Live mode checks each configured provider alone (the other's key removed), so a fallback can't hide a failure.
+const providers = [["anthropic", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL"], ["gemini", "GEMINI_API_KEY", "GEMINI_MODEL"]]
+  .filter(([, key, model]) => process.env[key]?.trim() && process.env[model]?.trim());
+const live = providers.length > 0;
 // Stub mode is explicitly confined to this test process, never the app server.
 process.env.NODE_ENV = "test";
 if (live) delete process.env.AI_STUB_DIR;
 else process.env.AI_STUB_DIR = fileURLToPath(new URL("../../ai-client/fixtures", import.meta.url));
+const call = () => ownedModule.exports.generate({
+  prompt: { text: 'Return a JSON object with a message string saying "AI client verified".', stubKey: "smoke" },
+  schema: z.object({ message: z.string().min(1).max(200) }),
+});
+let provider = null;
 try {
-  const data = await ownedModule.exports.generate({
-    prompt: { text: 'Return a JSON object with a message string saying "AI client verified".', stubKey: "smoke" },
-    schema: z.object({ message: z.string().min(1).max(200) }),
-  });
-  process.stdout.write(JSON.stringify({ mode: live ? "live" : "stub", model: live ? process.env.GEMINI_MODEL : null, data }));
+  if (!live) process.stdout.write(JSON.stringify({ mode: "stub", model: null, data: await call() }));
+  else {
+    const saved = { ...process.env }, results = [];
+    for (const [name, , model] of providers) {
+      provider = name;
+      for (const [other, key] of providers) if (other !== name) delete process.env[key];
+      process.env.AI_PROVIDER = name;
+      results.push({ provider: name, model: process.env[model], data: await call() });
+      Object.assign(process.env, saved);
+    }
+    process.stdout.write(JSON.stringify({ mode: "live", results }));
+  }
 } catch (error) {
-  process.stderr.write(JSON.stringify({ code: error instanceof ownedModule.exports.AiError ? error.code : "VERIFIER_FAILURE" }));
+  process.stderr.write(JSON.stringify({ provider, code: error instanceof ownedModule.exports.AiError ? error.code : "VERIFIER_FAILURE" }));
   process.exitCode = 1;
 }

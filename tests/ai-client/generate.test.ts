@@ -1,8 +1,9 @@
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { resolve } from "node:path";
 import { z } from "zod";
-const { call, construct } = vi.hoisted(() => ({ call: vi.fn(), construct: vi.fn() }));
+const { call, construct, claude, claudeConstruct } = vi.hoisted(() => ({ call: vi.fn(), construct: vi.fn(), claude: vi.fn(), claudeConstruct: vi.fn() }));
 vi.mock("next/dist/compiled/server-only", () => ({}));
+vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: claude }; constructor(options: unknown) { claudeConstruct(options); } } }));
 vi.mock("@google/genai", () => ({ GoogleGenAI: class { models = { generateContent: call }; constructor(options: unknown) { construct(options); } } }));
 import { AiError, generate } from "@/lib/ai/generate";
 import { checkClaims, type Claim } from "@/lib/ai/claims";
@@ -11,6 +12,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("GEMINI_API_KEY", "test-secret"); vi.stubEnv("GEMINI_MODEL", "test-model");
   vi.stubEnv("AI_STUB_DIR", ""); vi.stubEnv("VERCEL", ""); vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv("ANTHROPIC_API_KEY", ""); vi.stubEnv("ANTHROPIC_MODEL", ""); vi.stubEnv("ANTHROPIC_WORKSPACE_ID", ""); vi.stubEnv("AI_PROVIDER", "");
 });
 afterEach(() => vi.unstubAllEnvs());
 test("validated generation uses configured model and JSON schema", async () => {
@@ -49,6 +51,41 @@ test("fixture mode validates output and rejects unsafe lookup and production use
   vi.stubEnv("NODE_ENV", "production");
   await expect(generate({ prompt: { text: "fixture", stubKey: "smoke" }, schema })).rejects.toMatchObject({ code: "STUB_UNAVAILABLE" });
   expect(call).not.toHaveBeenCalled();
+});
+const claudeText = (text: string, stop_reason = "end_turn") => ({ stop_reason, content: [{ type: "thinking", thinking: "" }, { type: "text", text }] });
+const useClaude = () => { vi.stubEnv("ANTHROPIC_API_KEY", "claude-secret"); vi.stubEnv("ANTHROPIC_MODEL", "claude-test"); };
+test("Claude is preferred when configured and gets a JSON-schema output format", async () => {
+  useClaude(); vi.stubEnv("ANTHROPIC_WORKSPACE_ID", "ws-1");
+  claude.mockResolvedValue(claudeText('{"message":"from claude"}'));
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "from claude" });
+  expect(claude.mock.calls[0][0]).toMatchObject({ model: "claude-test", output_config: { format: { type: "json_schema" } } });
+  expect(claudeConstruct.mock.calls[0][0]).toMatchObject({ maxRetries: 0, defaultHeaders: { "anthropic-workspace-id": "ws-1" } });
+  expect(call).not.toHaveBeenCalled();
+});
+test("Claude invalid output retries once on Claude, without falling back", async () => {
+  useClaude();
+  claude.mockResolvedValueOnce(claudeText("not-json")).mockResolvedValueOnce(claudeText('{"message":"fixed"}'));
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "fixed" });
+  expect(claude).toHaveBeenCalledTimes(2); expect(claude.mock.calls[1][0]).toHaveProperty("system");
+  expect(call).not.toHaveBeenCalled();
+});
+test.each([["provider error", () => claude.mockRejectedValue(new Error("claude-secret private"))], ["refusal", () => claude.mockResolvedValue(claudeText("", "refusal"))]])(
+  "a Claude %s falls back to Gemini", async (_name, fail) => {
+    useClaude(); fail(); call.mockResolvedValue({ text: '{"message":"from gemini"}' });
+    expect(await generate({ prompt: "private", schema })).toEqual({ message: "from gemini" });
+    expect(claude).toHaveBeenCalledTimes(1); expect(call).toHaveBeenCalledTimes(1);
+  });
+test("both providers failing is one safe typed error", async () => {
+  useClaude(); claude.mockRejectedValue(new Error("claude-secret private")); call.mockRejectedValue(new Error("test-secret private"));
+  try { await generate({ prompt: "private", schema }); throw new Error("Expected failure"); }
+  catch (error) { expect(error).toMatchObject({ code: "PROVIDER_ERROR" }); expect(String(error)).not.toMatch(/secret|private/); }
+});
+test("AI_PROVIDER=gemini prefers Gemini, and Claude alone needs no Gemini key", async () => {
+  useClaude(); vi.stubEnv("AI_PROVIDER", "gemini"); call.mockResolvedValue({ text: '{"message":"from gemini"}' });
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "from gemini" });
+  expect(claude).not.toHaveBeenCalled();
+  vi.stubEnv("AI_PROVIDER", ""); vi.stubEnv("GEMINI_API_KEY", ""); claude.mockResolvedValue(claudeText('{"message":"from claude"}'));
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "from claude" });
 });
 test("claim checks only downgrade unsupported provenance and never mutate input", () => {
   const claims: Claim[] = [

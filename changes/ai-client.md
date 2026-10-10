@@ -1,8 +1,8 @@
 ## What shipped
-Server-only Gemini JSON generation with bounded schema retry, sanitized typed errors, test-only fixtures, and source-membership claim downgrades.
+Server-only JSON generation with bounded schema retry, sanitized typed errors, test-only fixtures, and source-membership claim downgrades. Two providers (#55): Claude preferred, Gemini fallback on provider errors or refusals; `AI_PROVIDER=gemini` swaps them.
 ## Where it lives
 lib/ai/, tests/ai-client/, tests/e2e/ai-client/; contract in specs/decisions/ai-client-contract.md.
 ## How to check it
-verify: `node scripts/verify.mjs ai-client "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\ai-client\20261010T104221Z"` pass at 4c96e60 (evidence: C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\ai-client\20261010T104221Z)
+verify: `node scripts/verify.mjs ai-client /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/ai-client/20261010T105928Z` pass at 58be298 (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/ai-client/20261010T105928Z) — live Gemini `gemini-3.8-flash` returned `{"message":"AI client verified"}`.
 ## Gaps
-Fixture verification only: response {"message":"AI client fixture verified"}, model null; live Gemini credentials unavailable. The production build/verifier,9 unit tests, typecheck/lint and real negative client-import build passed. Claims check source membership, not factual entailment.
+Claude live is unverified: the owner's key is not scoped to a workspace, so the API returns 400 until `ANTHROPIC_WORKSPACE_ID` is set or a workspace-scoped key replaces it (the verify run above blanked `ANTHROPIC_API_KEY`). Claude is covered by unit tests with a mocked SDK only. Claims check source membership, not factual entailment.
