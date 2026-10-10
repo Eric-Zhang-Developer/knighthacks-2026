@@ -18,7 +18,7 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   after: voice is the Wow factor, so it is core work, not an add-on.
 - **submission**, ships Sun 10:45: branches, comparison, a private team vote, a decision snapshot, and a share link
   with a QR code (F25, F16, F29, F32, F10). Then the add-ons, last in order: deploy the same app on Vultr, and a
-  GoDaddy domain. Freeze from Sun 06:00; fixes and docs only from 09:00. Humans submit to Devpost by 09:45
+  GoDaddy domain. Freeze from Sun 08:30; fixes and docs only from 09:00. Humans submit to Devpost by 09:45
   (hard deadline 10:00). Final code push: 11:00.
 - **submission, second wave** (added Sat 12:15 once the first wave was done): a live run of every AI route
   (live-smoke), the rubric and sponsor overlay (F11), strongest alternative (F26), prove it in ten minutes (F27),
