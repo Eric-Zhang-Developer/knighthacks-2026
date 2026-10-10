@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ClaimBadge, PanelState } from "@/components/ui";
 import { initWorkspace, post } from "@/components/workspace/api";
 import { useAppState } from "@/lib/store";
+import Rubric from "./Rubric";
 import styles from "./snapshot.module.css";
 
 type Claim = { text: string; label: "supported" | "inferred" | "unverified"; sourceIds: string[] };
@@ -120,6 +121,7 @@ export default function Snapshot() {
           </button>
         </article>
       )}
+      {snapshot && d && <Rubric versionId={d.versionId} />}
     </section>
   );
 }

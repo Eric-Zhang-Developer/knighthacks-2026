@@ -33,3 +33,19 @@
   .snapshot a { text-decoration: underline; }
   .print { display: none; }
 }
+
+/* Event tracks overlay, below the frozen snapshot. */
+.rubric { display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); container-type: inline-size; }
+.rubric h4 { font-size: var(--text-md); }
+.rubric summary { cursor: pointer; font-weight: 600; }
+.track { display: grid; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.track h5 { font-size: var(--text-md); }
+.track h6 { font-size: var(--text-sm); color: var(--muted); font-weight: 600; }
+.columns { display: grid; gap: var(--space-2); grid-template-columns: 1fr; }
+@container (min-width: 520px) { .columns { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.shown { color: var(--idea); font-weight: 400; font-size: var(--text-sm); }
+.proof { display: grid; gap: var(--space-1); }
+.proof a { color: var(--idea); word-break: break-all; }
+.field { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--muted); }
+.field textarea { font: inherit; color: var(--text); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.actions { display: flex; gap: var(--space-2); }
