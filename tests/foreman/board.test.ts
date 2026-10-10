@@ -43,7 +43,7 @@ const raw: Raw = {
   repo: "o/r",
   sha: "abc",
   fetchedAt: "2026-10-10T14:00:00Z",
-  paths: [],
+  stop: false,
   files: {
     "specs/milestones.toml": TOML,
     "specs/features/a/spec.md": spec([]),
@@ -67,7 +67,10 @@ const raw: Raw = {
     { number: 9, title: "Need a key", url: "u", labels: ["needs-human"], createdAt: "" },
     { number: 10, title: "Just a bug", url: "u", labels: ["bug"], createdAt: "" },
   ],
+  prsKnown: true,
   mainCi: "success",
+  mainCiUrl: null,
+  api: { token: true, calls: 5, remaining: 4990, limit: 5000, error: null },
 };
 
 test("states follow AGENTS.md: done, in flight, ready, blocked, cut, backlog", () => {
@@ -158,16 +161,26 @@ test("build time runs from the first feat PR to its merge; unfinished features o
   expect(later.filter((x) => x.missed).map((x) => x.slug)).toEqual(["b", "c", "d"]); // e is cut, a is done
 });
 
-test("heat ranks by lines changed when every recent PR has a count, else by PR activity", () => {
-  const prs = raw.prs.map((p) => ({ ...p, lines: p.number === 3 ? 400 : 4 }));
-  const lines = buildBoard({ ...raw, prs }, NOW);
-  expect(lines.heatBasis).toBe("lines");
-  const heat = Object.fromEntries(lines.features.map((f) => [f.slug, f.heat]));
-  expect(heat.d).toBe(1); // #3, 400 lines, touched 10 min ago
-  expect(heat.b).toBeGreaterThan(0); // #5: 4 lines, touched 2h ago, still inside the 3h window
-  expect(heat.b).toBeLessThan(0.1);
-  const missing = buildBoard({ ...raw, prs: prs.map((p) => (p.number === 2 ? { ...p, lines: undefined } : p)) }, NOW);
-  expect(missing.heatBasis).toBe("activity");
+test("heat is PR activity in the 3h before the snapshot, weighted toward the most recent", () => {
+  const heat = Object.fromEntries(buildBoard(raw, NOW).features.map((f) => [f.slug, f.heat]));
+  expect(heat.a).toBe(1); // #1 and #2, both touched 10 min before the snapshot
+  expect(heat.d).toBe(0.5); // #3 alone, same age
+  expect(heat.b).toBeGreaterThan(0); // #5, touched 2h before: inside the window, colder
+  expect(heat.b).toBeLessThan(heat.d);
+  expect(heat.c).toBe(0); // no PR
+});
+
+test("without PR data, features that could be in flight are unknown; done, cut and backlog still come from files", () => {
+  const b = buildBoard({ ...raw, prs: [], issues: [], prsKnown: false, mainCi: "unknown" }, NOW);
+  const state = Object.fromEntries(b.features.map((f) => [f.slug, f.state]));
+  expect(state).toEqual({ a: "done", b: "unknown", c: "unknown", d: "unknown", e: "cut", f: "backlog", foreman: "unknown" });
+  expect(b.asks.map((a) => a.kind)).not.toContain("ci");
+  expect(b.asks.map((a) => a.kind)).not.toContain("pickable"); // e may already be in flight: not a guess we make
+});
+
+test("a STOP file and a red main are the first asks", () => {
+  const b = buildBoard({ ...raw, stop: true, mainCi: "failure", mainCiUrl: "run" }, NOW);
+  expect(b.asks.slice(0, 2).map((a) => [a.kind, a.url])).toEqual([["stop", null], ["ci", "run"]]);
 });
 
 test("a feature on the cut list that someone is building shows as in flight", () => {

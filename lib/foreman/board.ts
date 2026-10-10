@@ -12,7 +12,8 @@ import {
   workerOf,
 } from "./parse";
 
-// Everything the board is built from, as read from GitHub. Pure data, so tests can build a board offline.
+// Everything the board is built from: the snapshot lib/foreman/collect.ts takes once per build. Pure data, so
+// tests can build a board offline.
 export type PR = {
   number: number;
   title: string;
@@ -26,22 +27,26 @@ export type PR = {
   body: string | null;
   headSha: string;
   ci?: Ci;
-  lines?: number; // additions + deletions, fetched only for PRs touched in the heat window
 };
 export type Issue = { number: number; title: string; url: string; labels: string[]; createdAt: string };
-export type Ci = "success" | "failure" | "pending" | "none";
+export type Ci = "success" | "failure" | "pending" | "none" | "unknown";
+// The API pass: whether it had a token, what it spent, what GitHub says is left, and why it stopped.
+export type Api = { token: boolean; calls: number; remaining: number | null; limit: number | null; error: string | null };
 export type Raw = {
   repo: string;
-  sha: string;
-  fetchedAt: string;
+  sha: string; // the commit being built
+  fetchedAt: string; // the snapshot time
   files: Record<string, string>; // path -> text, for specs/**, changes/*.md, specs/milestones.toml
-  paths: string[]; // every path on main (for STOP and spec folders)
+  stop: boolean; // a STOP file in the checkout
   prs: PR[]; // newest first, open and closed
   issues: Issue[]; // open issues only
-  mainCi: Ci;
+  prsKnown: boolean; // false without a token or when the API failed: prs and issues are empty, not "none"
+  mainCi: Ci; // the latest completed push run on main
+  mainCiUrl: string | null;
+  api: Api;
 };
 
-export type State = "done" | "flight" | "ready" | "blocked" | "cut" | "backlog";
+export type State = "done" | "flight" | "ready" | "blocked" | "cut" | "backlog" | "unknown";
 export const STATE_TEXT: Record<State, string> = {
   done: "built",
   flight: "under construction",
@@ -49,6 +54,7 @@ export const STATE_TEXT: Record<State, string> = {
   blocked: "blocked",
   cut: "on cut list",
   backlog: "backlog",
+  unknown: "unknown: needs PR data",
 };
 export type Feature = {
   slug: string;
@@ -62,7 +68,7 @@ export type Feature = {
   gap: string;
   shipped: string; // first line of the done note
   fixes: number;
-  heat: number; // 0..1, lines changed (or, failing that, PR activity) on this feature in the last HEAT_HOURS
+  heat: number; // 0..1, PR activity on this feature in the HEAT_HOURS before the snapshot
   doneAt: string | null; // when its feat PR merged (null if done some other way)
   startedAt: string | null; // when its first feat PR opened
   claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
@@ -84,6 +90,8 @@ export type Milestone = {
 export type Ask = { kind: "merge" | "clash" | "pickable" | "issue" | "stale" | "ci" | "stop" | "review"; title: string; detail: string; url: string | null };
 export type Lane = { worker: string; note: string | null; prs: (PR & { scope: string | null; kind: string | null })[]; merged: number };
 export type Board = {
+  api: Api;
+  prsKnown: boolean;
   repo: string;
   sha: string;
   fetchedAt: string;
@@ -101,7 +109,6 @@ export type Board = {
     crew: number; // named workers with at least one merged PR
     firstPrAt: string | null;
   };
-  heatBasis: "lines" | "activity";
   replay: { at: string; number: number; title: string; slug: string | null; kind: string | null }[];
 };
 
@@ -160,19 +167,12 @@ export function buildBoard(raw: Raw, now: number): Board {
       fixes.set(t.scope, (fixes.get(t.scope) ?? 0) + 1);
   }
 
-  // Heat: lines changed in PRs on a feature touched in the window, weighted toward the most recent. Square root,
-  // so one 2,000-line PR doesn't make every other feature look cold. If any line count in the window is missing,
-  // every PR counts as one instead: mixing the two would rank by whichever we happened to fetch.
-  const inWindow = titled.filter((p) => {
-    const age = now - Date.parse(p.updatedAt);
-    return p.t?.scope && age >= 0 && age <= HEAT_HOURS * 3_600_000;
-  });
-  const heatBasis: Board["heatBasis"] = inWindow.length && inWindow.every((p) => p.lines !== undefined) ? "lines" : "activity";
+  // Heat: PRs on a feature touched in the window, each weighted toward the most recent.
   const heatRaw = new Map<string, number>();
-  for (const p of inWindow) {
-    const recency = 1 - (now - Date.parse(p.updatedAt)) / (HEAT_HOURS * 3_600_000);
-    const size = heatBasis === "lines" ? Math.sqrt(p.lines!) : 1;
-    heatRaw.set(p.t!.scope!, (heatRaw.get(p.t!.scope!) ?? 0) + size * recency);
+  for (const p of titled) {
+    const age = now - Date.parse(p.updatedAt);
+    if (p.t?.scope && age >= 0 && age <= HEAT_HOURS * 3_600_000)
+      heatRaw.set(p.t.scope, (heatRaw.get(p.t.scope) ?? 0) + 1 - age / (HEAT_HOURS * 3_600_000));
   }
   const maxHeat = Math.max(1e-9, ...heatRaw.values());
 
@@ -192,6 +192,7 @@ export function buildBoard(raw: Raw, now: number): Board {
       const merged = feats.filter((p) => p.mergedAt).map((p) => p.mergedAt!).sort();
       const opened = feats.map((p) => p.createdAt).sort();
       // An open PR wins over the cut list: cut means "drop first if late" (milestones.toml), not "don't build".
+      // Without PR data, in flight can't be told from ready or blocked, so those are unknown rather than a guess.
       const state: State = note
         ? "done"
         : open
@@ -200,9 +201,11 @@ export function buildBoard(raw: Raw, now: number): Board {
             ? "cut"
             : !scheduled.has(slug)
               ? "backlog"
-              : deps.every((d) => notes.has(d))
-                ? "ready"
-                : "blocked";
+              : !raw.prsKnown
+                ? "unknown"
+                : deps.every((d) => notes.has(d))
+                  ? "ready"
+                  : "blocked";
       return {
         slug,
         name: String(fm.name ?? ""),
@@ -232,10 +235,10 @@ export function buildBoard(raw: Raw, now: number): Board {
   }
 
   const asks: Ask[] = [];
-  if (raw.paths.includes("STOP"))
+  if (raw.stop)
     asks.push({ kind: "stop", title: "STOP file is on main", detail: "Every agent stops until it's removed", url: null });
   if (raw.mainCi === "failure")
-    asks.push({ kind: "ci", title: "main is red", detail: "Only the fix merges until it's green", url: `https://github.com/${raw.repo}/actions?query=branch%3Amain` });
+    asks.push({ kind: "ci", title: "main is red", detail: "The latest finished run on main failed; only the fix merges until it's green", url: raw.mainCiUrl });
   // Two open feat PRs on one feature: the earlier draft is the claim (AGENTS.md), so the later one is wasted work.
   const claims = new Map<string, typeof titled>();
   for (const p of titled)
@@ -256,7 +259,7 @@ export function buildBoard(raw: Raw, now: number): Board {
     if (!p.draft && (p.t?.kind === "plan" || p.t?.kind === "contract"))
       asks.push({ kind: "merge", title: p.title, detail: `#${p.number} waits for a person to merge`, url: p.url });
     else if (p.draft && minutes(now, Date.parse(p.updatedAt)) >= STALE_MIN)
-      asks.push({ kind: "stale", title: p.title, detail: `#${p.number}: no push for ${minutes(now, Date.parse(p.updatedAt))} min; the session may be dead`, url: p.url });
+      asks.push({ kind: "stale", title: p.title, detail: `#${p.number}: no push for ${minutes(now, Date.parse(p.updatedAt))} min at snapshot; the session may be dead`, url: p.url });
   }
   for (const i of raw.issues) {
     const flags = i.labels.filter((l) => ["needs-human", "blocked", "one-way-door", "contract-change"].includes(l));
@@ -267,7 +270,8 @@ export function buildBoard(raw: Raw, now: number): Board {
   for (const f of features) {
     const m = milestones.find((x) => x.cut.includes(f.slug) && x.features.includes(f.slug));
     const open = m && (m.ship === null || m.ship > now) && (m.freeze === null || m.freeze > now);
-    if (f.state === "cut" && open && f.deps.every((d) => notes.has(d)))
+    // Without PR data someone may already be building it, so don't claim it's free to pick.
+    if (raw.prsKnown && f.state === "cut" && open && f.deps.every((d) => notes.has(d)))
       asks.push({
         kind: "pickable",
         title: `${f.slug} is cut but still pickable`,
@@ -301,6 +305,8 @@ export function buildBoard(raw: Raw, now: number): Board {
   const recent = new Set(titled.filter((p) => now - Date.parse(p.updatedAt) < HEAT_HOURS * 3_600_000).map((p) => workerOf(p.body)).filter(Boolean));
 
   return {
+    api: raw.api,
+    prsKnown: raw.prsKnown,
     repo: raw.repo,
     sha: raw.sha,
     fetchedAt: raw.fetchedAt,
@@ -309,7 +315,6 @@ export function buildBoard(raw: Raw, now: number): Board {
     features,
     asks,
     lanes,
-    heatBasis,
     stats: {
       merged: merged.length,
       byKind,
@@ -351,7 +356,7 @@ export function statesAt(features: Feature[], t: number): Map<string, State> {
     features.map((f): [string, State] => {
       if (done.has(f.slug)) return [f.slug, "done"];
       if (f.claims.some(([a, b]) => Date.parse(a) <= t && (!b || Date.parse(b) > t))) return [f.slug, "flight"];
-      if (f.state === "cut" || f.state === "backlog") return [f.slug, f.state];
+      if (f.state === "cut" || f.state === "backlog" || f.state === "unknown") return [f.slug, f.state];
       return [f.slug, f.deps.every((d) => done.has(d)) ? "ready" : "blocked"];
     }),
   );

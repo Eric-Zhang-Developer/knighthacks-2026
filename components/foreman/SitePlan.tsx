@@ -3,23 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { statesAt, type Board } from "@/lib/foreman/board";
 import Graph from "./Graph";
-import { clock, span } from "./Live";
+import { clock, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
 const PLAY_MS = 24_000; // the whole build replays in this long
 const BUCKET = 30 * 60_000; // histogram bucket
 
-type Props = Pick<Board, "features" | "replay" | "repo" | "start" | "heatBasis"> & { now: number };
+type Props = Pick<Board, "features" | "replay" | "repo" | "start"> & { now: number };
 
-// The feature graph, plus a scrubber that replays it from the first PR to now.
-export default function SitePlan({ features, replay, repo, start, heatBasis, now }: Props) {
+// The feature graph, plus a scrubber that replays it from the first PR to the snapshot (`now` is the snapshot time).
+export default function SitePlan({ features, replay, repo, start, now }: Props) {
   // From the first PR activity, not the event start: nothing on GitHub happened before it, so playing it is dead air.
   const first = Math.min(
     ...features.flatMap((f) => f.claims.map(([a]) => Date.parse(a))),
     ...replay.map((r) => Date.parse(r.at)),
     now,
   );
-  const [t, setT] = useState<number | null>(null); // null = live
+  const [t, setT] = useState<number | null>(null); // null = the snapshot
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
@@ -68,7 +68,10 @@ export default function SitePlan({ features, replay, repo, start, heatBasis, now
 
   return (
     <>
-      <Graph features={features} repo={repo} shown={shown} heatBasis={heatBasis} />
+      <Graph features={features} repo={repo} shown={shown} />
+      {replay.length === 0 ? (
+        <p className={styles.needsPrs}>The replay needs PR data, missing from this snapshot (see above).</p>
+      ) : (
       <div className={styles.replay} aria-label="Replay the build">
         <button
           type="button"
@@ -106,7 +109,7 @@ export default function SitePlan({ features, replay, repo, start, heatBasis, now
         </div>
         <div className={styles.replayInfo} data-testid="replay-info">
           <span className={styles.replayClock}>
-            {t === null ? "LIVE" : clock(t)}
+            {t === null ? "SNAPSHOT" : clock(t)}
             {start !== null && <small> T{at >= start ? "+" : "−"}{span(at - start).slice(0, 5)}</small>}
           </span>
           <span>
@@ -116,10 +119,11 @@ export default function SitePlan({ features, replay, repo, start, heatBasis, now
         </div>
         {t !== null && (
           <button type="button" className={styles.liveBtn} onClick={() => (setPlaying(false), setT(null))}>
-            back to live
+            back to snapshot
           </button>
         )}
       </div>
+      )}
     </>
   );
 }

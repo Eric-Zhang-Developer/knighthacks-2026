@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { dur, pace, PACE_HOURS, STATE_TEXT, type Feature, type Milestone } from "@/lib/foreman/board";
+import { clock, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
-
-export const TZ = "America/New_York"; // the event's clock (milestones.toml times are EDT)
 
 // Starts from the server's `now` so the first client render matches the HTML, then ticks every second.
 function useNow(initial: number) {
@@ -16,14 +14,6 @@ function useNow(initial: number) {
   }, []);
   return now;
 }
-
-const pad = (n: number) => String(Math.floor(n)).padStart(2, "0");
-export function span(ms: number) {
-  const s = Math.max(0, Math.floor(Math.abs(ms) / 1000));
-  return `${pad(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`;
-}
-export const clock = (t: number) =>
-  new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(t);
 
 // Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay.
 const SECTIONS = ["ms", "ask", "how", "graph", "crew"];
@@ -58,23 +48,7 @@ export function DemoKeys() {
   );
 }
 
-// A dashboard left open on a laptop should keep up without a reload. Client state (a replay in progress) survives.
-// The cached page can be old after a quiet spell (served stale while it regenerates), so a load with data
-// older than STALE_MS refreshes once a few seconds later instead of waiting the full minute.
-const STALE_MS = 120_000;
-export function AutoRefresh({ fetchedAt, every = 60_000 }: { fetchedAt?: string; every?: number }) {
-  const router = useRouter();
-  useEffect(() => {
-    const stale = fetchedAt && Date.now() - Date.parse(fetchedAt) > STALE_MS;
-    const soon = stale ? setTimeout(() => router.refresh(), 5_000) : undefined;
-    const id = setInterval(() => document.visibilityState === "visible" && router.refresh(), every);
-    return () => {
-      clearTimeout(soon);
-      clearInterval(id);
-    };
-  }, [router, every, fetchedAt]);
-  return null;
-}
+const OLD_S = 30 * 60; // spec Defaults: amber past 30 min
 
 export function HeaderClock({
   now: initial,
@@ -101,15 +75,26 @@ export function HeaderClock({
           <b>{span(now - start)}</b>
         </span>
       )}
-      <span title={`GitHub data as of ${fetchedAt}`}>
-        data <b>{age < 90 ? `${age}s` : `${Math.round(age / 60)}m`}</b> old
+      {/* The page is a snapshot taken at build: its age is the one number here that must keep ticking. */}
+      <span className={styles.age} data-old={age > OLD_S ? "" : undefined} title={`Snapshot taken ${fetchedAt}; refreshed by the next deploy`}>
+        surveyed <b>{age < 90 ? `${age}s` : age < 5400 ? `${Math.round(age / 60)}m` : dur(Math.round(age / 60))}</b> ago
       </span>
     </div>
   );
 }
 
-export function Milestones({ now: initial, milestones, features }: { now: number; milestones: Milestone[]; features: Feature[] }) {
-  const now = useNow(initial);
+export function Milestones({
+  now: snapshot,
+  milestones,
+  features,
+  prsKnown,
+}: {
+  now: number;
+  milestones: Milestone[];
+  features: Feature[];
+  prsKnown: boolean;
+}) {
+  const now = useNow(snapshot);
   const bySlug = new Map(features.map((f) => [f.slug, f]));
   const current = milestones.find((m) => m.ship && m.ship > now)?.name;
   return (
@@ -149,12 +134,13 @@ export function Milestones({ now: initial, milestones, features }: { now: number
                   .map((s) => (
                     <span key={s} data-state={bySlug.get(s)!.state} title={STATE_TEXT[bySlug.get(s)!.state]}>
                       {s}
-                      {bySlug.get(s)!.state === "flight" && bySlug.get(s)!.startedAt && ` · open ${dur(Math.round((now - Date.parse(bySlug.get(s)!.startedAt!)) / 60_000))}`}
+                      {bySlug.get(s)!.state === "flight" && bySlug.get(s)!.startedAt && ` · open ${dur(Math.round((snapshot - Date.parse(bySlug.get(s)!.startedAt!)) / 60_000))} at snapshot`}
                     </span>
                   ))}
               </div>
             )}
-            {!passed && m.ship !== null && <Pace m={m} features={features} now={now} ship={m.ship} />}
+            {/* Pace reads build times from PR history: without it there is no rate, not a rate of zero. */}
+            {!passed && m.ship !== null && prsKnown && <Pace m={m} features={features} now={snapshot} ship={m.ship} />}
             {passed && (
               <span className={`${styles.stamp} ${styles.stencil}`} data-bad={m.done < m.total ? "" : undefined}>
                 {m.done < m.total ? `${m.total - m.done} missed` : "shipped"}

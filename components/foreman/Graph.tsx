@@ -17,6 +17,8 @@ export const STATE: Record<State, { label: string; fill: string; stroke: string;
   blocked: { label: "blocked", fill: "#14110c", stroke: "#4a4338", text: "#8a806e", dash: "4 3" },
   cut: { label: "on cut list", fill: "#14110c", stroke: "#e2674a", text: "#c96a55", dash: "2 4" },
   backlog: { label: "backlog", fill: "#0c0a07", stroke: "#2c261c", text: "#857b6a", dash: "1 3" },
+  // An unsurveyed plot: without PR data it could be ready, blocked or under construction.
+  unknown: { label: "unknown: needs PR data", fill: "#0c0a07", stroke: "#958a78", text: "#958a78", dash: "7 3" },
 };
 
 /** The longest chain of unfinished features: the order work has to land in before the last one can start. */
@@ -72,17 +74,15 @@ function layout(features: Feature[]) {
   return { pos, width: PAD * 2 + cols.length * W + (cols.length - 1) * COL, height };
 }
 
-// `shown` replays earlier states on the same layout; heat, CI and the critical path are live-only.
+// `shown` replays earlier states on the same layout; heat, CI and the critical path are the snapshot's only.
 export default function Graph({
   features,
   repo,
   shown,
-  heatBasis,
 }: {
   features: Feature[];
   repo: string;
   shown?: Map<string, State>;
-  heatBasis: "lines" | "activity";
 }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
@@ -231,7 +231,7 @@ export default function Graph({
         ))}
         <span>
           <i style={{ background: "#ff8a1f", filter: "blur(2px)" }} />
-          heat = {heatBasis === "lines" ? "lines changed" : "PR activity"}, last 3h
+          heat = PR activity, 3h before the snapshot
         </span>
         <span>
           <i style={{ background: "transparent", borderTop: "2px dashed #ffb547", height: 0 }} />
