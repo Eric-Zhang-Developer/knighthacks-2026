@@ -1,0 +1,57 @@
+# Settings for the scripts in .agents/scripts. Every key is optional; the defaults are shown.
+schema = 3                       # layout version; the installer compares it on upgrade. Don't edit.
+profile = "hackathon"          # hackathon | project
+size = "full"                # lite (one agent) | full (parallel agents)
+
+[paths]
+specs = "specs"
+changes = "changes"              # done notes: changes/<slug>.md
+reports = "reports"              # deploy receipts, final report
+
+[ownership]
+# Only `contract:` PRs may change these path prefixes.
+frozen = ["AGENTS.md", "CLAUDE.md", ".agents/", ".github/"]
+# Any PR may change these.
+open = []
+
+[agents]
+max_parallel = 3      # agents running at once on one machine
+reporter = ""                    # worker that refreshes the Status issue (full size)
+
+[pr]
+warn_lines = 400                 # CI warns (never fails) above this many changed lines; 0 = off
+exclude = []                     # prefixes not counted: lockfiles, generated data
+
+[verify]
+# How an agent sees its own change running: one deterministic command that drives the real software the way a user
+# would (a CLI smoke run, a headless-browser script, an HTTP check) and fails on a wrong result, not just a crash.
+# Shell template with {slug} {worktree} {out} (a fresh evidence folder, kept). Empty = not set up, and reported.
+command = ""
+timeout = 300                    # seconds; then it fails, and everything it started is stopped
+
+[markers]
+debug_patterns = ['^\s*debugger;?\s*$', '^\s*breakpoint\(\)', '^\s*import pdb', 'console\.log\(']
+ignore = []                      # prefixes never scanned
+
+[watchdog]
+heartbeat_minutes = 20           # a quieter heartbeat means a dead session
+stuck_minutes = 60               # fresh heartbeat but no commit or file change this long: alert (never restarts)
+max_restarts = 2                 # restarts per worker per hour; past that, alert instead
+stale_claim_minutes = 45         # draft PR with no push: comment
+close_claim_minutes = 60         # ...then close
+main_red_minutes = 20            # main red longer: alert + `main-red` issue
+min_free_disk_gb = 10
+min_free_ram_gb = 2
+restart = ""                     # shell template with {worker} {worktree}; empty = alert only
+alert = ""                       # shell template with {message}; empty = print only
+
+[release]
+url = ""                         # production origin, https://...
+health_path = "/api/health"      # must return JSON {"commit": "<sha>"}
+smoke_paths = ["/"]
+snapshot_paths = ["/"]
+secret_patterns = ["sk-", "sk_live_", "AIza", "ghp_", "github_pat_", "xox", "mongodb+srv://", "postgres://", "-----BEGIN"]
+
+[budget]
+monthly_usd = 0                  # project: your monthly cap
+reserve_final_hours = 3          # hackathon: keep this much capacity for the end

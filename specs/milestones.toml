@@ -1,0 +1,34 @@
+# Milestones: what ships when, in what order. Enforced in CI by .agents/scripts/check_gates.py.
+# Agents pick the first ready feature in this file's order: milestones top to bottom (skipping ones whose ship time
+# has passed), features left to right. A spec in no milestone is backlog and is never picked.
+#
+# ship    "+H:MM" after start · "YYYY-MM-DD" (through the end of that day, UTC) · an ISO time with offset · "" = none
+# freeze  "H:MM" or "2d" before ship: only this milestone's features (and `allow`) merge as feat; fixes still merge;
+#         anything on `cut` is rejected.
+# final   the last milestone: from `report_before`, only fixes, reverts, docs and `allow`; at ship, nothing merges.
+# The bootstrap feature always merges before any other feature.
+#
+# Defaults assume a 36-hour event, staged so the big idea never risks the safe one. Scale the offsets to yours.
+start = ""        # SET IN THE LAUNCH COMMIT, e.g. "2026-10-10T09:00:00-04:00". Empty = deadlines off.
+
+[[milestone]]
+name = "safe-demo"        # R0: something trustworthy to show, early
+ship = "+12:00"
+features = []             # slugs, in priority order; the bootstrap feature goes first
+cut = []
+
+[[milestone]]
+name = "core"             # R1: what the judges score
+ship = "+24:00"
+features = []
+cut = []                  # decide now what drops if this runs late, not at the deadline
+
+[[milestone]]
+name = "submission"       # R2/R3: the ambitious target and one stretch, then the freeze
+ship = "+35:30"
+freeze = "5:30"           # from +30:00: no new features
+final = true
+report_before = "1:30"    # from +34:00: the reporter writes reports/final.md and commits STOP
+features = []
+cut = []
+allow = []                # e.g. your reporter's feature
