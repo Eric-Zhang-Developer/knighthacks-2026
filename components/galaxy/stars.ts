@@ -17,7 +17,7 @@ export type StarsFile = z.infer<typeof Stars>;
 
 export const parseStars = (data: unknown): StarsFile => Stars.parse(data);
 
-// One fetch and one parse per page for the galaxy, search and explainer: each used to fetch and parse its own copy.
+// One fetch and one parse per page, shared by the galaxy and search, which each used to fetch and parse their own copy.
 // A failure isn't cached, so the next caller tries again.
 export type StarsLoad = { state: "ready"; data: StarsFile } | { state: "missing"; reason?: string };
 let starsLoad: Promise<StarsLoad> | null = null;

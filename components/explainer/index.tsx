@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadStars } from "@/components/galaxy/stars";
 import { summarize } from "./summary";
 import styles from "./explainer.module.css";
 
@@ -9,7 +8,10 @@ export default function Explainer() {
   const [summary, setSummary] = useState<ReturnType<typeof summarize> | null>(null);
 
   useEffect(() => {
-    loadStars().then((l) => l.state === "ready" && setSummary(summarize(l.data.stars)));
+    fetch("/corpus/stars.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => Array.isArray(json?.stars) && setSummary(summarize(json.stars)))
+      .catch(() => {});
   }, []);
 
   // No corpus: the galaxy already says so, and there is nothing to explain.
