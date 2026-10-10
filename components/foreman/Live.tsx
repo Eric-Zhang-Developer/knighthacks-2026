@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { Feature, Milestone } from "@/lib/foreman/board";
+import { dur, pace, PACE_HOURS, STATE_TEXT, type Feature, type Milestone } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
 
 export const TZ = "America/New_York"; // the event's clock (milestones.toml times are EDT)
@@ -142,6 +142,19 @@ export function Milestones({ now: initial, milestones, features }: { now: number
               <b>{m.done}</b> of {m.total} features done
               {m.cut.length > 0 && ` · ${m.cut.length} on cut list`}
             </div>
+            {!passed && live.some((s) => bySlug.get(s)!.state !== "done") && (
+              <div className={styles.left}>
+                {live
+                  .filter((s) => bySlug.get(s)!.state !== "done")
+                  .map((s) => (
+                    <span key={s} data-state={bySlug.get(s)!.state} title={STATE_TEXT[bySlug.get(s)!.state]}>
+                      {s}
+                      {bySlug.get(s)!.state === "flight" && bySlug.get(s)!.startedAt && ` · open ${dur(Math.round((now - Date.parse(bySlug.get(s)!.startedAt!)) / 60_000))}`}
+                    </span>
+                  ))}
+              </div>
+            )}
+            {!passed && m.ship !== null && <Pace m={m} features={features} now={now} ship={m.ship} />}
             {passed && (
               <span className={`${styles.stamp} ${styles.stencil}`} data-bad={m.done < m.total ? "" : undefined}>
                 {m.done < m.total ? `${m.total - m.done} missed` : "shipped"}
@@ -150,6 +163,21 @@ export function Milestones({ now: initial, milestones, features }: { now: number
           </article>
         );
       })}
+    </div>
+  );
+}
+
+// A crew-wide rate says nothing about one or two stragglers (a single stuck PR would read "on time"), so below
+// MIN_LEFT the tile shows how long each has been open instead of a forecast.
+const MIN_LEFT = 3;
+function Pace({ m, features, now, ship }: { m: Milestone; features: Feature[]; now: number; ship: number }) {
+  if (m.total - m.done < MIN_LEFT) return null;
+  const p = pace(m, features, now);
+  if (!p) return <div className={styles.pace}>no features built in the last {PACE_HOURS}h: no pace to project</div>;
+  const late = p.eta > ship;
+  return (
+    <div className={styles.pace} data-late={late ? "" : undefined} data-testid={`pace-${m.name}`}>
+      at the last {PACE_HOURS}h&apos;s pace ({p.perHour.toFixed(1)}/h): ~{clock(p.eta)} · {late ? `~${span(p.eta - ship).slice(0, 5)} late` : "on time"}
     </div>
   );
 }

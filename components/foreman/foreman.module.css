@@ -967,3 +967,34 @@
 .cardLinks a {
   color: var(--amber);
 }
+
+/* ---- what's left + pace, per milestone ---- */
+.left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.left span {
+  color: var(--dim);
+}
+
+.left span[data-state="flight"] {
+  color: var(--amber);
+}
+
+.left span[data-state="ready"] {
+  color: var(--ready);
+}
+
+.pace {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--green);
+}
+
+.pace[data-late] {
+  color: var(--rust);
+}
