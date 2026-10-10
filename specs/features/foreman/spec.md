@@ -21,11 +21,19 @@ already works out the state, but as a Markdown issue nobody reads mid-event. For
 Two audiences, one page. **The team** opens it to see what needs them; it must say how old its data is. **Judges**
 see it in a live laptop walkthrough; it must load instantly and can never show an error page.
 
-Person's decisions (2026-10-10): construction-terminal look, unlisted and open (no key), understanding views
-before the replay, tuned for a live laptop walkthrough, and **collect the data once, then show it** (after the
+Person's decisions (2026-10-10): construction-terminal look, unlisted and open (no key), tuned for a live laptop
+walkthrough, and **collect the data once, then show it** (after the
 request-time version hit GitHub's rate limit and went blank in production). Owned entirely by worker `foreman`;
 it's in `allow`, not in any milestone's `features`, so other agents never pick it. Implementation plan:
 [plan.md](plan.md).
+
+Later the same day the person approved a **40-second judge tour** (it replaces "understanding views before the
+replay"): the replay leads the page, because it is the one view a judge grasps without explanation, and the
+rubric's Technical Understanding asks for "diagrams in the demo" (`specs/context/event.md`). The team sections
+follow it unchanged. The tour, in the walkthrough:
+1. (5 s) "We wrote specs; a crew of agents built it under one rulebook. Here's the actual build."
+2. (25 s) Space: the graph fills in, nodes flash as features land, counters climb, chapters caption the moments.
+3. (10 s) Click one node: its spec, its PR and its done note, on GitHub. Every node is real.
 
 ## Architecture
 ```
@@ -79,14 +87,41 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
 - Header: brand, repo link, `snapshot <time> · main @ <sha>` (the commit built, also in `data-sha`), API status
   (`API: token · N calls · R/L left`, `API: no token`, or `API: failed`), wall clock, T+, snapshot age (amber past
   30 min).
-- Sections, in pitch order, with demo keys 1-5 to jump and space to play the replay: milestones (countdown, freeze,
+- Sections, in pitch order, with demo keys 1-5 to jump and space to play the replay: the tour (below), milestones (countdown, freeze,
   cells per feature, what's left with in-flight ages at snapshot, pace forecast when 3 or more are left); needs a
   person, beside build stats (features built, PRs merged, agents active in 3 h, median PR open to merge, merged PRs
-  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the site plan (graph with
-  critical path, hover trace, click card, cmd-click to GitHub; replay scrubbing from the first PR to the snapshot);
-  the crew (open PRs per worker with CI dots). Plus a ticker of the latest merges, an intro sentence, and a "since
+  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the crew (open PRs per worker with CI dots). Plus an intro sentence (who built it, under which rule, since when, read when; the tour's counters carry the
+  numbers when PR data is there), and a "since
   you last looked" banner (browser storage only).
 - Sections that need PR data say so in place when it's missing, instead of rendering empty.
+
+**The tour** ("Watch it get built"): first section, right under the header and intro.
+- The site plan: the graph (critical path, hover trace, click card with spec/PR/done-note links, cmd-click to
+  GitHub) and its replay, which scrubs from the first PR to the snapshot and plays it in about 24 s.
+- **Counters**, large, for the scrubbed moment: features built of planned, PRs merged, and agents at work (named
+  workers with a PR open at that moment, from the crew timeline's bars). At the snapshot they equal the board's.
+- **Ticker:** the 3 latest merged PRs at the scrubbed moment, newest first, number and title.
+- **Chapters**, marked on the scrubber and computed from the snapshot alone, never written by hand: the first PR;
+  each milestone built (at the merge of the last of its live features; only milestones whose live features are all
+  done); and the peak of PRs open at once (the crew timeline's peak, "N PRs open at once"). While playing, the
+  last chapter passed shows as a caption.
+- **Flash:** a node flashes once when its feature turns done during playback. No flash with reduced motion.
+- **Motion** (#318; the tour is 25 seconds of watching, so it has to move like one continuous thing, not a slideshow):
+  - The playhead advances on `requestAnimationFrame`, at display rate. Its speed eases up from rest when play
+    starts or resumes (about 1 s) and slows into the snapshot over the last stretch, which it still reaches. A
+    full play stays about 24 s. Pause, scrub and resume always continue from the current moment.
+  - Node fill and stroke transition (about 350 ms) instead of snapping, both when a feature lands and when play
+    rewinds to the first PR.
+  - A feature landing also sends a ring out from its node, expanding and fading (transform and opacity only).
+  - Edges from a feature that just landed draw outward toward the features it unblocks.
+  - A counter bumps when its number changes. The ticker's newest merge slides in.
+  - At the snapshot, heat and the critical path fade in instead of appearing.
+  - With reduced motion the playhead still moves (it is the content), but nothing else animates or transitions.
+- **Hierarchy** (#337): in replay, built is the brightest state and everything not yet built recedes (ready and
+  blocked draw as one quiet "not yet"); in flight stays amber. The snapshot keeps the full state colours: the team
+  reads "ready" as pickable. The tour's ticker is the page's only merge ticker. At rest the caption slot invites
+  ("press space to watch it get built"). Heat halos are an accent, capped well below full opacity.
+- Without PR data the graph still renders; the replay, counters, chapters and ticker say they need PR data.
 
 **Charts.** Both are drawn from the snapshot alone (no extra API call), server-rendered SVG, with a hover tooltip, a
 legend or direct labels so identity is never colour alone, and a table view (`<details>`) for screen readers.
@@ -131,7 +166,15 @@ legend or direct labels so identity is never colour alone, and a table view (`<d
    `FOREMAN_URL=https://knighthacks-2026.vercel.app pnpm exec vitest run tests/foreman/production.test.ts` -> the
    live HTML has every section, `API: token`, no failure banner, and its SHA equals the live `/api/health` commit.
    Run it again after the next merge to main: the SHA must have moved (one snapshot per deploy).
-6. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
+6. **Tour:** unit tests pin the chapters (first PR, a milestone built at its last live feature's merge, none for an
+   unbuilt milestone, the peak equal to the timeline's) and agents at work at a given moment, on fixed inputs. The
+   e2e checks the tour is the first section; Space plays it; a chapter caption and a node flash appear during
+   playback; at the end the counters equal the snapshot's; with reduced motion no node animates. Screenshot it
+   mid-playback. Motion: unit tests pin the playhead's speed curve (starts from rest, never above the base speed,
+   reaches the snapshot exactly, a full play within 10% of its 24 s); the e2e sees a landing ring and an edge
+   drawing during playback, and with reduced motion `document.getAnimations()` is empty while it plays. Measure
+   frame intervals during a local play and report them in the PR.
+7. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
    the done note.
 
 ## Defaults

@@ -5,7 +5,8 @@ import { getState, setState, useAppState } from "@/lib/store";
 import { resultIds } from "@/lib/search/highlight";
 import type { Hit, Neighbor } from "@/lib/search/neighbors";
 import { PanelState } from "@/components/ui";
-import { parseStars, type Star } from "@/components/galaxy/stars";
+import { loadStars, type Star } from "@/components/galaxy/stars";
+import { MIXED, matches, setClassFilter, UNCLEAR, useClasses, type PrizeFilter } from "@/lib/classes";
 import { filterOptions, localMatches, meta, searchUrl, type Filters } from "./filters";
 import styles from "./search.module.css";
 
@@ -21,18 +22,21 @@ export default function Search() {
   const [stars, setStars] = useState<Star[]>([]);
   const options = useMemo(() => filterOptions(stars), [stars]);
   const selectedId = useAppState((s) => s.selectedProjectId);
+  const classes = useClasses((s) => s.load);
+  const classFilter = useClasses((s) => s.filter);
+  const classData = classes.state === "ready" ? classes.data : null;
+  // Category and prize filter what search returns; they never change how it ranks.
+  const keep = useMemo(() => (h: { id: string }) => matches(classData, h.id, classFilter), [classData, classFilter]);
   // The selection from before this search; undefined while no search is active.
   const saved = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    fetch("/corpus/stars.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => json && setStars(parseStars(json).stars))
-      .catch(() => {}); // no stars.json: no filters, search still works
+    loadStars().then((l) => l.state === "ready" && setStars(l.data.stars)); // no stars.json: no filters, search still works
   }, []);
 
   useEffect(() => {
     const query = q.trim();
+    // Category and prize alone show on the map, legend and list; only a query, event or year opens this panel.
     if (!query && !filters.event && !filters.year) {
       if (saved.current !== undefined) setState({ highlightedIds: [], selectedProjectId: saved.current });
       saved.current = undefined;
@@ -41,7 +45,7 @@ export default function Search() {
     }
     if (saved.current === undefined) saved.current = getState().selectedProjectId;
     if (!query) {
-      const hits = localMatches(stars, filters);
+      const hits = localMatches(stars, filters).filter(keep);
       setState({ highlightedIds: hits.map((h) => h.id) });
       setView({ state: "local", hits });
       return;
@@ -51,9 +55,7 @@ export default function Search() {
       try {
         const res = await fetch(searchUrl(query, filters), { signal: ctrl.signal });
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as Response;
-        setState({ highlightedIds: resultIds(data) });
-        setView({ state: "done", data });
+        setView({ state: "done", data: (await res.json()) as Response });
       } catch {
         if (!ctrl.signal.aborted) setView({ state: "error" });
       }
@@ -62,7 +64,15 @@ export default function Search() {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [q, filters, stars]);
+  }, [q, filters, stars, keep]);
+
+  const data = useMemo(() => {
+    if (view.state !== "done") return null;
+    return { ...view.data, results: view.data.results.filter(keep), textMatches: view.data.textMatches.filter(keep) };
+  }, [view, keep]);
+  useEffect(() => {
+    if (data) setState({ highlightedIds: resultIds(data) });
+  }, [data]);
 
   const item = (h: Hit, similarity?: number) => (
     <li key={h.id}>
@@ -81,7 +91,6 @@ export default function Search() {
     </li>
   );
 
-  const data = view.state === "done" ? view.data : null;
   const textOnly = data ? data.textMatches.filter((t) => !data.results.some((r) => r.id === t.id)) : [];
 
   return (
@@ -101,7 +110,13 @@ export default function Search() {
           <>
             <label className={styles.filter}>
               <span className={styles.hidden}>Event</span>
-              <select value={filters.event} onChange={(e) => setFilters({ ...filters, event: e.target.value })}>
+              <select
+                value={filters.event}
+                onChange={(e) => {
+                  setFilters({ ...filters, event: e.target.value });
+                  setClassFilter({ event: e.target.value || null }); // prize marks then count only this event's prizes
+                }}
+              >
                 <option value="">All events</option>
                 {options.events.map((o) => (
                   <option key={o.name} value={o.name}>{`${o.name} (${o.count})`}</option>
@@ -117,6 +132,32 @@ export default function Search() {
                 ))}
               </select>
             </label>
+            {classData && (
+              <>
+                <label className={styles.filter}>
+                  <span className={styles.hidden}>Category</span>
+                  <select value={classFilter.key ?? ""} onChange={(e) => setClassFilter({ key: e.target.value || null })}>
+                    <option value="">All categories</option>
+                    {classData.domains.map((d) => (
+                      <option key={d.id} value={d.id}>{d.label}</option>
+                    ))}
+                    <option value={MIXED}>Mixed</option>
+                    <option value={UNCLEAR}>Not enough text</option>
+                  </select>
+                </label>
+                <label className={styles.filter}>
+                  <span className={styles.hidden}>Prize</span>
+                  <select value={classFilter.prize} onChange={(e) => setClassFilter({ prize: e.target.value as PrizeFilter })}>
+                    <option value="">Any project</option>
+                    <option value="win">Any prize winner</option>
+                    <option value="1">1st place</option>
+                    <option value="2">2nd place</option>
+                    <option value="3">3rd place</option>
+                    <option value="sponsor">Sponsor prize</option>
+                  </select>
+                </label>
+              </>
+            )}
           </>
         )}
       </div>

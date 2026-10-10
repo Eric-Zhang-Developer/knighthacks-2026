@@ -16,7 +16,7 @@ function useNow(initial: number) {
 }
 
 // Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay.
-const SECTIONS = ["ms", "ask", "how", "graph", "crew"];
+const SECTIONS = ["graph", "ms", "ask", "how", "crew"]; // pitch order: the tour first (spec § The tour)
 const jump = (id: string) =>
   document
     .getElementById(id)

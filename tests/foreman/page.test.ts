@@ -21,7 +21,7 @@ test("built without a token: the board from the repo files, a banner, and no net
   const html = await render();
   expect(fetch).not.toHaveBeenCalled();
   expect(html).toContain("Will we make it");
-  expect(html).toContain("The site plan");
+  expect(html).toContain("Watch it get built");
   expect(html).toContain("PR data missing");
   expect(html).toContain("API: no token");
   expect(html).toContain('data-state="unknown"');

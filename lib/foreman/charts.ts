@@ -118,3 +118,27 @@ export function timeline(prs: PR[], snapshot: number): Timeline | null {
   const peak = open.reduce((a, b) => (b.n > a.n ? b : a), { t: 0, n: 0 });
   return { start: Math.min(...prs.map((p) => Date.parse(p.createdAt))), snapshot, rows, open, peak };
 }
+
+export type Chapter = { t: number; label: string };
+
+/**
+ * The replay's chapters (spec § The tour), from the snapshot alone, never written by hand: the first PR, each
+ * milestone whose live features are all done (at the last one's merge), and the peak of PRs open at once.
+ */
+export function chapters(board: Board, crew: Timeline | null): Chapter[] {
+  const out: Chapter[] = [];
+  if (board.stats.firstPrAt) out.push({ t: Date.parse(board.stats.firstPrAt), label: "first PR" });
+  for (const m of board.milestones) {
+    const live = board.features.filter((f) => m.features.includes(f.slug) && !m.cut.includes(f.slug));
+    if (!live.length || live.some((f) => f.state !== "done")) continue;
+    const merged = live.flatMap((f) => (f.doneAt ? [Date.parse(f.doneAt)] : []));
+    if (merged.length) out.push({ t: Math.max(...merged), label: `${m.name} built` });
+  }
+  if (crew && crew.peak.n > 1) out.push({ t: crew.peak.t, label: `${crew.peak.n} PRs open at once` });
+  return out.sort((a, b) => a.t - b.t);
+}
+
+/** Named workers with a PR open at `t`. A still-open bar ends at the snapshot, so it counts there too. */
+export function atWork(crew: Timeline, t: number): number {
+  return crew.rows.filter((r) => r.bars.some((b) => b.start <= t && (t < b.end || b.state === "open"))).length;
+}

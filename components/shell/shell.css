@@ -1,0 +1,44 @@
+/* Global on purpose: these rules size <body> and the workspace badge (layout.tsx), outside the page's module. */
+.shell-nav { display: none; }
+
+@media (max-width: 720px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  /* The workspace and invite belong with Explore and Decide; elsewhere the destination gets the whole screen. */
+  html[data-dest="talk"] body > section[aria-label="Workspace"],
+  html[data-dest="idea"] body > section[aria-label="Workspace"],
+  html[data-dest="plan"] body > section[aria-label="Workspace"] { display: none; }
+
+  .shell-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--rule);
+    background: var(--panel);
+  }
+  .shell-nav a {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-top: 2px solid transparent;
+  }
+  .shell-nav a[aria-current="page"] { color: var(--paper); border-top-color: var(--brass); }
+  .shell-nav a:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+}

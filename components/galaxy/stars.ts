@@ -17,6 +17,26 @@ export type StarsFile = z.infer<typeof Stars>;
 
 export const parseStars = (data: unknown): StarsFile => Stars.parse(data);
 
+// One fetch and one parse per page, shared by the galaxy and search, which each used to fetch and parse their own copy.
+// A failure isn't cached, so the next caller tries again.
+export type StarsLoad = { state: "ready"; data: StarsFile } | { state: "missing"; reason?: string };
+let starsLoad: Promise<StarsLoad> | null = null;
+export function loadStars(): Promise<StarsLoad> {
+  starsLoad ??= fetch("/corpus/stars.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((json): StarsLoad => {
+      if (!json) return { state: "missing" };
+      try {
+        return { state: "ready", data: parseStars(json) };
+      } catch {
+        return { state: "missing", reason: "stars.json is invalid" };
+      }
+    })
+    .catch((): StarsLoad => ({ state: "missing" }))
+    .then((l) => ((starsLoad = l.state === "ready" ? starsLoad : null), l));
+  return starsLoad;
+}
+
 // Colour is always paired with size, so no state relies on colour alone.
 export const STYLE = {
   base: { color: [0.62, 0.68, 0.8], size: 3 },
@@ -24,6 +44,8 @@ export const STYLE = {
   selected: { color: [1, 1, 1], size: 10 },
   idea: { color: [0.31, 0.84, 0.91], size: 12 }, // --idea cyan
   activeIdea: { color: [0.31, 0.84, 0.91], size: 16 },
+  // A prize winner: bigger than base and drawn with a ring (Scene.tsx), so the mark is a shape, not colour alone.
+  prize: { color: [0.62, 0.68, 0.8], size: 6 },
 } as const;
 
 export function styleFor(id: string, selectedId: string | null, highlighted: ReadonlySet<string>) {

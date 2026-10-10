@@ -6,14 +6,18 @@ import { expect, test } from "@playwright/test";
 const REPO = "Eric-Zhang-Developer/knighthacks-2026";
 const headers: Record<string, string> = process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
 const specs = readdirSync("specs/features").filter((d) => !d.startsWith("_"));
-const milestones = [...readFileSync("specs/milestones.toml", "utf8").matchAll(/^name = "([^"]+)"/gm)].map((m) => m[1]);
+const toml = readFileSync("specs/milestones.toml", "utf8");
+const milestones = [...toml.matchAll(/^name = "([^"]+)"/gm)].map((m) => m[1]);
+// Milestones with a ship time count down; ship = "" means order only (no clock to check).
+const timed = [...toml.matchAll(/^name = "([^"]+)"[^\n]*\nship = "([^"]+)"/gm)].map((m) => m[1]);
 
 test("milestones and graph from the checkout, asks from GitHub at the snapshot, and no GitHub call from the browser", async ({ page, request }) => {
   const github: string[] = [];
   page.on("request", (r) => r.url().includes("github.com/") && r.resourceType() !== "document" && github.push(r.url()));
   await page.goto("/foreman");
   for (const m of milestones) await expect(page.getByRole("article", { name: `Milestone ${m}` })).toBeVisible();
-  await expect(page.getByTestId(`clock-${milestones[0]}`)).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
+  expect(timed.length).toBeGreaterThan(0);
+  for (const m of timed) await expect(page.getByTestId(`clock-${m}`)).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
 
   const nodes = page.locator("svg a[data-slug]");
   await expect(nodes).toHaveCount(specs.length);
@@ -45,7 +49,7 @@ test("milestones and graph from the checkout, asks from GitHub at the snapshot, 
       await request.get(`https://api.github.com/repos/${REPO}/issues?state=open&labels=needs-human&per_page=100`, { headers })
     ).json()) as { title: string; updated_at: string; pull_request?: unknown }[];
     for (const i of issues.filter((i) => before(i) && !i.pull_request)) await expect(asks).toContainText(i.title);
-    await expect(page.getByTestId("intro")).toContainText(/agent workers.*merged \d+ PRs and built \d+ of \d+ planned features/);
+    await expect(page.getByTestId("intro")).toContainText(/built by \d+ agent workers in parallel, under one rulebook/);
   }
 
   await expect(page.locator("meta[name=robots]")).toHaveAttribute("content", /noindex/);
@@ -67,7 +71,8 @@ test("the replay scrubs the graph back to the first PR and returns to the snapsh
   await page.goto("/foreman");
   const info = page.getByTestId("replay-info");
   await expect(info).toContainText("SNAPSHOT");
-  const built = async () => Number(/(\d+)\/\d+ built/.exec(await info.innerText())![1]);
+  const counters = page.getByTestId("tour-counters");
+  const built = async () => Number(/(\d+)\/\d+/.exec(await counters.innerText())![1]);
   const live = await built();
   const done = await page.locator('svg a[data-state="done"]').count();
 
@@ -84,6 +89,50 @@ test("the replay scrubs the graph back to the first PR and returns to the snapsh
   await expect(page.locator('svg a[data-state="done"]')).toHaveCount(done);
 });
 
+test("the tour leads the page; space plays it with chapters and flashes and ends on the snapshot's numbers", async ({ page }) => {
+  test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no replay");
+  test.setTimeout(60_000);
+  await page.goto("/foreman");
+  await expect(page.locator("section").first().getByRole("heading")).toHaveText(/watch it get built/i);
+  // At rest the counters are the snapshot's; the play must end on the same numbers.
+  const counters = page.getByTestId("tour-counters");
+  const atRest = await counters.innerText();
+  await expect(page.getByTestId("tour-caption")).toContainText("press space");
+  await expect(page.getByTestId("chapter").first()).toBeAttached();
+
+  // Hydration can land after goto: retry space until the replay starts.
+  await expect(async () => {
+    await page.keyboard.press(" ");
+    await expect(page.getByRole("button", { name: /pause/i })).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(page.getByTestId("chapter-caption")).not.toBeEmpty({ timeout: 20_000 });
+  await expect(page.locator("svg a[data-slug][class*=flash]").first()).toBeAttached({ timeout: 20_000 });
+  // Motion (spec § The tour): a landing sends out a ring and draws the edges it unlocks.
+  await expect(page.locator("svg rect[class*=ring]").first()).toBeAttached({ timeout: 20_000 });
+  await expect(page.locator("svg path[class*=draw]").first()).toBeAttached({ timeout: 20_000 });
+  await page.screenshot({ path: test.info().outputPath("foreman-tour-playing.png") });
+
+  await expect(page.getByTestId("replay-info")).toContainText("SNAPSHOT", { timeout: 40_000 });
+  await expect(counters).toHaveText(atRest, { useInnerText: true });
+});
+
+test("reduced motion: the tour still plays, but no node animates", async ({ page }) => {
+  test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no replay");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/foreman");
+  await expect(async () => {
+    await page.keyboard.press(" ");
+    await expect(page.getByRole("button", { name: /pause/i })).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  const flashed = page.locator("svg a[data-slug][class*=flash]").first();
+  await expect(flashed).toBeAttached({ timeout: 20_000 });
+  // The playhead still moves (it is the content); nothing on the page animates or transitions while it does.
+  const info = page.getByTestId("replay-info");
+  const before = await info.innerText();
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await expect(info).not.toHaveText(before);
+});
+
 test("demo keys: a number jumps to its section, space starts the replay", async ({ page }) => {
   test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no replay");
   // Instant jumps (the page honours reduced motion): this checks which key goes where, and a smooth scroll still
@@ -95,7 +144,7 @@ test("demo keys: a number jumps to its section, space starts the replay", async 
     await page.keyboard.press("5");
     await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport({ timeout: 1000 });
   }).toPass();
-  await page.keyboard.press("2");
+  await page.keyboard.press("3");
   await expect(page.getByRole("heading", { name: /needs a person/i })).toBeInViewport();
   await page.keyboard.press(" ");
   await expect(page.getByRole("button", { name: /pause/i })).toBeVisible();
@@ -123,11 +172,15 @@ test("since you last looked: an earlier visit shows what merged after it; a relo
 
 test("clicking a feature opens its card in place; Escape closes it", async ({ page }) => {
   await page.goto("/foreman");
-  // Before hydration a click would follow the link to GitHub; demo key 4 landing proves the page is live.
+  // Before hydration a click would follow the link to GitHub; demo key 5 landing proves the page is live. The tour
+  // is already in view at load, so key 5 (the crew, below the fold) is the proof, then key 1 comes back.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(async () => {
-    await page.keyboard.press("4");
-    await expect(page.getByRole("heading", { name: /the site plan/i })).toBeInViewport({ timeout: 1000 });
+    await page.keyboard.press("5");
+    await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport({ timeout: 1000 });
   }).toPass();
+  await page.keyboard.press("1");
+  await expect(page.getByRole("heading", { name: /watch it get built/i })).toBeInViewport();
   await page.locator('svg a[data-slug="galaxy"]').click();
   const card = page.getByRole("region", { name: "Feature galaxy" });
   await expect(card).toBeVisible();

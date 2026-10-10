@@ -10,7 +10,7 @@ import { checkClaims, type Claim } from "@/lib/ai/claims";
 const schema = z.object({ message: z.string() });
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubEnv("GEMINI_API_KEY", "test-secret"); vi.stubEnv("GEMINI_MODEL", "test-model");
+  vi.stubEnv("GEMINI_API_KEY", "test-secret"); vi.stubEnv("GEMINI_MODEL", "test-model"); vi.stubEnv("GEMINI_API_KEY_SPARE", "");
   vi.stubEnv("AI_STUB_ALLOW", ""); vi.stubEnv("AI_STUB_DIR", ""); vi.stubEnv("VERCEL", ""); vi.stubEnv("NODE_ENV", "test");
   vi.stubEnv("ANTHROPIC_API_KEY", ""); vi.stubEnv("ANTHROPIC_MODEL", ""); vi.stubEnv("ANTHROPIC_WORKSPACE_ID", ""); vi.stubEnv("AI_PROVIDER", "");
 });
@@ -41,6 +41,14 @@ test("missing configuration and provider failures are safe typed errors", async 
   try { await generate({ prompt: "private", schema }); throw new Error("Expected failure"); }
   catch (error) { expect(error).toBeInstanceOf(AiError); expect(String(error)).not.toMatch(/test-secret|private/); expect(error).not.toHaveProperty("cause"); }
   expect(call).toHaveBeenCalledTimes(1);
+});
+test("a spent main Gemini key falls through to GEMINI_API_KEY_SPARE", async () => {
+  vi.stubEnv("GEMINI_API_KEY_SPARE", "spare-secret");
+  call.mockRejectedValueOnce(new Error("429 RESOURCE_EXHAUSTED spending cap")).mockResolvedValueOnce({ text: '{"message":"from spare"}' });
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "from spare" });
+  expect(construct.mock.calls.map(([o]) => (o as { apiKey: string }).apiKey)).toEqual(["test-secret", "spare-secret"]);
+  vi.stubEnv("GEMINI_API_KEY", ""); call.mockResolvedValueOnce({ text: '{"message":"spare only"}' });
+  expect(await generate({ prompt: "private", schema })).toEqual({ message: "spare only" });
 });
 test("fixture mode validates output and rejects unsafe lookup and production use", async () => {
   vi.stubEnv("AI_STUB_DIR", resolve("tests/ai-client/fixtures"));

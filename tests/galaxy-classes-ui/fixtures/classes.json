@@ -1,0 +1,16 @@
+{
+  "corpus_version": "test-1",
+  "taxonomy_version": "1",
+  "model": "fixture",
+  "domains": [{ "id": "health", "label": "Health & wellbeing" }, { "id": "education", "label": "Education" }],
+  "projects": {
+    "a": { "domain": "health", "status": "clear", "runner_up": null, "dev_tools": "unknown", "dev_tools_evidence": null,
+      "prizes": [{ "event": "Hack A", "text": "1st Place Overall", "kind": "placement", "place": 1, "sponsor": null }] },
+    "b": { "domain": "health", "status": "clear", "runner_up": null, "dev_tools": "unknown", "dev_tools_evidence": null,
+      "prizes": [{ "event": "Hack A", "text": "Participation Certificates", "kind": "participation", "place": null, "sponsor": null }] },
+    "c": { "domain": "education", "status": "clear", "runner_up": null, "dev_tools": "unknown", "dev_tools_evidence": null,
+      "prizes": [{ "event": "Hack B", "text": "Best Use of Neon", "kind": "sponsor", "place": null, "sponsor": "Neon" }] },
+    "d": { "domain": "health", "status": "mixed", "runner_up": "education", "dev_tools": "unknown", "dev_tools_evidence": null, "prizes": [] },
+    "e": { "domain": null, "status": "insufficient_text", "runner_up": null, "dev_tools": "unknown", "dev_tools_evidence": null, "prizes": [] }
+  }
+}

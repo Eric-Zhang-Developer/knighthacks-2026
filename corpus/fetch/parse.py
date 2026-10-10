@@ -31,6 +31,22 @@ def _text(node) -> str:
     return re.sub(r"\s+", " ", node.get_text(" ", strip=True)).strip() if node else ""
 
 
+def parse_gallery_cards(html: str, base_url: str) -> list[dict]:
+    """What each gallery card already shows: canonical URL, title, tagline, winner badge. One request covers ~24
+    projects, so this is the cheap tier; the description only exists on the project page."""
+    cards, seen = [], set()
+    for item in BeautifulSoup(html, "html.parser").select(".gallery-item"):
+        link = item.select_one("a.link-to-software[href]")
+        url = canonical(urljoin(base_url, link["href"])) if link else ""
+        title = _text(item.select_one("h5"))
+        if not PROJECT_URL.match(url) or not title or url in seen:
+            continue
+        seen.add(url)
+        cards.append({"url": url, "title": title, "tagline": _text(item.select_one(".tagline")) or None,
+                      "winner": item.select_one(".winner") is not None})
+    return cards
+
+
 def parse_project(html: str, url: str, fetched_at: str, event_dates: dict[str, str] | None = None):
     """(record, None) or (None, rejection reason). Missing optional fields stay None; nothing is filled in."""
     soup = BeautifulSoup(html, "html.parser")

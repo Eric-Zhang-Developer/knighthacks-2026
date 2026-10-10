@@ -36,11 +36,16 @@ export async function fixture(directory: string, key: string | undefined): Promi
 type Call = (attempt: number) => Promise<string>;
 const RETRY_INSTRUCTION = "Return only JSON that exactly satisfies the supplied response schema.";
 
+/** Gemini keys in order: the main key, then GEMINI_API_KEY_SPARE for when the main one is out of credits. */
+export function geminiKeys(): string[] {
+  return [process.env.GEMINI_API_KEY?.trim(), process.env.GEMINI_API_KEY_SPARE?.trim()].filter((k): k is string => !!k);
+}
+
 /** Configured providers, preferred first: Claude unless AI_PROVIDER=gemini; the other is the fallback. */
 function providers(text: string, schema: z.ZodType, responseJsonSchema: unknown): Call[] {
   const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim(), anthropicModel = process.env.ANTHROPIC_MODEL?.trim();
   const workspace = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
-  const geminiKey = process.env.GEMINI_API_KEY?.trim(), geminiModel = process.env.GEMINI_MODEL?.trim();
+  const geminiModel = process.env.GEMINI_MODEL?.trim();
   const anthropic: Call | undefined = anthropicKey && anthropicModel ? async (attempt) => {
     let response: Anthropic.Message;
     try {
@@ -56,7 +61,8 @@ function providers(text: string, schema: z.ZodType, responseJsonSchema: unknown)
     if (response.stop_reason === "refusal") throw new AiError("PROVIDER_ERROR");
     return response.content.map((block) => (block.type === "text" ? block.text : "")).join("");
   } : undefined;
-  const gemini: Call | undefined = geminiKey && geminiModel ? async (attempt) => {
+  // One call per key: spent credits on the main key raise PROVIDER_ERROR, which falls through to the spare.
+  const gemini: Call[] = geminiModel ? geminiKeys().map((geminiKey) => async (attempt: number) => {
     try {
       const client = new GoogleGenAI({ apiKey: geminiKey, vertexai: false, httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } } });
       const response = await client.models.generateContent({ model: geminiModel, contents: text, config: {
@@ -64,8 +70,8 @@ function providers(text: string, schema: z.ZodType, responseJsonSchema: unknown)
       } });
       return response.text ?? "";
     } catch { throw new AiError("PROVIDER_ERROR"); }
-  } : undefined;
-  const order = process.env.AI_PROVIDER?.trim() === "gemini" ? [gemini, anthropic] : [anthropic, gemini];
+  }) : [];
+  const order = process.env.AI_PROVIDER?.trim() === "gemini" ? [...gemini, anthropic] : [anthropic, ...gemini];
   return order.filter((call): call is Call => call !== undefined);
 }
 

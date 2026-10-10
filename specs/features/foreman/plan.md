@@ -134,6 +134,18 @@ Both use the snapshot's PRs and done notes only, so the API budget is unchanged.
 4. e2e: tooltips and table views; screenshots. Then verify both ways, production check, done note.
 Replaces the parked `foreman-gantt` branch (written before the snapshot rewrite; deleted, not merged).
 
+## 6b. Next: the 40-second judge tour (spec § The tour)
+No new chart: the replay already is the story, buried fifth on the page as a silent animation. Promote and narrate it.
+1. `lib/foreman/charts.ts`: pure `chapters(board, timeline)` and `atWork(timeline, t)`, unit-tested.
+2. `SitePlan.tsx`: big counters, a 3-line ticker, chapter ticks on the scrubber and a caption; Graph flashes nodes
+   that turn done (CSS animation, off under `prefers-reduced-motion`).
+3. `page.tsx`: the tour section moves to the top; demo keys follow the new order.
+4. e2e: first section, Space plays, caption and flash seen, counters equal the snapshot's at the end, reduced
+   motion; screenshot mid-playback. Then verify, production check, done note.
+Cut from the judge path but kept on the page: the build-up projection (a forecast invites "is that real?"), asks,
+pipeline numbers and the crew timeline (a second timeline competes with the replay). Target: under 300 lines,
+merged well before the 08:30 freeze.
+
 ## 7. Out of scope (parked, not started)
 - Main CI health strip over time (needs one more API call per page of runs).
 - Scheduled redeploy for freshness between merges (needs a Vercel deploy hook from a person).

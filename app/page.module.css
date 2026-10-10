@@ -1,43 +1,84 @@
 .shell {
+  --top: 52px;
+  --rail: 224px;
+  --side: 360px;
+  --composer: 72px;
+  --nav: 60px;
   display: grid;
-  grid-template: "top top" auto "map side" 1fr / 1fr minmax(380px, 460px);
-  height: 100vh;
+  grid-template-columns: var(--rail) 1fr var(--side);
+  grid-template-rows: var(--top) 1fr var(--composer);
+  height: 100dvh;
 }
 
 .top {
-  grid-area: top;
+  grid-column: 1 / -1;
+  grid-row: 1;
   display: flex;
   align-items: center;
   gap: var(--space-5);
-  padding: var(--space-3) var(--space-4);
+  padding: 0 var(--space-4);
   /* Leaves room for the fixed workspace badge on the right. */
   padding-right: 340px;
   border-bottom: 1px solid var(--rule);
+  min-width: 0;
 }
 .brand { display: grid; line-height: 1; flex: none; }
 .wordmark {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
-  font-size: 30px;
+  font-size: 26px;
   letter-spacing: 0.01em;
   color: var(--paper);
 }
 .tagline {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
-  margin-top: 4px;
+  margin-top: 3px;
 }
-.search { flex: 1; max-width: 560px; }
+.search { flex: 1; min-width: 0; max-width: 820px; }
 
-/* The map is a chart: a faint graticule and a nebula glow behind a transparent canvas. */
+/* The Galaxy landmark holds both the discovery rail and the chart, so the rail's controls stay part of the map. */
 .map {
-  grid-area: map;
+  grid-column: 1 / 3;
+  grid-row: 2 / 4;
+  display: grid;
+  grid-template-columns: var(--rail) 1fr;
+  grid-template-rows: 1fr var(--composer);
+  min-height: 0;
+}
+.rail {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  position: relative; /* the explainer anchors to the rail's bottom */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+}
+.railControls {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) 64px; /* clear of the closed explainer */
+}
+.explain { position: absolute; inset: 0; pointer-events: none; }
+.explain > * { pointer-events: auto; }
+
+/* The chart: a faint graticule and a nebula glow behind a transparent canvas. */
+.chart {
+  grid-column: 2;
+  grid-row: 1;
   position: relative;
   min-height: 0;
+  overflow: hidden;
   background:
     radial-gradient(ellipse 55% 50% at 50% 50%, rgba(79, 214, 232, 0.12), transparent 70%),
     radial-gradient(ellipse 35% 30% at 64% 38%, rgba(217, 178, 111, 0.09), transparent 70%),
@@ -47,8 +88,24 @@
     var(--bg);
 }
 
+/* Composer: the bar under the chart where an idea is spoken (and typed). */
+.composer {
+  grid-column: 2;
+  grid-row: 3;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 var(--space-4);
+  border-top: 1px solid var(--rule);
+  background: var(--panel);
+}
+
 .side {
-  grid-area: side;
+  grid-column: 3;
+  grid-row: 2 / 4;
+  min-height: 0;
   border-left: 1px solid var(--rule);
   background: linear-gradient(180deg, var(--panel-top), var(--panel));
   overflow-y: auto;
@@ -56,20 +113,69 @@
   padding-bottom: var(--space-5);
 }
 
-/* Voice floats over the chart instead of taking a full-width bar. */
-.bottom {
-  grid-area: map;
-  align-self: end;
-  justify-self: center;
-  z-index: 2;
-  /* Above the explainer and the indexed count, which share the chart's bottom edge. */
-  margin-bottom: 64px;
-}
+.empty { display: none; }
 
+/* Phone: one destination fills the screen above the bottom navigation; the rest are hidden, not stacked. */
 @media (max-width: 720px) {
-  .shell { grid-template: "top" auto "side" auto "map" 60vh "bottom" auto / 1fr; height: auto; }
-  .top { flex-wrap: wrap; padding-right: var(--space-4); padding-top: 72px; }
+  .shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+  .top { flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2) var(--space-4); }
   .search { flex-basis: 100%; max-width: none; }
-  .side { border-left: 0; }
-  .bottom { grid-area: bottom; justify-self: stretch; margin: var(--space-3); }
+  /* Results drop over the map; on a phone they stop short of the rail and composer below it. */
+  .search :global([data-panel="search"]) { max-height: 40dvh; }
+  .map { flex: 1; grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .chart { grid-column: 1; grid-row: 1; }
+  .rail { grid-column: 1; grid-row: 2; max-height: 40dvh; border-right: 0; border-top: 1px solid var(--rule); }
+  .railControls { padding-bottom: 56px; }
+  .composer { display: none; flex: none; border-top: 0; padding: var(--space-3) var(--space-4) 0; background: none; }
+  .side { flex: none; border-left: 0; padding: 0; }
+  .ideaPath, .decide, .plan { display: none; }
+  /* The open project is a sheet from the top of any destination, clear of the rail's controls below; Back closes
+     it (components/shell). */
+  .drawer:not(:empty) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 30;
+    max-height: 60dvh;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  :global(html[data-dest="talk"]) .top,
+  :global(html[data-dest="idea"]) .top,
+  :global(html[data-dest="decide"]) .top,
+  :global(html[data-dest="plan"]) .top,
+  :global(html[data-dest="talk"]) .map,
+  :global(html[data-dest="idea"]) .map,
+  :global(html[data-dest="decide"]) .map,
+  :global(html[data-dest="plan"]) .map { display: none; }
+  /* Push-to-talk also sits under Explore's map: speak while looking (visual-polish's phone check needs it there). */
+  :global(html:not([data-dest])) .composer,
+  :global(html[data-dest="explore"]) .composer,
+  :global(html[data-dest="talk"]) .composer { display: flex; }
+  :global(html[data-dest="explore"]) .composer { padding: var(--space-2) var(--space-4); }
+  /* One row under the map: the buttons say what it is; Talk keeps the heading. */
+  :global(html[data-dest="explore"]) .composer :global(.ui-heading),
+  :global(html:not([data-dest])) .composer :global(.ui-heading) { display: none; }
+  :global(html[data-dest="idea"]) .ideaPath,
+  :global(html[data-dest="decide"]) .decide,
+  :global(html[data-dest="plan"]) .plan { display: block; }
+  /* Talk: speak above the Idea card, where the words land and Interpret is; the rest of the path is under Idea. */
+  .decide:not(:has(:global(.ui-panel))) .empty,
+  .plan:not(:has(:global(.ui-panel))) .empty { display: block; padding: var(--space-5) var(--space-4); color: var(--muted); }
+  :global(html[data-dest="talk"]) .ideaPath { display: block; }
+  :global(html[data-dest="talk"]) .ideaPath > :not(:first-child) { display: none; }
+  :global(html[data-dest="talk"]) .side,
+  :global(html[data-dest="idea"]) .side,
+  :global(html[data-dest="decide"]) .side,
+  :global(html[data-dest="plan"]) .side { flex: 1; padding-bottom: var(--space-4); }
 }

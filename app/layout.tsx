@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import Workspace from "@/components/workspace";
 import "./globals.css";
 
 // A star chart's voice: engraved serif headings, a plain sans for reading, mono for the chart's annotations.
-const display = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"], style: ["normal", "italic"], variable: "--font-display" });
-const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
+// Self-hosted (latin subset from Google Fonts, SIL OFL): next/font/google fetched these at build time, and that
+// fetch failed CI intermittently (#226). Cormorant and Plex Sans are variable fonts, so one file covers each weight range.
+const display = localFont({
+  src: [
+    { path: "./fonts/cormorant-garamond-latin.woff2", weight: "500 600", style: "normal" },
+    { path: "./fonts/cormorant-garamond-italic-latin.woff2", weight: "500 600", style: "italic" },
+  ],
+  variable: "--font-display",
+});
+const sans = localFont({ src: [{ path: "./fonts/ibm-plex-sans-latin.woff2", weight: "400 600", style: "normal" }], variable: "--font-sans" });
+const mono = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-400-latin.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-500-latin.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "Uncharted",
