@@ -15,6 +15,7 @@ assignee: ""
 4. `revise` opens revision suggestions with the challenge as context.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`); labelled claims go through `checkClaims`.
 - At most 3 rounds per session; the user starts a new session explicitly.
 - A question with no named assumption, source or test is rejected and regenerated once, then the round ends.
 - Never creates a version by itself.

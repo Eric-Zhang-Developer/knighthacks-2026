@@ -14,6 +14,7 @@ assignee: ""
 3. Cards in the right column; each links to the neighbor's drawer and source.
 
 ## Requirements
+- Gemini calls go through `lib/ai/` (`generate`); labelled claims go through `checkClaims`.
 - Each statement is labelled `supported` (quotes the stored excerpt), `inferred` or `unverified`.
 - A card never cites anything but the neighbor record it was given.
 - Cards are stored per version, so reopening doesn't regenerate them.
