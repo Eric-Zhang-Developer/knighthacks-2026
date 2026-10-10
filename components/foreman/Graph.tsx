@@ -73,7 +73,17 @@ function layout(features: Feature[]) {
 }
 
 // `shown` replays earlier states on the same layout; heat, CI and the critical path are live-only.
-export default function Graph({ features, repo, shown }: { features: Feature[]; repo: string; shown?: Map<string, State> }) {
+export default function Graph({
+  features,
+  repo,
+  shown,
+  heatBasis,
+}: {
+  features: Feature[];
+  repo: string;
+  shown?: Map<string, State>;
+  heatBasis: "lines" | "activity";
+}) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
   const critical = shown ? new Set<string>() : live;
@@ -139,7 +149,7 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
               ? ""
               : f.missed
                 ? `missed ${f.milestone}`
-                : [f.pr ? `#${f.pr.number}` : null, f.worker, f.buildMin !== null ? dur(f.buildMin) : null]
+                : [f.pr ? `#${f.pr.number}` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
                   .filter(Boolean)
                   .join(" · ");
             const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/specs/features/${f.slug}`;
@@ -178,7 +188,7 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
                   {f.slug.length > 19 ? `${f.slug.slice(0, 18)}…` : f.slug}
                 </text>
                 <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#e2674a" : s.text} opacity={!shown && f.missed ? 1 : 0.7} fontSize={11}>
-                  {(sub || s.label).slice(0, 24)}
+                  {(sub || s.label).length > 22 ? `${(sub || s.label).slice(0, 21)}…` : sub || s.label}
                 </text>
                 {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}
                 {!shown && f.state === "flight" && f.pr && (
@@ -203,7 +213,7 @@ export default function Graph({ features, repo, shown }: { features: Feature[]; 
         ))}
         <span>
           <i style={{ background: "#ff8a1f", filter: "blur(2px)" }} />
-          heat = PR activity, last 3h
+          heat = {heatBasis === "lines" ? "lines changed" : "PR activity"}, last 3h
         </span>
         <span>
           <i style={{ background: "transparent", borderTop: "2px dashed #ffb547", height: 0 }} />

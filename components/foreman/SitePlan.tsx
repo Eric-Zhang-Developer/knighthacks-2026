@@ -9,10 +9,10 @@ import styles from "./foreman.module.css";
 const PLAY_MS = 24_000; // the whole build replays in this long
 const BUCKET = 30 * 60_000; // histogram bucket
 
-type Props = Pick<Board, "features" | "replay" | "repo" | "start"> & { now: number };
+type Props = Pick<Board, "features" | "replay" | "repo" | "start" | "heatBasis"> & { now: number };
 
 // The feature graph, plus a scrubber that replays it from the first PR to now.
-export default function SitePlan({ features, replay, repo, start, now }: Props) {
+export default function SitePlan({ features, replay, repo, start, heatBasis, now }: Props) {
   // From the first PR activity, not the event start: nothing on GitHub happened before it, so playing it is dead air.
   const first = Math.min(
     ...features.flatMap((f) => f.claims.map(([a]) => Date.parse(a))),
@@ -58,7 +58,7 @@ export default function SitePlan({ features, replay, repo, start, now }: Props) 
 
   return (
     <>
-      <Graph features={features} repo={repo} shown={shown} />
+      <Graph features={features} repo={repo} shown={shown} heatBasis={heatBasis} />
       <div className={styles.replay} aria-label="Replay the build">
         <button
           type="button"

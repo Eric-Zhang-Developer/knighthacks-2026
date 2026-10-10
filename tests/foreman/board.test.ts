@@ -144,3 +144,15 @@ test("build time runs from the first feat PR to its merge; unfinished features o
   const later = buildBoard(raw, Date.parse("2026-10-10T16:00:00-04:00")).features;
   expect(later.filter((x) => x.missed).map((x) => x.slug)).toEqual(["b", "c", "d"]); // e is cut, a is done
 });
+
+test("heat ranks by lines changed when every recent PR has a count, else by PR activity", () => {
+  const prs = raw.prs.map((p) => ({ ...p, lines: p.number === 3 ? 400 : 4 }));
+  const lines = buildBoard({ ...raw, prs }, NOW);
+  expect(lines.heatBasis).toBe("lines");
+  const heat = Object.fromEntries(lines.features.map((f) => [f.slug, f.heat]));
+  expect(heat.d).toBe(1); // #3, 400 lines, touched 10 min ago
+  expect(heat.b).toBeGreaterThan(0); // #5: 4 lines, touched 2h ago, still inside the 3h window
+  expect(heat.b).toBeLessThan(0.1);
+  const missing = buildBoard({ ...raw, prs: prs.map((p) => (p.number === 2 ? { ...p, lines: undefined } : p)) }, NOW);
+  expect(missing.heatBasis).toBe("activity");
+});

@@ -200,7 +200,7 @@ function Sections({ board, now }: { board: Board; now: number }) {
           The site plan <small>every feature, left to right in dependency order · hover to trace · click to open · replay to watch it get built</small>
         </h2>
         <div className={styles.panel}>
-          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} />
+          <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} heatBasis={board.heatBasis} now={now} />
         </div>
       </section>
 
