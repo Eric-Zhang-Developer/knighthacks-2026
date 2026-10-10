@@ -67,7 +67,9 @@ test("grounded evidence is immutable, scoped, dated only from sources, and fails
   expect((await owner.post(`/api/problem-evidence/${noProblem}`, { headers })).status()).toBe(422);
   // A second actual production server has no Gemini key or stubs. It shares only the TEST database.
   const missingKeyId = await save(problem);
-  const identity = JSON.parse(execFileSync(process.execPath, ["scripts/verify-server.mjs"], { encoding: "utf8" }));
+  const freshEnv = { ...process.env };
+  delete freshEnv.UNCHARTED_VERIFY_PORT; delete freshEnv.UNCHARTED_VERIFY_TOKEN;
+  const identity = JSON.parse(execFileSync(process.execPath, ["scripts/verify-server.mjs"], { encoding: "utf8", env: freshEnv }));
   const env = { ...process.env, GEMINI_API_KEY: "", AI_STUB_DIR: "", UNCHARTED_VERIFY_PORT: String(identity.port), UNCHARTED_VERIFY_TOKEN: identity.token };
   const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(identity.port)], { env, stdio: "ignore" });
   const ended = new Promise((resolve) => server.once("exit", resolve));
