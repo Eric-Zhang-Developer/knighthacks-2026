@@ -52,6 +52,9 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
    - An empty start is one prompt and four example sparks (suggestion chips) that fill the draft in one tap and
      disappear once there's a draft or an idea. They're examples to edit, never data.
    - Copy the shell owns is encouraging ("Need a spark? Start from one of these and make it yours.").
+   - A failed or partial panel state is a hiccup, not an alarm: a tonal container, the words in on-surface, the
+     glyph alone in the error (or uncertain) colour, Retry as a tonal pill. The shared `PanelState` does this for
+     every panel; each panel's message text stays its own feature's.
 
 ## Requirements
 - WCAG AA: 4.5:1 for text and 3:1 for UI boundaries, on the translucent surfaces at their least opaque.
@@ -76,7 +79,9 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
 5. An empty start shows four sparks; tapping one fills the idea textbox and the sparks go. After saving an idea
    the step index lists the steps that have panels; choosing "Test" scrolls the rail to the scorecard and marks
    Test current.
-6. `tests/e2e/design-refresh/` covers 1–5 with desktop and phone screenshots, and the visual-polish,
+6. A panel whose request fails shows its message in on-surface text (contrast ≥ 4.5 on its container) with the
+   glyph in the error colour, and a Retry pill.
+7. `tests/e2e/design-refresh/` covers 1–6 with desktop and phone screenshots, and the visual-polish,
    experience-shell, galaxy-2d, voice, idea-create-ui and project-drawer suites still pass.
 
 ## Defaults
