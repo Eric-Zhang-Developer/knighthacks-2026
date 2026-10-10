@@ -1,0 +1,32 @@
+.panel { margin: var(--space-3); padding: var(--space-4); display: grid; gap: var(--space-2); font-size: var(--text-md); }
+.meta { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+/* Chart annotation, as in the idea card's group names. */
+.part { margin: var(--space-2) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+.field { display: grid; gap: var(--space-1); color: var(--muted); font-size: var(--text-sm); }
+.field input {
+  width: 7em;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.primary {
+  min-height: 44px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--idea);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--idea);
+  font: inherit;
+  cursor: pointer;
+}
+.primary:disabled { color: var(--muted); border-color: var(--border); cursor: default; }
+.list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.list li { padding-left: var(--space-3); border-left: 1px solid var(--border); overflow-wrap: anywhere; }
+.hour { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--brass); }
+.previous { border-top: 1px solid var(--border); padding-top: var(--space-2); }
+.previous summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); min-height: 44px; display: flex; align-items: center; }
