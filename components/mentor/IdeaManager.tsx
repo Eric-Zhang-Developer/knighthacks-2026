@@ -7,11 +7,9 @@ import { getState, setState, useAppState } from "@/lib/store";
 import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, afterDeletion, confirmsDeletion, resolveIdea, type IdeaIntent } from "./idea-management";
 import styles from "./ideas.module.css";
 
-// Integration includes API448/19280d6 and its dedicated test-database receipt.
-// Production acceptance and the complete browser journey are still separate gates.
-const DELETE_AVAILABLE = true;
-
-export default function IdeaManager() {
+// The server passes only a capability boolean, never a database URL or secret.
+export default function IdeaManager({ deletionAvailable = false }: { deletionAvailable?: boolean }) {
+  const DELETE_AVAILABLE = deletionAvailable;
   const active = useAppState((state) => state.activeIdeaVersionId);
   const [ideas, setIdeas] = useState<Version[]>([]);
   const [loaded, setLoaded] = useState(false);

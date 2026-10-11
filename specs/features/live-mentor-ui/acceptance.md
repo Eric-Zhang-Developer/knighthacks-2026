@@ -78,3 +78,5 @@ Integration-only follow-up: this branch includes API448 at19280d6 and enables th
 local testing against the dedicated TEST database. Type checking, scoped lint and60 combined mentor/idea
 unit tests pass. Selection also clears news cards, with live tool invalidation from mentor-quality454.
 This is not production approval or browser/voice acceptance; the UI feature branch keeps deletion disabled.
+The integration server enables this capability only in development when DATABASE_URL exactly equals the
+nonempty TEST_DATABASE_URL; hosted/production builds cannot enable it. Only a boolean reaches the browser.
