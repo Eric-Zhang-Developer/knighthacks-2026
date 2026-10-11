@@ -22,10 +22,6 @@ import styles from "./page.module.css";
 // Desktop: top bar, discovery rail | galaxy over the composer | contextual rail. Phone: one destination at a time
 // (Explore, Talk, Idea, Decide, Plan), picked by <Nav> through html[data-dest] (specs/features/experience-shell).
 export default function Home() {
-  // Local testing only: the hosted preview is not approved for production data deletion.
-  // Never serialize either URL; only this capability boolean crosses the client boundary.
-  const deletionAvailable = process.env.NODE_ENV === "development" &&
-    !!process.env.TEST_DATABASE_URL && process.env.DATABASE_URL === process.env.TEST_DATABASE_URL;
   return (
     <div className={styles.shell}>
       <div className={styles.top}>
@@ -62,7 +58,7 @@ export default function Home() {
           <div id="mentor-evidence" />
           <div id="mentor-ideas" />
           <div id="step-idea">
-            <Idea deletionAvailable={deletionAvailable} />
+            <Idea deletionAvailable />
           </div>
           <details id="step-explore" className={styles.group}>
             <summary>Explore related projects</summary>
