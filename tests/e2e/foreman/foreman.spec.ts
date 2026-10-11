@@ -77,6 +77,10 @@ test("the replay scrubs the graph back to the first PR and returns to the snapsh
   const done = await page.locator('svg a[data-state="done"]').count();
 
   const slider = page.getByRole("slider", { name: "Time" });
+  // The terminal's own controls, not the app's Material ones (#358): a square amber play plate, an amber scrubber.
+  const play = page.getByRole("button", { name: /replay/i });
+  await expect(play).toHaveCSS("border-radius", "0px");
+  await expect(slider).toHaveCSS("accent-color", "rgb(255, 181, 71)");
   await slider.focus();
   await page.keyboard.press("Home");
   await expect(info).not.toContainText("SNAPSHOT");

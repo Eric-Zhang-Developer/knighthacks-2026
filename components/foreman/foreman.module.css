@@ -41,6 +41,15 @@
   color: inherit;
 }
 
+/* The app's Material buttons (app/globals.css: pill corners, a hover state layer) don't belong on a site-office
+   terminal. :where() keeps this at one class, so a foreman class later in the file still sets its own corners. */
+.root :where(button) {
+  border-radius: 0;
+}
+.root :where(button)::after {
+  content: none;
+}
+
 .stencil {
   font-family: var(--font-stencil), Impact, sans-serif;
   letter-spacing: 0.04em;
@@ -664,7 +673,8 @@
   height: 34px;
 }
 
-.range {
+/* .root: the app's input[type="range"] accent (globals.css) outranks a single class. */
+.root .range {
   width: 100%;
   margin: 2px 0 0;
   accent-color: var(--amber);
