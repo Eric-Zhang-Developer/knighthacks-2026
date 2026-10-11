@@ -29,7 +29,7 @@
   /* More specific than the hide rule above, which also matches the snapshot itself. */
   :global(html) :global(body) .snapshot,
   :global(html) :global(body) .snapshot * { visibility: visible; color: #000; }
-  .snapshot { position: absolute; inset: 0 auto auto 0; width: 100%; background: #fff; border: 0; padding: 24px; }
+  .snapshot { position: absolute; inset: 0 auto auto 0; width: 100%; background: #fff; border: 0; padding: var(--space-5); }
   .snapshot a { text-decoration: underline; }
   .print { display: none; }
 }

@@ -1317,3 +1317,50 @@
 .counter:first-child b {
   color: var(--green);
 }
+
+/* ---- story mode (spec § Story mode): the presenter's caption bar and the beat's outlined section ---- */
+.section[data-beat] {
+  outline: 1px solid var(--amber);
+  outline-offset: 10px;
+  box-shadow: 0 0 0 10px rgba(255, 181, 71, 0.04);
+  transition: outline-color 0.35s;
+}
+
+.story {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 6;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100vw - 32px));
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 12px 18px;
+  border: 1px solid var(--amber);
+  background: var(--ink);
+  box-shadow: 0 0 34px -8px var(--amber-glow), 0 12px 40px rgba(0, 0, 0, 0.6);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.story > b {
+  font-size: 22px;
+  color: var(--amber);
+  white-space: nowrap;
+}
+
+.storyKeys {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.storyKeys kbd {
+  font: inherit;
+  color: var(--amber);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  padding: 0 5px;
+}

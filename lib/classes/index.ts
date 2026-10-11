@@ -2,14 +2,14 @@ import { useSyncExternalStore } from "react";
 import { z } from "zod";
 
 // public/classify/classes.json, written by corpus-classify (specs/features/corpus-classify/spec.md, contract in #269).
-const Prize = z.object({
+export const Prize = z.object({
   event: z.string().nullable(),
   text: z.string(),
   kind: z.enum(["placement", "sponsor", "category", "participation", "other"]),
   place: z.number().int().min(1).max(3).nullable(),
   sponsor: z.string().nullable(),
 });
-const Project = z.object({
+export const Project = z.object({
   domain: z.string().nullable(),
   status: z.enum(["clear", "mixed", "insufficient_text"]),
   runner_up: z.string().nullable().optional(),
@@ -26,12 +26,36 @@ export type ProjectClass = z.infer<typeof Project>;
 export type ClassesFile = z.infer<typeof Classes>;
 export type Load = { state: "loading" } | { state: "missing"; reason: string } | { state: "ready"; data: ClassesFile };
 
+// zod checks the file's head; each project is checked by a plain loop that mirrors `Project` and `Prize` above (keep
+// them in step: tests/galaxy-classes-ui pins the two against each other). zod on every project took ~185 ms of a
+// 100k-project load (~0.75 s at 4x CPU) and built a copy of each.
+// z.record(z.string(), z.unknown()) would still walk and copy all 100k entries; a plain object is all the head needs.
+const Head = Classes.extend({ projects: z.custom<Record<string, unknown>>((v) => typeof v === "object" && v !== null && !Array.isArray(v)) });
+const KINDS = new Set(Prize.shape.kind.options);
+const STATUSES = new Set(Project.shape.status.options);
+const str = (v: unknown) => typeof v === "string";
+const strOrNull = (v: unknown) => v === null || typeof v === "string";
+const isPrize = (p: unknown) => {
+  const o = p as Record<string, unknown> | null;
+  return (
+    typeof o === "object" && o !== null && strOrNull(o.event) && str(o.text) && KINDS.has(o.kind as never) && strOrNull(o.sponsor) &&
+    (o.place === null || (Number.isInteger(o.place) && (o.place as number) >= 1 && (o.place as number) <= 3))
+  );
+};
+export const isProject = (p: unknown): p is ProjectClass => {
+  const o = p as Record<string, unknown> | null;
+  return (
+    typeof o === "object" && o !== null && strOrNull(o.domain) && STATUSES.has(o.status as never) &&
+    (o.runner_up === undefined || strOrNull(o.runner_up)) && Array.isArray(o.prizes) && o.prizes.every(isPrize)
+  );
+};
+
 // A file for another corpus would colour the wrong stars, so it's refused rather than half-applied.
 export function parseClasses(json: unknown, corpusVersion: string): Load {
-  const parsed = Classes.safeParse(json);
-  if (!parsed.success) return { state: "missing", reason: "classes.json is invalid" };
+  const parsed = Head.safeParse(json);
+  if (!parsed.success || !Object.values(parsed.data.projects).every(isProject)) return { state: "missing", reason: "classes.json is invalid" };
   if (parsed.data.corpus_version !== corpusVersion) return { state: "missing", reason: "classes.json is for another corpus" };
-  return { state: "ready", data: parsed.data };
+  return { state: "ready", data: parsed.data as ClassesFile };
 }
 
 // Muted hues for the dark map, in the file's domain order; a 15th domain would reuse the first hue.

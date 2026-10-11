@@ -1,11 +1,11 @@
 /* Follow-up questions inside the idea panel: chart annotations (mono, brass) over ink, answers in the panel's inputs. */
 .interview { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
-.label { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.label { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
 .list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
 .row { display: grid; gap: var(--space-1); padding-left: var(--space-3); border-left: 1px solid var(--brass); }
-.question { margin: 0; font-family: var(--font-display); font-size: 19px; line-height: 1.2; color: var(--paper); }
+.question { margin: 0; font-family: var(--font-display); font-size: var(--title); line-height: 1.2; color: var(--paper); }
 .why { margin: 0; font-size: var(--text-sm); color: var(--muted); }
-.field { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); margin-right: var(--space-1); }
+.field { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); margin-right: var(--space-1); }
 .row input {
   width: 100%;
   padding: var(--space-2);

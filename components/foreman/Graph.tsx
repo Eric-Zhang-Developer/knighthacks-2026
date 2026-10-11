@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dur, layers, type Feature, type State } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
 
@@ -83,11 +83,13 @@ export default function Graph({
   repo,
   shown,
   flash,
+  pulse,
 }: {
   features: Feature[];
   repo: string;
   shown?: Map<string, State>;
   flash?: Set<string>; // features that just landed in the replay
+  pulse?: Set<string>; // features that just had any other PR merged in the replay: a ring, no unlock
 }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
@@ -95,10 +97,27 @@ export default function Graph({
   const stateOf = (f: Feature) => shown?.get(f.slug) ?? f.state;
   const [focus, setFocus] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const reveal = useRef(false);
+  useEffect(() => {
+    if (!picked || !reveal.current) return;
+    reveal.current = false;
+    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    document.querySelector(`[aria-label="Feature ${picked}"]`)?.scrollIntoView({ behavior, block: "center" });
+  }, [picked]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPicked(null);
+    // Story mode opens and closes the proof card (spec § Story mode), and brings it on screen once rendered.
+    const onOpen = (e: Event) => {
+      const slug = (e as CustomEvent<string | null>).detail;
+      reveal.current = slug !== null;
+      setPicked(slug);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("foreman:open", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("foreman:open", onOpen);
+    };
   }, []);
 
   const by = useMemo(() => new Map(features.map((f) => [f.slug, f])), [features]);
@@ -164,7 +183,7 @@ export default function Graph({
               ? ""
               : f.missed
                 ? `missed ${f.milestone}`
-                : [f.pr ? `#${f.pr.number}` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
+                : [f.pr ? `#${f.pr.number}` : null, f.prs > 1 ? `${f.prs} PRs` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
                   .filter(Boolean)
                   .join(" · ");
             const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/${f.specDir}`;
@@ -174,7 +193,7 @@ export default function Graph({
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) ? styles.flash : ""}`}
+                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) || pulse?.has(f.slug) ? styles.flash : ""}`}
                 // A plain click opens the card in place; cmd/ctrl/shift-click still opens GitHub.
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -204,7 +223,7 @@ export default function Graph({
                     filter="url(#heat)"
                   />
                 )}
-                {flash?.has(f.slug) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
+                {(flash?.has(f.slug) || pulse?.has(f.slug)) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
                 <rect
                   className={`box ${state === "flight" ? styles.pulse : ""}`}
                   x={p.x}
@@ -327,6 +346,11 @@ function FeatureCard({
         {f.pr && (
           <a href={f.pr.url} target="_blank" rel="noreferrer">
             open PR #{f.pr.number} ↗
+          </a>
+        )}
+        {f.builtBy && (
+          <a href={f.builtBy.url} target="_blank" rel="noreferrer">
+            built in PR #{f.builtBy.number} ↗
           </a>
         )}
         {f.state === "done" && (

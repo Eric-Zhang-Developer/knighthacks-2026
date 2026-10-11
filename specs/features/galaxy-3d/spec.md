@@ -16,10 +16,14 @@ Visual target: the person's reference video (a dark "data crawler": dense glowin
 monospace labels, a camera that follows the action) and the prototype's screenshots.
 
 ## Plan
-1. Perspective camera that orbits a target: drag turns it 1:1 and a release keeps spinning then slows; wheel and
-   pinch zoom with limits; after a few seconds idle it drifts round the galaxy (about once per 105 s), and any input
-   pauses the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the current
-   view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working.
+1. Perspective camera that moves like a map (person, 2026-10-10: "you can only zoom in on one singular point"): a
+   drag moves across the galaxy with what's under the pointer staying under it, and a release glides on and slows;
+   the wheel and pinch zoom toward the pointer, with limits; option-, ctrl- or cmd-drag turns it (about a third of a
+   circle per 300px). While a project is selected the camera holds on it: a drag circles it, a right-drag does
+   nothing, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
+   any input stops the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the
+   current view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working. A cloud's label is a
+   button that flies to that cloud.
 2. Two layouts of the same stars, `components/galaxy/layouts.ts`:
    - **By category** (default): one dense cloud per category key (`keyOf` in `lib/classes`, so "mixed" and "not
      enough text" get their own), arranged on a flattened disc with no overlaps. Inside a cloud each star keeps its
@@ -29,9 +33,17 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 3. A "By category / By meaning" toggle on the map, mirrored in the URL (`?layout=clouds|nebula`). Switching flies
    every star from one layout to the other (about 1.4 s, centre first, rim last, each path bowing outward);
    switching again mid-flight turns them around from where they are.
-4. Look: soft additive stars with a hot core and a halo in the category's hue, depth-dimmed; a faint glow per
-   cloud; a far starfield and dust for depth; a single full-screen pass for glow and tone mapping. Labels are HTML
-   from 3D ("Health & wellbeing · 774"); far-side labels fade and overlapping labels yield to the nearer one.
+4. Look: over the whole map, soft additive stars with a hot core and a halo in the category's hue, depth-dimmed; a
+   faint glow per cloud; a far starfield and dust for depth; a single full-screen pass for glow and tone mapping.
+   Labels are HTML from 3D ("Health & wellbeing · 774"); far-side labels fade and overlapping labels yield to the
+   nearer one. Zooming in sharpens the stars (person, 2026-10-11: "the fuzziness when you're up close… kind of
+   sucks"): from 1.3x to 3.5x the whole-map view, each star tightens into a white-hot pinpoint with a short glow in its hue
+   (person, 2026-10-11, of flat discs: "these dont look like stars"), keeping its own brightness, with four faint
+   spikes on the brightest, and the cloud glow, bloom and white bleach fade out, so a dense core
+   reads as separate projects; stars spread apart as the camera closes in rather than swelling. A prize winner is a
+   star inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
+   named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a cloud's
+   name, each a button that selects its project; none while a project is selected or the stars are flying.
 5. Idea focus: dotted arcs from the active idea (placed among its neighbours in the current layout) to each
    neighbour, with a pulsing ring at the idea; other stars dim. Selecting a project flies the camera to it and
    rings it; clearing the selection eases back to the whole view.
@@ -57,11 +69,21 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 3. Clicking "By meaning" sets `?layout=nebula`; a frame mid-flight has positions that equal neither layout, and
    within 2.5 s the position buffer equals the nebula layout (±1e-4). With `prefers-reduced-motion`, it equals it on
    the next frame.
-4. Dragging turns the camera: a star's screen position changes while the position buffer does not.
+4. Dragging moves the view, not the stars: a star's screen position follows the drag (±3 px when released still)
+   while the position buffer does not change. Wheel-zooming in over a point keeps the star nearest the pointer
+   within 8 px of where it was while the gap between two other stars grows. Clicking a cloud's label brings that
+   cloud's centre within 12 px of the map's centre. Unit (`tests/galaxy-3d/view.test.ts`): drag and zoom keep the
+   point under the pointer to 0.5 px through a real three.js camera; selected, nothing pans; the drift waits 20 s.
 5. Picking a project in the list puts its star at the map's centre (±6 px) within 1.5 s; "fit" brings at least
    97% of stars inside the map in either layout.
-6. `tests/e2e/galaxy-3d/` covers 2-5 with desktop and phone screenshots, and the galaxy, galaxy-history,
+6. `tests/e2e/galaxy-3d/` covers 2-5 and 7 with desktop and phone screenshots, and the galaxy, galaxy-history,
    galaxy-classes-ui, galaxy-explainer and experience-shell suites still pass.
+7. Zoomed into a cloud, stars are separate points (`sharp.spec.ts`, into Productivity & work at about 5.8x): in a
+   240px box at the map's centre, the share blown out (brightest channel above half) is at most a third of before the
+   change (49.4% on cd9b1b7) and the bright local peaks are no fewer (398). Over the whole map no project is named;
+   zoomed in, 1 to 10 are, each a real title from `stars.json`, and clicking one selects that project. Unit
+   (`tests/galaxy-3d/sharp.test.ts`): sharpness is 0 at the fit view, 1 at the closest zoom, never falling as you zoom
+   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name.
 
 ## Defaults
 "By category" is the default because it reads at a glance; "By meaning" is one tap away. Undo: set the default

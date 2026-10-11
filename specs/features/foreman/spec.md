@@ -87,7 +87,7 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
 - Header: brand, repo link, `snapshot <time> · main @ <sha>` (the commit built, also in `data-sha`), API status
   (`API: token · N calls · R/L left`, `API: no token`, or `API: failed`), wall clock, T+, snapshot age (amber past
   30 min).
-- Sections, in pitch order, with demo keys 1-5 to jump and space to play the replay: the tour (below), milestones (countdown, freeze,
+- Sections, in pitch order, with demo keys 1-5 to jump, space to play the replay and → to start story mode (below): the tour (below), milestones (countdown, freeze,
   cells per feature, what's left with in-flight ages at snapshot, pace forecast when 3 or more are left); needs a
   person, beside build stats (features built, PRs merged, agents active in 3 h, median PR open to merge, merged PRs
   by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the crew (open PRs per worker with CI dots). Plus an intro sentence (who built it, under which rule, since when, read when; the tour's counters carry the
@@ -122,6 +122,21 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
   reads "ready" as pickable. The tour's ticker is the page's only merge ticker. At rest the caption slot invites
   ("press space to watch it get built"). Heat halos are an accent, capped well below full opacity.
 - Without PR data the graph still renders; the replay, counters, chapters and ticker say they need PR data.
+
+**Story mode** (#387; person's decision 2026-10-10): after the tour, the presenter steps the judges through the rest
+at their own pace. Judging is 6 minutes with questions, so nothing advances by itself.
+- → or PageDown steps forward, ← or PageUp back (presentation clickers send these), Escape leaves. Keys typed into
+  a control stay the control's (the scrubber keeps its arrows).
+- Five beats, in order. Each scrolls to its section, outlines it, and shows a caption bar at the bottom of the
+  screen: `n / 5`, one line, and the keys. Every number in a caption comes from the snapshot, never typed by hand.
+  1. **The tour:** features built of planned, PRs merged and agent workers since the first PR; space replays it.
+  2. **One feature, opened** (the proof click): the card of the done feature with a PR that the most features
+     depend on directly (ties: the first in graph order), with how many depend on it. Leaving this beat closes it.
+  3. **The loop:** the pipeline from AGENTS.md, with the feature PRs merged through it.
+  4. **The crew:** named workers and the peak of PRs open at once.
+  5. **Needs a person:** how many things agents can't clear themselves.
+- Needs PR data: without it the story keys do nothing and the header doesn't offer them.
+- The spoken lines live in `run-sheet.md` beside this spec, not on the page.
 
 **Charts.** Both are drawn from the snapshot alone (no extra API call), server-rendered SVG, with a hover tooltip, a
 legend or direct labels so identity is never colour alone, and a table view (`<details>`) for screen readers.
@@ -174,7 +189,11 @@ legend or direct labels so identity is never colour alone, and a table view (`<d
    reaches the snapshot exactly, a full play within 10% of its 24 s); the e2e sees a landing ring and an edge
    drawing during playback, and with reduced motion `document.getAnimations()` is empty while it plays. Measure
    frame intervals during a local play and report them in the PR.
-7. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
+7. **Story mode:** unit tests pin the beats on fixed inputs (five, in order; the opened feature is the done one with a
+   PR and the most direct dependents; the captions carry the snapshot's numbers). The e2e presses → five times and
+   sees each section outlined in order with its `n / 5` caption, the card of the computed feature open on beat 2,
+   ← back to beat 1 closing the card, and Escape removing the caption bar. Screenshot each beat.
+8. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
    the done note.
 
 ## Defaults

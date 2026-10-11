@@ -8,7 +8,7 @@ import SitePlan from "@/components/foreman/SitePlan";
 import Since from "@/components/foreman/Since";
 import styles from "@/components/foreman/foreman.module.css";
 import { buildBoard, dur, HEAT_HOURS, type Ask, type Board } from "@/lib/foreman/board";
-import { buildUp, chapters, timeline, type BuildUp as BuildUpData, type Timeline } from "@/lib/foreman/charts";
+import { beats, buildUp, chapters, timeline, type BuildUp as BuildUpData, type Timeline } from "@/lib/foreman/charts";
 import { readRaw, REPO } from "@/lib/foreman/collect";
 import { clock } from "@/lib/foreman/time";
 
@@ -58,6 +58,7 @@ export default async function ForemanPage() {
   const snapshot = Date.parse(raw.fetchedAt);
   const board = buildBoard(raw, snapshot);
   const { api } = board;
+  const crew = timeline(raw.prs, snapshot);
 
   return (
     <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
@@ -75,7 +76,7 @@ export default async function ForemanPage() {
           </span>
         </span>
         <HeaderClock now={snapshot} start={board.start} fetchedAt={board.fetchedAt}>
-          <DemoKeys />
+          <DemoKeys beats={beats(board, crew)} />
         </HeaderClock>
       </header>
 
@@ -91,7 +92,7 @@ export default async function ForemanPage() {
           </p>
         </div>
       )}
-      <Sections board={board} now={snapshot} build={buildUp(board, snapshot)} crew={timeline(raw.prs, snapshot)} />
+      <Sections board={board} now={snapshot} build={buildUp(board, snapshot)} crew={crew} />
     </main>
   );
 }

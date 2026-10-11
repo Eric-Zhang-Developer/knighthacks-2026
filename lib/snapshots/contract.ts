@@ -9,6 +9,13 @@ export type SnapshotData = {
   whatDiffers: { projectId: string; claims: Claim[] }[];
   mainUncertainty: { projectId: string; claim: Claim } | null;
   nextTest: Claim | null;
+  // decision-context-api: the version's latest committed scope when the snapshot was taken; absent if none was saved.
+  scope?: {
+    selectionId: string;
+    features: { id: string; title: Claim; demoStep: Claim }[];
+    choices: { featureId: string; scope: "core" | "optional" | "later" }[];
+    demoSketch: Claim[];
+  };
 };
 export class SnapshotError extends Error {
   constructor(readonly status: number, message: string) { super(message); }

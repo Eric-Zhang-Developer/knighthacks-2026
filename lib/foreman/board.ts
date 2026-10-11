@@ -68,8 +68,10 @@ export type Feature = {
   gap: string;
   shipped: string; // first line of the done note
   fixes: number;
+  prs: number; // merged PRs scoped to this feature, of any kind: how much work it took
   heat: number; // 0..1, PR activity on this feature in the HEAT_HOURS before the snapshot
   doneAt: string | null; // when its feat PR merged (null if done some other way)
+  builtBy: { number: number; url: string } | null; // that merged feat PR, the card's proof (spec § Story mode)
   startedAt: string | null; // when its first feat PR opened
   claims: [string, string | null][]; // each feat PR as [opened, merged or closed]: when someone was building it
   buildMin: number | null; // first feat PR opened -> the merge that finished it
@@ -189,6 +191,7 @@ export function buildBoard(raw: Raw, now: number): Board {
       const note = notes.get(slug);
       const open = openFeat.get(slug);
       const feats = titled.filter((p) => p.t?.kind === "feature" && p.t.scope === slug);
+      const last = feats.filter((p) => p.mergedAt).sort((a, b) => a.mergedAt!.localeCompare(b.mergedAt!)).at(-1);
       const merged = feats.filter((p) => p.mergedAt).map((p) => p.mergedAt!).sort();
       const opened = feats.map((p) => p.createdAt).sort();
       // An open PR wins over the cut list: cut means "drop first if late" (milestones.toml), not "don't build".
@@ -218,8 +221,10 @@ export function buildBoard(raw: Raw, now: number): Board {
         gap: note ? firstGap(note) : "",
         shipped: note ? firstLine(note) : "",
         fixes: fixes.get(slug) ?? 0,
+        prs: titled.filter((p) => p.mergedAt && p.t?.scope === slug).length,
         heat: (heatRaw.get(slug) ?? 0) / maxHeat,
         doneAt: note ? (merged.at(-1) ?? null) : null,
+        builtBy: note && last ? { number: last.number, url: last.url } : null,
         startedAt: opened[0] ?? null,
         claims: feats.map((p): [string, string | null] => [p.createdAt, p.mergedAt ?? p.closedAt]),
         buildMin: note && merged.length && opened.length ? minutes(Date.parse(merged.at(-1)!), Date.parse(opened[0])) : null,

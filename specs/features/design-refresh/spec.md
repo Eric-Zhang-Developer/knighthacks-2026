@@ -81,7 +81,9 @@ navigation bar. Mockup numbers and names are illustrative and are never shown as
    Test current.
 6. A panel whose request fails shows its message in on-surface text (contrast ≥ 4.5 on its container) with the
    glyph in the error colour, and a Retry pill.
-7. `tests/e2e/design-refresh/` covers 1–6 with desktop and phone screenshots, and the visual-polish,
+7. No element paints a ring pattern (`repeating-radial-gradient`) behind the galaxy: the galaxy turns in 3D
+   (galaxy-3d), and a flat pattern wouldn't turn with it.
+8. `tests/e2e/design-refresh/` covers 1–7 with desktop and phone screenshots, and the visual-polish,
    experience-shell, galaxy-2d, voice, idea-create-ui and project-drawer suites still pass.
 
 ## Defaults
