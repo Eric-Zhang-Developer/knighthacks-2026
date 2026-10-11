@@ -21,9 +21,9 @@ for (const [device, viewport] of [["desktop", { width: 1440, height: 900 }], ["p
     await page.goto("/#talk");
     await page.getByRole("button", { name: "Prefer to type?" }).click();
     const say = async (text: string) => {
-      await page.getByRole("textbox", { name: "Message Uncharted" }).fill(text);
+      await page.getByRole("textbox", { name: "Message Golden Egg" }).fill(text);
       await page.getByRole("button", { name: "Send message", exact: true }).click();
-      await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toBeEmpty();
+      await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toBeEmpty();
     };
 
     await say("Consider a study planner");
