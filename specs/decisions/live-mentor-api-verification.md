@@ -1,0 +1,40 @@
+# Mentor verification checkpoint
+
+Worker: kiro-agent-1. Implementation commit: fb4444b. This is an implementation checkpoint, not a completed-feature note.
+
+- TypeScript and lint passed. Full Vitest: 439 passed, 2 skipped. The first run hit the existing ai-client compiler-test 5-second cold-load timeout; one rerun with `pnpm test --maxWorkers=2` passed without test changes.
+- The reviewed additive schema was applied to TEST_DATABASE_URL only. Shape verification passed for both mentor tables, columns/defaults, primary keys, cascading FKs and bounds. Production schema/configuration was not changed.
+- Actual PostgreSQL concurrency passed: 3 member sessions, 12 workspace sessions including prior reservations, one execution among 12 duplicate calls, 8 calls/turn, 40/session, cross-member/workspace denial, end/expiry publication refusal and zero tool-created ideas. Test workspaces were deleted.
+- Canonical `python .agents/scripts/verify.py --slug live-mentor-api --worktree .` passed all three built-app tests: HTTP guards/context/replay/end; actual SQL concurrency; real HF/Neon source retrieval -> unsaved proposal -> explicit save -> identical retry produces exactly one idea/version -> authorized saved context.
+- Receipt: `verify: node scripts/verify.mjs live-mentor-api <evidence-directory> pass at 5e874e2 (uncommitted changes)`. The verifier began before those implementation changes were committed as fb4444b. Evidence directory timestamp: 20261011T000706Z. Do not describe this receipt as a clean-checkout run at fb4444b.
+- Independent read-only review found no material implementation issues after replacing session expiry comparisons with `clock_timestamp()`.
+
+## Updated checkpoint, 2026-10-11
+
+The permission/configuration diagnosis above is superseded by #357's 06:23 UTC integration receipt: real local session issuance returned 200 and ending returned 200. A fresh read-only provider check at 08:22 UTC confirmed managed agent `agent_9401m4msvd0gepf81fg1c96pjnsk`, model `gemini-2.5-flash`, Sarah voice `EXAVITQu4vr4xnSDxMaL`, authentication enabled and maximum duration 1200 seconds. Effective privacy: record_voice=false, retention_days=0, delete_transcript_and_pii=true, delete_audio=true, zero_retention_mode=false, apply_to_existing_conversations=false. No inference or bulk provider job was started for this check.
+
+The configured prompt already includes constructive challenge, avoidance of reflexive praise and optional exploration. The checked-in definition now explicitly includes these newer canonical requirements and user-chosen progression without a fixed question count. No provider configuration was overwritten. Future setup must preserve authorized UI confirmation behavior; configuration read-back alone does not establish conversational behavior.
+
+Remaining acceptance: a human must hear a grounded follow-up, interrupt/correct it, and confirm the intended idea through the UI. This has no acceptance receipt yet. PR #355 remains draft; no completed-feature note or production acceptance is claimed. Current conversation UI ownership is `codex-conversation-ui` / PR #369, per origin/main.
+
+## Progressive brainstorming and human voice report
+
+On 2026-10-11 the coordinating chat reported asking the human to test localhost:3107 greeting, a spoken idea, interruption with a correction, and End/microphone release. The reported exact reply was “Work, improve it”. This is human-reported success of that requested local flow, not instrumented evidence of grounding, confirmed saving/sharing, or production acceptance.
+
+The backend now instructs early retrieval once enough problem/audience context exists; source-grounded overlap with supported/inferred/unknown differences; one evidence-driven question or another candidate; distinct conversational candidates with separate proposal calls; no form-filling, reflexive praise or repeated identical searches. Persistence still requires explicit app confirmation. A setup-boundary test checks that the policy reaches the deployed definition without adding tools or changing authentication/duration.
+
+After coordination on #355/#369, this exact policy was appended to managed development agent `agent_9401m4msvd0gepf81fg1c96pjnsk` while preserving its existing operator prompt. Read-back confirmed the appended text and byte-equivalent JSON for all other conversation/platform settings. Prompt SHA-256 (JSON-string encoding): `5cc43ba7119d73ef85242c9c395e33e323c8c4bc05b71b968a455c7c96ffd0d5`. No inference calls or production schema writes occurred.
+
+Two attempts sending the entire GET conversation configuration failed (the diagnostic attempt returned HTTP400). The corrected operation used the provider's documented partial prompt PATCH and passed read-back; see [ElevenLabs partial-merge prompt update](https://github.com/elevenlabs/plugin/blob/main/architect/skills/fix-agent-qa-ticket/SKILL.md#editing-the-prompt--criteria-directly). Configuration verification is separate from conversational behavior acceptance. A grounded spoken follow-up/tool receipt and confirmed-save integration remain to be recorded by the UI owner.
+
+The subsequent human answer to the evidence/proposal/confirmed-save acceptance question was reported as “Not really, i think the agent should be tuned to be easier to deal with a little”. That flow is explicitly **not accepted**. A second coordinated, prompt-only refinement now requests usually one to three short sentences, one natural follow-up, one or two concrete options when unsure, reuse of supplied answers, optional skips/topic changes/multiple ideas, and helpful prior-work comparison without premature rejection. Unknown fields remain nullable; saving authority and tool permissions are unchanged. Actual managed-agent read-back passed with every other conversation/platform setting unchanged, zero inference calls, and new prompt SHA-256(JSON-string encoding) `d0bfc0755d466a70d27351c3d2c61a976797c75d3b6965f5cbd77fcc67046061`. Ten provider/setup tests pass; human retest of the revised behavior remains outstanding.
+
+## Final integration evidence, 2026-10-11
+
+- The combined mentor API/UI unit suite passed 71 tests. TypeScript and focused ESLint also passed; no local production build was repeated during final API integration.
+- The reviewed duration-only constraint replacement was applied to `TEST_DATABASE_URL`, after confirming the exact prior constraint. The schema checker passed with all other constraints unchanged and no deleted data. Production schema was not changed.
+- The actual TEST database store runner passed all 9 checks: 10/10 session starts, 8/8 starts despite legacy budget events, 12/12 calls in one turn and 48/48 calls in one session. Authorization, replay, end, expiry and cascade cleanup remained enforced.
+- Live Gemini 3.8 Flash Google Search grounding returned one dated, relevant fox13news.com source within the seven-day window. This validates one provider call and its source/date policy, not every future result.
+- Final read-only ElevenLabs inspection recorded `gemini-2.5-flash`, the configured Sarah voice, 7,200-second duration, the four tools `get_context`, `find_projects`, `search_recent_news` and `propose_idea`, and the current mentor policy. The sanitized receipt is outside Git at `mentor-provider-after.json` in the coordinated audit directory.
+
+The explicit human request authorizes final merge preparation. It does not establish a completed human audio journey or production deployment. Human voice/interruption quality, full browser acceptance, matching client-tool deployment and the production duration-constraint update remain open.
