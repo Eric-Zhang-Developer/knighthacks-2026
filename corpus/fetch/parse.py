@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 
 PROJECT_URL = re.compile(r"^https://devpost\.com/software/[A-Za-z0-9_-]+$")
 MAX_DESCRIPTION = 20_000  # characters; a few pages paste whole READMEs
+EMOJI_SHORTCODE = re.compile(r":(?:grey_question|question):")
+EMOJI_TEXT = {":grey_question:": "❔", ":question:": "❓"}
 
 
 def canonical(url: str) -> str:
@@ -56,9 +58,9 @@ def parse_project(html: str, url: str, fetched_at: str, event_dates: dict[str, s
     technologies = [_text(t) for t in soup.select("#built-with .cp-tag")]
     details = soup.select_one("#app-details-left")
     if details:
-        for extra in details.select("#built-with, nav, .app-links"):
-            extra.decompose()  # tags and "Try it out" links aren't the description
-    description = _text(details)[:MAX_DESCRIPTION]
+        for extra in details.select("#gallery, #built-with, nav, .app-links"):
+            extra.decompose()  # media chrome, tags and "Try it out" links aren't the description
+    description = EMOJI_SHORTCODE.sub(lambda match: EMOJI_TEXT[match.group()], _text(details))[:MAX_DESCRIPTION]
     if not title:
         return None, "no title"
     if not description:

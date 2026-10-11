@@ -38,6 +38,18 @@ def test_project_fields_come_from_the_page():
     assert "Built With" not in r["description"]
 
 
+def test_project_description_drops_gallery_markers_and_renders_known_emoji_shortcodes():
+    html = PROJECT.replace('<div id="gallery">', '<div id="gallery">img 1 img 2 img 3')
+    html = html.replace("<p>Every emergency manager", "<p>:grey_question::question::grey_question: Every emergency manager :custom_fact:")
+    r, reason = parse_project(html, URL, "t")
+
+    assert reason is None
+    assert r["description"].startswith("Inspiration ❔❓❔ Every emergency manager")
+    assert "img 1" not in r["description"]
+    assert ":grey_question:" not in r["description"]
+    assert ":custom_fact:" in r["description"]
+
+
 def test_unknown_event_dates_stay_none():
     r, _ = parse_project(PROJECT, URL, "t")
     assert r["events"][0]["dates"] is None
