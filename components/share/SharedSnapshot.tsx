@@ -61,7 +61,7 @@ export default function SharedSnapshot({ token }: { token: string }) {
   return (
     <main className={styles.page}>
       <article className={styles.card} aria-label="Shared decision">
-        <p className={styles.meta}>Golden Egg · a hackathon idea, frozen when the team chose it</p>
+        <p className={styles.meta}>Uncharted · a hackathon idea, frozen when the team chose it</p>
         <h1>{d.idea.title ?? <Unknown what="Untitled idea" />}</h1>
         {d.idea.description && <p>{d.idea.description}</p>}
         <dl className={styles.facts}>
