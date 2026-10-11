@@ -35,6 +35,14 @@ export function dragTurns(e: { button: number; altKey: boolean; ctrlKey: boolean
   return e.button === RIGHT_BUTTON || e.altKey || e.ctrlKey || e.metaKey || (held && e.button === 0);
 }
 
+// Zoomed out, every star's soft sprite and nebula glow add up, so a bigger corpus is brighter in the same space. The
+// look was tuned on 8,409 stars; past that, dim the zoomed-out layers by (tuned / count)^0.35 (about half at 57k), so
+// a dense core glows instead of clipping to white. Zoomed in those layers are faded out, so the sharp look is unchanged.
+export const TUNED_STARS = 8409;
+export function crowding(count: number) {
+  return count > TUNED_STARS ? Math.pow(TUNED_STARS / count, 0.35) : 1;
+}
+
 export class Orbit {
   yaw = 0.7;
   pitch = 0.38;

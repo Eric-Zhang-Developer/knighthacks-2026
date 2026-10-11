@@ -8,7 +8,7 @@ import { useAppState } from "@/lib/store";
 import { placeIdea } from "./layouts";
 import { easeInOut, Morph, MORPH_GLSL } from "./morph";
 import { nearestNames, pickNearest, shortTitle, STYLE, styleFor } from "./stars";
-import { dragTurns, FOV, type Orbit, type Vec3 } from "./view";
+import { crowding, dragTurns, FOV, type Orbit, type Vec3 } from "./view";
 
 const PICK_RADIUS = 10; // CSS px
 const WHEEL_ZOOM = 0.0015; // per wheel pixel: one notch (~100px) is about 16%
@@ -84,6 +84,7 @@ const starUniforms = () => ({
   uTime: { value: 0 },
   uTwinkle: { value: 1 },
   uSharp: { value: 0 },
+  uCrowd: { value: 1 }, // zoomed-out dimming for a big corpus (view.ts crowding)
 });
 
 // The stars. Over the whole map (uSharp 0): a soft sprite per star with a white-hot core, a halo in its category
@@ -106,6 +107,7 @@ const starMaterial = () =>
       uniform float uTime;
       uniform float uTwinkle;
       uniform float uSharp;
+      uniform float uCrowd;
       varying vec3 vColor;
       varying float vAlpha;
       varying float vRing;
@@ -121,7 +123,7 @@ const starMaterial = () =>
         float bright = 0.4 + 0.6 * pow(s2, 2.2);
         float tw = 1.0 - uTwinkle * 0.5 * smoothstep(0.75, 1.0, sin(uTime * (0.5 + 1.8 * fract(seed * 7.31)) + seed * 60.0));
         float even = max(marked, ring); // marked stars and prize winners are always at full brightness
-        float soft = mix(bright * tw, 1.0, even) * mix(1.3, 0.35, far);
+        float soft = mix(bright * tw * uCrowd, 1.0, even) * mix(1.3, 0.35, far);
         float lit = mix(0.45 + 0.55 * pow(s2, 1.6), 1.0, even) * mix(1.0, tw, 0.5); // a magnitude, kept up close
         vAlpha = mix(soft, lit * mix(1.0, 0.45, far), uSharp);
         vSpark = max(even, smoothstep(0.82, 0.97, s2));
@@ -179,11 +181,12 @@ const glowMaterial = () =>
       attribute vec3 starColor;
       attribute float size;
       uniform float uSharp;
+      uniform float uCrowd;
       varying vec3 vColor;
       void main() {
         vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
         float depth = -mv.z;
-        vColor = scanned(starColor, 0.0) * mix(1.0, 0.35, farness(depth)) * (1.0 - uSharp);
+        vColor = scanned(starColor, 0.0) * mix(1.0, 0.35, farness(depth)) * (1.0 - uSharp) * uCrowd;
         // ponytail: one big quad per star; at ~55k stars this fill rate is the cost to watch (shrink the 32 first).
         gl_PointSize = size > 0.0 && uSharp < 0.99 ? min(32.0 * uPixelRatio * atten(depth), 160.0 * uPixelRatio) : 0.0;
         gl_Position = projectionMatrix * mv;
@@ -260,7 +263,7 @@ function Composite({ view }: { view: Orbit }) {
         varying vec2 vUv;
         void main() {
           vec3 base = texture2D(tScene, vUv).rgb;
-          vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.6;
+          vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.25; // the 1/32 level shows as squares over bright clouds
           vec3 c = (base + bloom * uBloom * (1.0 - 0.85 * uSharp)) * uExposure;
           float l = max(max(c.r, c.g), c.b);
           float m = 1.0 - exp(-l);
@@ -398,6 +401,7 @@ function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: numb
       u.uTime.value = state.clock.elapsedTime;
       u.uTwinkle.value = view.reduced ? 0 : 1;
       u.uSharp.value = view.sharp;
+      u.uCrowd.value = crowding(n);
       applyScan(u, live.frame, live.focused);
     }
   });
