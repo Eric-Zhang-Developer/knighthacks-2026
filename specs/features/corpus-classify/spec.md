@@ -104,7 +104,7 @@ checks above remain binding. Implementation follows this plan's human merge, in 
    Jev output as Luna output. Shared label-store merging has one writer.
 
 ### Pilot and acceptance
-- Before bulk spending, run 200 distinct real records, including at least 50 summary-only records, all available
+- Before bulk spending, run 500 distinct real records, including at least 50 summary-only records, all available
   domains, mixed/insufficient examples and positive/negative coding-tool cases. Tune questions on a separate
   development sample; keep the acceptance sample held out. Existing model labels are comparisons, not truth.
 - Use six `gpt-6-luna` workers in two waves of three for independent source review and exception handling.
