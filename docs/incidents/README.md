@@ -1,6 +1,6 @@
 # Incident log
 
-Things that went badly wrong, so agents and people don't repeat them. Newest first. Times are EDT. Only write
+Things that went badly wrong, so agents and people don't repeat them.  What went right: [wins](../wins.md). Newest first. Times are EDT. Only write
 facts you can point to: a log line, an issue comment, a command's output. If the cause is unknown, write "unknown".
 
 | When | Incident | Impact | Record |
