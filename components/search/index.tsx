@@ -128,8 +128,15 @@ export default function Search() {
           }}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
-          // The first Escape folds the results away; with them folded, Escape clears the query.
-          onKeyDown={(e) => e.key === "Escape" && (shown ? setOpen(false) : setQ(""))}
+          // The first Escape folds the results away (preventDefault stops a search box's own clear-on-Escape);
+          // with them folded, Escape clears the query.
+          onKeyDown={(e) => {
+            if (e.key !== "Escape") return;
+            if (shown) {
+              e.preventDefault();
+              setOpen(false);
+            } else setQ("");
+          }}
         />
         {stars.length > 0 && (
           <details className={styles.filterMenu}>
