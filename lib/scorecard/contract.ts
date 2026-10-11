@@ -23,10 +23,15 @@ export class ScorecardError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
-// A point keeps only sources that are this version's evidence cards; it is `supported` only when it cites one.
+// A point keeps only sources that are this version's evidence cards. A known citation can
+// ground a claim the model already labelled supported, but it never upgrades uncertainty.
 const ground = (p: Claim, known: Set<string>): Claim => {
   const sourceIds = [...new Set(p.sourceIds.filter((id) => known.has(id)))];
-  return { text: p.text, sourceIds, label: p.label === "unverified" ? "unverified" : sourceIds.length ? "supported" : "inferred" };
+  return {
+    text: p.text,
+    sourceIds,
+    label: p.label === "supported" && sourceIds.length === 0 ? "inferred" : p.label,
+  };
 };
 
 export function settle(out: z.infer<typeof outputSchema>, known: Set<string>): Criterion[] {
@@ -38,6 +43,6 @@ export function settle(out: z.infer<typeof outputSchema>, known: Set<string>): C
     const thin = c.score === null || pro.length === 0 || con.length === 0;
     const all = [...pro, ...con];
     return { criterion: name, score: thin ? null : c.score, for: pro, against: con, note: thin ? INSUFFICIENT : null,
-      label: all.length > 0 && all.every((p) => p.sourceIds.length > 0) ? "supported" : "inferred" };
+      label: all.length > 0 && all.every((p) => p.label === "supported" && p.sourceIds.length > 0) ? "supported" : "inferred" };
   });
 }
