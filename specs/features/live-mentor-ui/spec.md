@@ -1,15 +1,50 @@
 ---
 name: A natural spoken mentor connected to the idea and evidence panels
 depends_on: [live-mentor-api, voice, idea-create-ui, idea-interview-ui, neighbor-evidence-ui, design-refresh]
-owns: [components/mentor/, components/voice/index.tsx, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
-assignee: "eric-frontend-agent"
+owns: [components/mentor/, components/voice/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
+assignee: "codex-conversation-ui"
 ---
 
 # Live mentor: UI (#345)
 
-Mac owns this frontend. The user identifies realistic live mentorship as the main selling point. Integrate it
+The user explicitly reassigned this frontend to this Windows Codex chat (worker codex-conversation-ui),
+superseding the earlier Mac handoff for this slice only. The user identifies realistic live mentorship as the main selling point. Integrate it
 through the existing voice entry point, after coordinating #221/#324/#346 and design-refresh; no competing edits.
 Keep the existing app navigation and source-backed idea/evidence panels. This is not isolated dictation or TTS.
+
+## Conversation-first entry and contextual rail
+
+This section supersedes experience-shell's dictation composer and form-first placement, and design-refresh's
+empty-start sparks, only when this feature ships. Existing functional controls remain reachable; acceptance
+tests must assert preserved behavior through the new entry rather than require the obsolete placement.
+
+- Open on the full map with real project points. A circular, keyboard-accessible bottom-center bubble opens
+  a conversation surface with typing and an explicit Start live conversation action. Never start the microphone
+  on page load. The launcher stays reachable across Explore, Talk, Idea, Decide and Plan, including phone safe
+  areas; navigation must not remount an active session or discard an unsaved draft. Closing the surface is
+  distinct from ending the session: show a persistent active-state indicator and accessible End control.
+- The side panel contains conversation outputs: proposed idea, sourced neighbors, risks/unknowns and next
+  actions. Do not require a sequence of fields before brainstorming. Existing editable fields are optional
+  refinement controls, and explicit confirmation still governs saves/revisions. Keep one canonical draft and
+  proposal, not independent form and conversation copies that diverge.
+- Ask one contextual question at a time about audience, motivation, constraints, evidence and alternatives.
+  Challenge weak assumptions constructively, including why the idea might fail or succeed and what is missing.
+  Never default to praise or present unsupported confidence. After roughly two or three useful exchanges offer
+  exploration or team collaboration, without a compulsory count, forced navigation or endless questioning.
+  The user chooses when to move on. Existing challenge-mode limits remain unchanged.
+- Offer explicit navigation actions to existing exploration and teammate controls. No new provider tools,
+  invitations, saved mutations or expanded API privileges are implied. Prompt changes in lib/mentor remain
+  with live-mentor-api's owner; frontend copy alone cannot establish the provider's behavior.
+- Use a near-black neutral map surround, readable white text and restrained accents. Scope glass styling to
+  the owned shell/mentor surfaces: translucent fills, subtle borders and limited blur with solid fallbacks.
+  Preserve WCAG AA, reduced-transparency, reduced-motion and high-contrast behavior. Do not replace project
+  categories with fabricated data or obscure the map beneath a permanent form rail.
+- Typing is a conversational alternative, not only a dictation destination. Reuse the existing authorized
+  interpretation/interview operations and bounded policies. Provider failure must be explicit; never simulate
+  a live ElevenLabs session or silently substitute canned spoken replies.
+
+The backend dependency and real-provider acceptance below remain required. This ownership change does not
+authorize out-of-order shipping, production schema/configuration changes or merging a human-review plan.
 
 ## Plan
 1. Start brainstorming is an obvious entry action, with a text alternative. Explain microphone use before
@@ -53,3 +88,9 @@ Keep the existing app navigation and source-backed idea/evidence panels. This is
    User correction survives subsequent questions; private votes/share capabilities never enter tool messages.
 4. Keyboard, 390px phone and desktop checks; existing voice, idea-create and interview suites still pass.
    Tech-stack Checks and `verify.py --slug live-mentor-ui --worktree .`; mocked audio cannot replace step 1.
+5. At desktop and 390px, start on the map; open the bubble; type without completing a form. Navigate every
+   existing destination with the same conversation/draft retained. Closing/reopening the surface keeps truthful
+   session state; End releases audio. No launcher/control overlap, horizontal overflow or inaccessible focus.
+6. Human audio run includes a weak initial assumption, a relevant non-sycophantic follow-up, a correction and
+   user-selected exploration/team navigation. Visible evidence and proposal match the conversation. Repeat the
+   complete typed path with denied microphone permission; no automatic saves, invites or lost draft.
