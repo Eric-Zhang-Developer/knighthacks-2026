@@ -429,3 +429,42 @@ def test_a_repeated_page_right_after_a_restart_is_still_caught(tmp_path, monkeyp
     run.fetch(type("A", (), {"limit": 24, "deadline": None}), Fake())  # page 1 done, then the limit
     run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake())  # page 2 repeats page 1
     assert [r["page"] for r in run.read_jsonl(tmp_path / "progress.jsonl")] == [1]
+
+
+def test_isolated_collector_skips_other_machine_projects_and_keeps_cards(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+    known = tmp_path / "mac.jsonl"
+    second = parse_gallery(GALLERY, "https://knighthacksviii.devpost.com/project-gallery")[1]
+    known.write_text(json.dumps({"url": URL + "?ref=gallery"}) + "\n" +
+                     json.dumps({"id": run.hashlib.sha1(second.encode()).hexdigest()}) + "\n")
+    isolated = tmp_path / "windows"
+    requests = []
+
+    class Fake:
+        def get(self, url):
+            requests.append(url)
+            return GALLERY if url.endswith("page=1") else "" if "page=" in url else PROJECT
+
+    # fetch uses isinstance for production deadlines; keep that type check working.
+    class FakeFetcher(Fake):
+        def __init__(self, rps):
+            self.rate = f"{rps}/s"
+    monkeypatch.setattr(run, "Fetcher", FakeFetcher)
+    args = ["fetch", "--sources", str(run.SOURCES), "--data-dir", str(isolated),
+            "--exclude-projects", str(known), "--rps", "5", "--workers", "5"]
+    assert run.main(args) == 0
+    assert URL not in requests and second not in requests
+    assert len(run.read_jsonl(isolated / "projects.jsonl")) == 22
+    assert len(run.read_jsonl(isolated / "summaries.jsonl")) == 24
+    assert not run.OUT.exists()  # default output was not touched
+    requests.clear()
+    run.main(args)
+    assert not [url for url in requests if "/software/" in url]
+    assert len(run.read_jsonl(isolated / "projects.jsonl")) == 22
+
+
+def test_missing_external_checkpoint_fails_before_requests(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+    args = type("A", (), {"exclude_projects": [tmp_path / "missing.jsonl"]})
+    with pytest.raises(ValueError, match="missing known-project"):
+        run.fetch(args, object())
