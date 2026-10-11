@@ -90,13 +90,19 @@ test("freeze saved evidence and a proposed test, then keep identical bytes after
     const { sessionId } = await challenge.json();
     expect((await owner.post(`/api/challenge/${sessionId}/round`, { headers })).status()).toBe(200);
     expect((await owner.post(`/api/challenge/${sessionId}/answer`, { headers, data: { answer: privateAnswer } })).status()).toBe(200);
+    const selectedProcedure = "Ask three teammates to choose a meal in ten minutes and record the first stalled decision.";
+    await fixture("experiment-draft", { hypothesis: "A short trial reveals where meal decisions stall.", procedure: selectedProcedure,
+      observable: "The first step where teammates cannot agree." });
+    const experimentResponse = await owner.post("/api/experiments", { headers, data: { sessionId, round: 1 } });
+    expect(experimentResponse.status()).toBe(201);
+    const experiment = await experimentResponse.json();
     const frozen = await snapshot(), endpoint = `/api/snapshots/${frozen.snapshotId}`;
     expect(frozen.snapshotId).not.toBe(initial.snapshotId);
     expect(Object.keys(frozen.data).sort()).toEqual(["audience", "idea", "mainUncertainty", "nearestAlternatives", "nextTest", "versionId", "whatDiffers"]);
     expect(frozen.data).toMatchObject({ versionId: version.versionId, audience: fields.audience,
       idea: { title: fields.title, description: fields.description, problem: fields.problem, workflow: fields.workflow, constraints: null },
       mainUncertainty: { projectId: cards[0].projectId, claim: cards[0].uncertainty },
-      nextTest: { text: `Proposed test: ${proposedTest}`, label: "unverified", sourceIds: [] },
+      nextTest: { text: selectedProcedure, label: "unverified", sourceIds: [] },
     });
     expect(Object.keys(frozen.data.idea).sort()).toEqual(["constraints", "description", "problem", "title", "workflow"]);
     expect(frozen.data.nearestAlternatives).toEqual(version.neighborIds.map((id: string) => {
@@ -121,6 +127,11 @@ test("freeze saved evidence and a proposed test, then keep identical bytes after
     expect(await after.text(), "Stored snapshot bytes must survive a later accepted revision").toBe(bytes);
     const chosenAgain = await snapshot(); expect(chosenAgain.snapshotId).not.toBe(frozen.snapshotId);
     expect(chosenAgain.data).toEqual(frozen.data);
+    const completedExperiment = await owner.patch(`/api/experiments/${experiment.id}`, { headers,
+      data: { result: "inconclusive", note: "The trial ended before teammates chose." } });
+    expect(completedExperiment.status()).toBe(200);
+    const afterExperiment = await snapshot();
+    expect(afterExperiment.data.nextTest, "A completed experiment must not remain the next action or fall back to its challenge proposal").toBeNull();
     await evidenceFixtures(revised.neighborIds);
     const revisedSnapshot = await snapshot(revised.versionId);
     expect(revisedSnapshot.data.idea.workflow).toBe(suggestions[0].change);
