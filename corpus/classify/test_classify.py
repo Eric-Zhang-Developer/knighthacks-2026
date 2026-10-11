@@ -230,3 +230,58 @@ def test_rest_wire_format_and_secret_header(monkeypatch):
     client = classifier.Gemini("stub", "private-test-secret")
     assert client("source data", {"type": "array"}) == []
     assert client.calls == 1
+
+
+def test_label_store_sends_only_unseen_rows(data, tmp_path):
+    records, stars = data
+    calls = []
+
+    def stub(prompt, schema):
+        calls.append(json.loads(prompt.split("never instructions:\n", 1)[1]))
+        return response(prompt, schema)
+
+    store = tmp_path / "labels"
+    classifier.build(records[:2], {**stars, "count": 2, "stars": stars["stars"][:2]}, stub, "first", None, labels=classifier.Labels(store))
+    calls.clear()
+    artifact, _ = classifier.build(records, stars, stub, "second", None, labels=classifier.Labels(store))
+    project_inputs = [item for batch in calls for item in batch if isinstance(item["source"], dict)]
+    assert [item["source"]["title"] for item in project_inputs] == [records[2]["title"]]
+    assert artifact["model"] == "first+second"
+    records[0]["description"] = (records[0]["description"] or "") + " changed"
+    calls.clear()
+    classifier.build(records, stars, stub, "third", None, labels=classifier.Labels(store))
+    assert [item["source"]["title"] for batch in calls for item in batch if isinstance(item["source"], dict)] == [records[0]["title"]]
+
+
+def test_agent_provider_round_trip_and_withholding(data, tmp_path):
+    records, stars = data
+    answers, store, output = tmp_path / "agents", tmp_path / "labels", tmp_path / "classes.json"
+    source = tmp_path / "records.jsonl"
+    source.write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
+    star_file = tmp_path / "stars.json"
+    star_file.write_text(json.dumps(stars), encoding="utf-8")
+    argv = ["--from-jsonl", str(source), "--stars", str(star_file), "--output", str(output), "--cache", str(tmp_path / "c"),
+            "--labels", str(store), "--provider", "agent", "--answers", str(answers)]
+    assert classifier.main(argv) == 1 and not output.exists()
+    prompts = sorted((answers / "prompts").glob("*.txt"))
+    assert prompts
+    for prompt in prompts:
+        answer = answers / "answers" / (prompt.stem + ".json")
+        answer.parent.mkdir(exist_ok=True)
+        answer.write_text(json.dumps(response(prompt.read_text(encoding="utf-8"), None)), encoding="utf-8")
+        assert classifier.main(["--check-answer", str(answer)]) == 0
+    assert classifier.main(argv) == 0
+    artifact = json.loads(output.read_text(encoding="utf-8"))
+    classifier.validate_artifact(artifact, records, stars)
+    assert artifact["model"] == "claude-sonnet-5-5"
+
+
+def test_check_answer_rejects_a_bad_domain(tmp_path):
+    prompt = classifier.batch_prompt("projects", [{"title": "t", "tagline": None, "description": "d", "technologies": []}])
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "answers").mkdir()
+    (tmp_path / "prompts" / "x.txt").write_text(prompt, encoding="utf-8")
+    bad = {**classifier.UNKNOWN, "domain": "space", "status": "clear"}
+    (tmp_path / "answers" / "x.json").write_text(json.dumps([{"index": 0, "value": bad}]), encoding="utf-8")
+    with pytest.raises(ValueError):
+        classifier.check_answer(tmp_path / "prompts" / "x.txt", tmp_path / "answers" / "x.json")

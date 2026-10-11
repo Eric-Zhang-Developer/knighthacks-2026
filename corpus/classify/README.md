@@ -36,3 +36,16 @@ Before shipping, follow the source-sampling and complete distinct-prize review i
 `python corpus/classify/review.py` prepares deterministic samples with complete source text and artifact hashes
 in the ignored cache. It assigns no review verdict; an agent must compare source and classification.
 Missing evidence remains unknown; a prize classification is not an estimate of winning likelihood.
+
+## Label store and agent labelling
+
+`--labels corpus/classify/labels` keeps every checked label per project (id plus a hash of title, tagline,
+description and technologies) and per prize string, with the model that produced it. A row already in the store is
+re-validated against today's text and never sent again; a changed description is labelled afresh. The published
+8,409 Gemini labels are seeded with `--seed-from public/classify/classes.json --from-jsonl <the rows they came from>`.
+
+`--provider agent --answers DIR` replaces the API with classification agents: each unanswered batch's exact prompt
+is written to `DIR/prompts/<digest>.txt`, an agent writes `DIR/answers/<digest>.json`, and `--check-answer` runs the
+same validators on it. `--labels-only --from-jsonl rows.jsonl` labels a corpus that has no star manifest yet (the
+growth fetch). An agent run that still has unanswered batches withholds `classes.json` instead of publishing
+`insufficient_text` for them. `classes.json`'s `model` names every model whose labels it contains.
