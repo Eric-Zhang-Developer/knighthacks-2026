@@ -14,6 +14,7 @@ import Nav from "@/components/shell";
 import Sheet from "@/components/shell/Sheet";
 import Steps from "@/components/shell/Steps";
 import Snapshot from "@/components/snapshot";
+import SponsorChallenges from "@/components/sponsor-challenges";
 import Mentor from "@/components/mentor";
 import Votes from "@/components/votes";
 import styles from "./page.module.css";
@@ -85,6 +86,7 @@ export default function Home() {
           <p className={styles.empty}>Save an idea to vote on it, decide, and share it.</p>
           <Votes />
           <Snapshot />
+          <SponsorChallenges />
           <Share />
         </div>
         {/* The last step of the flow (Plan 6): its own phone destination, after Decide on desktop. */}
