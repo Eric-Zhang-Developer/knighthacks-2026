@@ -23,9 +23,12 @@ const smooth = (x: number) => {
 };
 const easeOut = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
 
+// When the arcs start reaching and how far apart: a scan's default, or the story's slower beat (each twin on its chime).
+export type Pace = { reachAt: number; gap: number };
+
 // When neighbour k's arc lands, from the scan's start.
-export const landAt = (k: number) => SCAN.reachAt + k * SCAN.gap + SCAN.reach;
-export const scanLength = (n: number) => (n > 0 ? landAt(n - 1) : SCAN.reachAt) + SCAN.settle;
+export const landAt = (k: number, p: Pace = SCAN) => p.reachAt + k * p.gap + SCAN.reach;
+export const scanLength = (n: number, p: Pace = SCAN) => (n > 0 ? landAt(n - 1, p) : p.reachAt) + SCAN.settle;
 export const introLength = (m: number) => INTRO.start + Math.max(0, m - 1) * INTRO.gap + INTRO.warm + INTRO.hold;
 
 // Everything the scene needs for one frame.
@@ -37,23 +40,23 @@ export type Frame = {
   land: Float32Array; // per neighbour, seconds since its arc landed (-1 = not yet)
 };
 
-export function scanPhase(t: number, n: number): ScanPhase {
-  if (t < SCAN.reachAt) return "drain";
-  if (n > 0 && t < landAt(n - 1)) return "reach";
-  if (t < scanLength(n)) return "settle";
+export function scanPhase(t: number, n: number, p: Pace = SCAN): ScanPhase {
+  if (t < p.reachAt) return "drain";
+  if (n > 0 && t < landAt(n - 1, p)) return "reach";
+  if (t < scanLength(n, p)) return "settle";
   return "done";
 }
 
-export function landedAt(t: number, n: number) {
+export function landedAt(t: number, n: number, p: Pace = SCAN) {
   let k = 0;
-  while (k < n && t >= landAt(k)) k++;
+  while (k < n && t >= landAt(k, p)) k++;
   return k;
 }
 
 // The scan at t seconds: n neighbours, cats[k] the category slot of neighbour k (-1 = unknown).
-export function scanFrame(t: number, cats: number[], out: Frame = emptyFrame()): Frame {
+export function scanFrame(t: number, cats: number[], out: Frame = emptyFrame(), p: Pace = SCAN): Frame {
   const n = Math.min(cats.length, ARCS);
-  const settleAt = scanLength(n) - SCAN.settle;
+  const settleAt = scanLength(n, p) - SCAN.settle;
   const settle = smooth((t - settleAt) / SCAN.settle);
   out.drain = smooth(t / SCAN.drain) * (1 - settle);
   out.fade = settle;
@@ -61,13 +64,13 @@ export function scanFrame(t: number, cats: number[], out: Frame = emptyFrame()):
   out.reach.fill(0);
   out.land.fill(-1);
   for (let k = 0; k < n; k++) {
-    out.reach[k] = easeOut((t - (SCAN.reachAt + k * SCAN.gap)) / SCAN.reach);
-    const since = t - landAt(k);
+    out.reach[k] = easeOut((t - (p.reachAt + k * p.gap)) / SCAN.reach);
+    const since = t - landAt(k, p);
     if (since >= 0) out.land[k] = since;
     const c = cats[k];
     if (c >= 0 && c < SLOTS) out.warm[c] = Math.max(out.warm[c], smooth(since / SCAN.warm));
   }
-  if (t >= scanLength(n)) return settledFrame(out);
+  if (t >= scanLength(n, p)) return settledFrame(out);
   return out;
 }
 
@@ -109,6 +112,8 @@ export class Director {
   reduced = false;
   private mode: "scan" | "intro" | null = null;
   private start = 0;
+  private pausedAt: number | null = null; // the story's pause: the clock stands still from here
+  private pace: Pace = SCAN;
   private cats: number[] = [];
   private order: number[] = [];
   private queued: { key: string; cats: number[] } | null = null;
@@ -134,13 +139,40 @@ export class Director {
   get playing() {
     return this.mode !== null;
   }
+  get paused() {
+    return this.pausedAt !== null;
+  }
 
-  // Play the scan for the idea `key` (its version id). During the intro it waits for the intro to end.
-  startScan(key: string, cats: number[], now: number) {
+  // The story's pause: whatever is playing holds its frame until resume() picks it up where it stood.
+  pause(now: number) {
+    if (this.mode && this.pausedAt === null) this.pausedAt = now;
+  }
+  resume(now: number) {
+    if (this.pausedAt === null) return;
+    this.start += now - this.pausedAt;
+    this.pausedAt = null;
+  }
+
+  // Stop whatever is playing with none of its own ending (no camera move, no queued scan), then report `status`: the
+  // story re-drives the map from each beat's start and, at its end, hands back what was showing before it.
+  halt(status?: Partial<Status>) {
+    this.mode = null;
+    this.pausedAt = null;
+    this.queued = null;
+    this.needsFraming = false;
+    this.introCamera = null;
+    if (status) this.emit(status);
+  }
+
+  // Play the scan for the idea `key` (its version id). During the intro it waits for the intro to end. `pace` slows the
+  // arcs for the story; without it a scan keeps its own timing.
+  startScan(key: string, cats: number[], now: number, pace: Pace = SCAN) {
     if (this.mode === "intro") {
       this.queued = { key, cats };
       return;
     }
+    this.pace = pace;
+    this.pausedAt = null;
     this.cats = cats.slice(0, ARCS);
     if (this.reduced) {
       this.mode = null;
@@ -156,6 +188,7 @@ export class Director {
   startIntro(order: number[], now: number) {
     if (this.reduced) return this.emit({ intro: "done", lit: order.length });
     this.order = order;
+    this.pausedAt = null;
     this.mode = "intro";
     this.start = now;
     this.introCamera = "start";
@@ -164,6 +197,7 @@ export class Director {
 
   // Any input: whatever is playing ends where it would have ended.
   skip(now: number) {
+    this.pausedAt = null;
     if (this.mode === "intro") this.endIntro(now);
     if (this.mode === "scan") {
       this.mode = null;
@@ -183,16 +217,16 @@ export class Director {
 
   // The frame at `now` (seconds), or null when nothing is playing (the scene draws its resting state).
   tick(now: number): Frame | null {
-    const t = now - this.start;
+    const t = (this.pausedAt ?? now) - this.start;
     if (this.mode === "scan") {
       const n = this.cats.length;
-      const phase = scanPhase(t, n);
-      this.emit({ scan: phase, landed: landedAt(t, n) });
+      const phase = scanPhase(t, n, this.pace);
+      this.emit({ scan: phase, landed: landedAt(t, n, this.pace) });
       if (phase === "done") {
         this.mode = null;
         return null;
       }
-      return scanFrame(t, this.cats, this.frameBuf);
+      return scanFrame(t, this.cats, this.frameBuf, this.pace);
     }
     if (this.mode === "intro") {
       this.emit({ lit: introLit(t, this.order.length) });
