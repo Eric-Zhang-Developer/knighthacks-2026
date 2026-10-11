@@ -17,8 +17,8 @@ const PHONE = "(max-width: 720px)";
 
 const fromHash = (): Dest => DESTINATIONS.find((d) => `#${d.id}` === location.hash)?.id ?? "explore";
 
-// The phone's bottom navigation. The destination lives in the URL hash and on <html data-dest>, which
-// app/page.module.css reads to show one destination at a time; desktop hides this bar and shows everything.
+// Shared destinations: bottom bar on phone, compact rail navigation on desktop.
+// Hash changes never remount the persistent mentor session.
 export default function Nav() {
   const [dest, setDest] = useState<Dest>("explore");
   const selected = useAppState((s) => s.selectedProjectId);
@@ -67,6 +67,10 @@ export default function Nav() {
             setDest(d.id);
             window.dispatchEvent(new Event("hashchange"));
             if (d.id === "talk") window.dispatchEvent(new Event("mentor:open"));
+            if (!matchMedia(PHONE).matches) requestAnimationFrame(() => {
+              const target = d.id === "talk" ? "mentor-notes" : d.id === "idea" ? "mentor-ideas" : `step-${d.id}`;
+              document.getElementById(target)?.scrollIntoView({ block: "start" });
+            });
           }}
         >
           <span className="shell-nav-icon" aria-hidden>
