@@ -96,3 +96,9 @@ test("generated output limits hold even though the provider schema carries none"
   ];
   for (const b of broken) expect(generatedSchema.safeParse(b).success).toBe(false);
 });
+
+test("a feature with no time estimate says it wasn't checked against the time left", () => {
+  const [f] = assess([{ ...candidates[1], requirements: { skills: [], hardware: [], hours: null } }], team);
+  expect(f.recommendedScope).toBe("core");
+  expect(f.gaps).toEqual([{ text: "No time estimate, so it wasn't checked against the 10 h left.", label: "unverified", sourceIds: [] }]);
+});

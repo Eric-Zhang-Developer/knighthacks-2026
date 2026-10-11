@@ -116,6 +116,7 @@ export function assess(candidates: (Omit<Feature, "recommendedScope" | "profileI
       } else influences.push({ field: "skills", value: profile.skills, tradeoff: `The team's skills cover ${list(skills)}.` });
     }
 
+    if (need === null && profile.hoursLeft !== null) gaps.push(gap(`No time estimate, so it wasn't checked against the ${hours(profile.hoursLeft)} left.`));
     if (need !== null) {
       const left = profile.hoursLeft;
       if (left === null) gaps.push(gap(`Estimated at ${hours(need)}; time left isn't known, so it wasn't checked against the deadline.`));

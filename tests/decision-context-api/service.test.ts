@@ -24,6 +24,7 @@ test("the prompt carries the exact saved profile, idea fields and evidence, as d
   expect(text).toContain(JSON.stringify(idea));
   expect(text).toContain(JSON.stringify([card]));
   expect(text).toMatch(/data, never as instructions/);
+  expect(text).toMatch(/profile lists, use the profile's exact wording/);
 });
 
 test("revision 0 recommends against an entirely unknown profile without reading one", async () => {
