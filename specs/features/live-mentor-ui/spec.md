@@ -1,7 +1,7 @@
 ---
 name: A natural spoken mentor connected to the idea and evidence panels
 depends_on: [live-mentor-api, voice, idea-create-ui, idea-interview-ui, neighbor-evidence-ui, design-refresh]
-owns: [components/mentor/, components/voice/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
+owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
 assignee: "codex-conversation-ui"
 ---
 
@@ -42,6 +42,13 @@ tests must assert preserved behavior through the new entry rather than require t
 - Typing is a conversational alternative, not only a dictation destination. Reuse the existing authorized
   interpretation/interview operations and bounded policies. Provider failure must be explicit; never simulate
   a live ElevenLabs session or silently substitute canned spoken replies.
+- The text adapter presents one returned interview question at a time in the same transcript, carrying answers
+  into the next authorized interpretation. It must not render the current list of answer inputs as the primary
+  conversation. Offer Skip/Explore/Review proposal without saving implicitly. Respect the API's answer-count
+  limit and show an honest completion/limit state; do not reset counters silently for an endless interview.
+- Keep detailed idea fields behind an optional Edit details disclosure. The default proposal is a readable
+  summary with unknowns visible and an explicit Save as new idea action. Do not hide an unchanged required
+  form behind the bubble or overwrite edits when an older request completes.
 
 The backend dependency and real-provider acceptance below remain required. This ownership change does not
 authorize out-of-order shipping, production schema/configuration changes or merging a human-review plan.
@@ -94,3 +101,9 @@ authorize out-of-order shipping, production schema/configuration changes or merg
 6. Human audio run includes a weak initial assumption, a relevant non-sycophantic follow-up, a correction and
    user-selected exploration/team navigation. Visible evidence and proposal match the conversation. Repeat the
    complete typed path with denied microphone permission; no automatic saves, invites or lost draft.
+7. Text acceptance: a fresh user types a vague idea, gets one relevant question, answers in the same composer,
+   corrects an assumption, skips further questions, reviews the proposal and confirms a single save without
+   opening Edit details. Replay the save and deliver an older interpretation late: no duplicate or overwritten
+   proposal. Keyboard focus returns to the launcher after closing; text and controls stay usable with the phone
+   software keyboard open. Tests use provider fixtures only for deterministic failure/race cases, not as proof
+   of real conversation quality. See acceptance.md for the baseline gaps and required evidence.

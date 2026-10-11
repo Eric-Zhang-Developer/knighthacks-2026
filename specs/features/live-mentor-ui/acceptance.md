@@ -1,0 +1,36 @@
+# Conversation-first acceptance: evidence, not completion by plan
+
+Baseline inspected: main `5740654f9dccb88502364514880eaf5bdfa1d222`; backend draft #355
+at `9df58dffeebc22309bb79666c52c98adb87d3e30`. This is source/receipt review, not a new live browser run.
+No item below becomes complete merely because this plan merges or a mocked test passes.
+
+| User requirement | Observed gap | Required implementation/acceptance evidence |
+| --- | --- | --- |
+| Open on map, click circular bottom-center bubble | page mounts Voice directly; Voice is a Hold to talk dictation bar | Desktop and 390px recording: map first, bubble opens conversation, no permission before intent |
+| Real two-way ElevenLabs mentor | voice/index.tsx uses ScribeEngine and appendUtterance; no mentor UI mounted | Actual private-agent multi-turn audio, interruption and correction; record effective model/voice and timing |
+| Conversation rather than a side-panel form | idea/index.tsx maps FIELDS into a form; Interview renders multiple answer inputs | Typed and spoken proposal/refinement/save without entering a form; optional Edit details only |
+| Bubble everywhere | phone page CSS shows composer only in Explore/Talk | Visit all five destinations with the same active session and draft; bubble and End remain usable |
+| Constructive challenge, not automatic praise | draft mentor prompt covers context/evidence but lacks explicit anti-praise and failure/success questioning | Updated effective agent prompt plus human transcript showing relevant risk, reason and follow-up; no fabricated claims |
+| User decides when to explore/invite | existing navigation exists, but no conversation actions integrate it | After useful exchange user chooses Explore or teammate controls; no forced move, invitation or save |
+| Dark restrained glass interface | dark Material tokens exist; current placement and density are unchanged | Screenshots and measured contrast on desktop/phone; solid/reduced-motion fallbacks; no control overlap |
+| Actually usable through completion | no mentor end-to-end receipt; #355 unmerged and #357 open | Fresh workspace: conversation -> real evidence -> confirmed idea -> decision -> share, plus denied-mic text journey |
+
+## Release gates
+
+- #365 human-reviewed plan merge precedes frontend implementation under the new ownership/scope.
+- live-mentor-api must satisfy its dependency/acceptance contract; do not relabel dictation as a substitute.
+- #357 records missing provider conversational-agent permission and local agent ID. Treat as unresolved until
+  a sanitized effective-configuration/token/human-audio receipt proves otherwise. Do not log credentials.
+- Keep test/provider-mocked, real-provider, deployed and human-tried receipts distinct. UI test success cannot
+  prove the provider was configured or that conversation sounds natural.
+- Update obsolete placement assertions only with replacement behavior assertions and a stated reason. Never
+  remove auth, explicit-confirmation, source grounding, cancellation, quota or accessibility checks to pass.
+- Report remaining gaps explicitly; no changes/live-mentor-ui.md completion claim before required validation.
+
+## Efficient execution
+
+One frontend owner, this Codex chat; no duplicate Claude lane. Reuse installed SDK and existing domain routes.
+Use focused deterministic tests during edits; run the full required suite on the integrated candidate. No
+provider retries while permission/configuration is blocked. No extra worker beyond the local three-worker cap.
+Small bounded styling/test tasks may use a lower-cost model; authentication/session race review requires the
+stronger reviewer. Neither model choice nor delegation replaces independent evidence of the user's journey.

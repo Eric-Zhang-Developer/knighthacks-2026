@@ -56,6 +56,11 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
    using retrieved facts and originality/technical understanding/functionality/design/wow criteria. Important
    claims require tool evidence or an explicit inferred/unknown label. It never equates sparse map space with
    originality, assumes implementation from a proposal, or predicts winning. Separate tools' facts from user goals.
+   The provider prompt must explicitly avoid reflexive praise: explore motivation, reasons the idea could fail
+   or succeed, missing assumptions and the next useful evidence/test. Be constructive, not reflexively negative.
+   Ask one question at a time, acknowledge corrections and offer user-chosen exploration after useful exchanges;
+   never force advancement after a fixed question count. Verify these behaviors in the actual configured agent,
+   not just checked-in text. This adds no tools or permissions and does not relax bounded domain policies.
    Use bounded interview/challenge domain policies; do not rewrite their limits to sustain a voice session.
 
 ## Requirements
