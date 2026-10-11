@@ -50,3 +50,20 @@ Clean retry: both 390px browser boundary tests passed against the production bui
 Screenshots in that evidence directory show the denied-mic fallback and fixture candidate cards. The initial
 build failure is retained above rather than omitted. Typecheck and lint also pass. Live provider, full SDK
 disconnect/interruption races, real generation/save, and human audio acceptance remain unverified; keep #369 draft.
+
+## Hands-free app actions
+
+The human clarified that no buttons should be required after deliberate call entry. Added a bounded whole-
+utterance command adapter to the existing SDK user-message callback and typed composer: navigation, candidate
+review, team-menu opening (no invite), minimize/end, and two-step candidate save. Agent/tool messages never
+enter the command adapter. No new provider tool or server permission was added. The app binds an explicit
+"confirm save idea N" to the reviewed card's ID, fields, retry key and one-minute expiry, consumes it before
+network I/O, and invalidates it on unrelated input, edits, navigation or session replacement. Bare "yes" is not
+confirmation. Existing button controls remain alternatives. Sharing/voting/invites/revisions are not voice-enabled.
+
+Checks: typecheck and lint pass; 415 unit tests pass with 2 opt-in tests skipped. The first browser run passed
+save/cancellation assertions but its helper incorrectly expected a visible composer after navigation minimized
+the panel; the helper now checks the intended hidden-panel/hash outcome instead. The rerun passed both tests:
+`verify: node scripts/verify.mjs live-mentor-ui C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\live-mentor-ui\20261011T020216Z pass at e1f9fb7 (uncommitted changes)`.
+These use typed commands and mocked workspace/idea endpoints, not a real microphone, provider or database.
+Actual ASR, spoken acknowledgement timing and full zero-button journeys remain acceptance gaps behind #355/#357.

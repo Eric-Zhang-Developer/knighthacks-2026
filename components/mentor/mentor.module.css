@@ -25,6 +25,8 @@
 .proposal textarea { width: 100%; color: #fff; background: #060b12; border: 1px solid #62728a; border-radius: 8px; padding: 8px; }
 .fine { color: #b5c2d5; font-size: 11px; margin-top: 10px; }
 .candidates { margin-top: 18px; }
+.actionNotice { padding: 12px; border: 1px solid #7186a6; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.proposal[data-focused="true"] { border-color: #a4cbff; }
 .candidates > h3 { font-size: 17px; }
 .proposal dl { display: grid; gap: 8px; margin: 12px 0; }
 .proposal dl > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }

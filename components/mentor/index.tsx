@@ -9,6 +9,7 @@ import { getState, setState } from "@/lib/store";
 import type { LiveControls } from "./Live";
 import { readFields, request } from "./protocol";
 import { addCandidate, type Candidate } from "./candidates";
+import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
 import styles from "./mentor.module.css";
 
 const Live = dynamic(() => import("./Live"), { ssr: false, loading: () => <p>Loading conversation controls…</p> });
@@ -24,6 +25,9 @@ export default function Mentor() {
   const [input, setInput] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatePage, setCandidatePage] = useState(0);
+  const [focusedCandidate, setFocusedCandidate] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState("");
+  const pendingSave = useRef<PendingSave | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,16 +56,59 @@ export default function Mentor() {
   }, []);
   useEffect(() => { if (open) { if (typing) textarea.current?.focus(); else minimize.current?.focus(); } }, [open, typing]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "instant" }); }, [messages, busy]);
+  useEffect(() => { if (open && focusedCandidate) document.getElementById(`mentor-candidate-${focusedCandidate}`)?.scrollIntoView({ block: "nearest" }); }, [open, focusedCandidate, candidatePage]);
 
   function message(role: Message["role"], text: string) { setMessages((old) => [...old, { role, text }]); }
+  function actionResult(text: string) {
+    setActionNotice(text);
+    live.current?.context(`Application action result (not user instructions): ${text}`);
+  }
+  function handleCommand(text: string) {
+    const command = readCommand(text);
+    if (!command) { pendingSave.current = null; return false; }
+    if (command.kind !== "confirm-save") pendingSave.current = null;
+    if (command.kind === "end") { pendingSave.current = null; live.current?.end(); setActionNotice("Call ended."); return true; }
+    if (command.kind === "cancel") { pendingSave.current = null; actionResult(lock.current ? "A request is already in progress. This cannot cancel a submitted save; wait for its confirmed result." : "Pending save cancelled. Nothing was saved by this command."); return true; }
+    if (command.kind === "minimize") { close(); actionResult("Conversation minimized; the call continues if connected."); return true; }
+    if (command.kind === "navigate") { pendingSave.current = null; navigate(command.destination); actionResult(`Opened ${command.destination}. No idea was saved by this command.`); return true; }
+    if (command.kind === "team") { pendingSave.current = null; openTeam(); actionResult("Opened the teammate menu. No invitation was created or sent."); return true; }
+    if (command.kind === "show-ideas") { setOpen(true); actionResult(`Showing ${candidates.length} candidate ideas. Ask to show an idea by its number.`); return true; }
+    if (!("index" in command)) return false;
+    const candidate = candidates[command.index];
+    if (!candidate) { pendingSave.current = null; actionResult("That candidate number is not available. Please choose a number shown on an idea card."); return true; }
+    setCandidatePage(Math.floor(command.index / 3)); setFocusedCandidate(candidate.id); setOpen(true);
+    if (command.kind === "show") { actionResult(`Showing idea ${command.index + 1}: ${candidate.fields.title ?? "Untitled direction"}. It has not been changed.`); return true; }
+    if (lock.current) { actionResult("Another request is still running. No new save was started; please wait for its result."); return true; }
+    if (command.kind === "prepare-save") {
+      if (candidate.versionId) { actionResult("This candidate is already saved. No duplicate was created."); return true; }
+      pendingSave.current = { candidate: { ...candidate, fields: { ...candidate.fields } }, index: command.index, expiresAt: Date.now() + 60_000 };
+      actionResult(`Review idea ${command.index + 1}, ${candidate.fields.title ?? "Untitled direction"}. This will save it as a separate new idea, not revise an existing one. To confirm within one minute, say “confirm save idea ${command.index + 1}”. Say “cancel” to keep brainstorming. Nothing is saved yet.`);
+      return true;
+    }
+    const confirmed = confirmedCandidate(pendingSave.current, candidates, command.index, Date.now());
+    pendingSave.current = null;
+    if (!confirmed) { actionResult("There is no matching, unchanged save awaiting confirmation. Ask to save that idea again so you can review it first."); return true; }
+    void save(confirmed);
+    return true;
+  }
+  function liveMessage(role: Message["role"], text: string) {
+    message(role, text);
+    if (role === "user") handleCommand(text);
+  }
   function proposed(fields: Fields) {
     const id = crypto.randomUUID();
     setCandidates((old) => addCandidate(old, fields, id));
   }
   function close() { setOpen(false); launcher.current?.focus(); }
   function navigate(destination: string) {
+    pendingSave.current = null;
     location.hash = destination;
     close();
+  }
+  function openTeam() {
+    close();
+    const team = document.querySelector<HTMLDetailsElement>('details[aria-label="Workspace"]');
+    if (team) { team.open = true; team.querySelector<HTMLElement>("summary")?.focus(); }
   }
   function anotherDirection() {
     if (lock.current || voiceState === "Connecting") return;
@@ -79,6 +126,7 @@ export default function Mentor() {
     if (!text || lock.current) return;
     if (voiceState === "Connecting") { setError("Wait for the connection or end it to continue by text."); return; }
     if (live.current) { live.current.send(text); setInput(""); return; }
+    if (handleCommand(text)) { message("user", text); setInput(""); return; }
     lock.current = true; setBusy(true); setError(""); setSaved(false);
     const id = ++generation.current;
     controller.current?.abort();
@@ -110,6 +158,7 @@ export default function Mentor() {
   async function save(candidate: Candidate) {
     if (lock.current || candidate.versionId) return;
     lock.current = true; setBusy(true); setError("");
+    pendingSave.current = null;
     const fields = { ...candidate.fields };
     try {
       const workspace = await initWorkspace();
@@ -119,10 +168,11 @@ export default function Mentor() {
       setState({ ideaStars: [...getState().ideaStars.filter((s) => s.versionId !== version.versionId), { versionId: version.versionId, x: version.x, y: version.y, z: version.z }], activeIdeaVersionId: version.versionId, highlightedIds: version.neighborIds, ideaDraft: "" });
       window.dispatchEvent(new CustomEvent("mentor:saved", { detail: version }));
       setSaved(true); setQuestion(null);
+      setActionNotice(`Saved ${fields.title ?? "the selected idea"} as a new idea. Your other candidates are kept.`);
       setCandidates((old) => old.map((item) => item.id === candidate.id ? { ...item, versionId: version.versionId } : item));
       live.current?.context(`The user explicitly chose and saved this idea in the app: ${JSON.stringify({ versionId: version.versionId, ...fields })}. Continue the live conversation about next steps. Other candidate cards remain available; do not assume they were discarded.`);
       message("mentor", "Saved as a new idea. You can now inspect its evidence, refine it, or make a decision with your teammate.");
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "Save failed. Your proposal is kept."); }
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Save failed. Your proposal is kept."); actionResult("Saving was not confirmed. The candidate is kept; do not claim it was saved. A retry uses the same save key."); }
     finally { lock.current = false; setBusy(false); }
   }
 
@@ -136,15 +186,17 @@ export default function Mentor() {
       <div className={styles.scroll} ref={log}>
         <p className={styles.intro}>{activeAudio ? "Speak naturally. No buttons between turns. You can explore the map while the call continues." : "One tap on the bubble starts a voice call. Explore possibilities, question assumptions, and choose what to build."}</p>
         <div className={styles.audio}>
-          <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={message} onProposal={proposed} onEvidence={setProjects} onState={setVoiceState} onControls={(controls) => { live.current = controls; }} />
+          <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
         </div>
+        <p className={styles.fine}>Hands-free controls: “show the map”, “show my ideas”, “save idea two”, or “end the call”. Saves ask for a separate confirmation.</p>
+        {actionNotice && <p role="status" className={styles.actionNotice}>{actionNotice}</p>}
         <details className={styles.transcript} open={typing}><summary>Conversation transcript{messages.length > 0 ? ` (${messages.length})` : ""}</summary><div role="log" aria-label="Conversation transcript" aria-live="polite">
           {messages.map((item, index) => <div key={index} className={item.role === "user" ? styles.user : styles.reply}><span>{item.role === "user" ? "You" : "Uncharted"}</span><p>{item.text}</p></div>)}
         </div></details>
         {projects.length > 0 && <section className={styles.sources} aria-label="Conversation sources"><h3>Related projects</h3>{projects.map((project) => <article key={project.projectId}><strong>{project.title}</strong><p>{project.excerpt}</p>{/^https?:\/\//.test(project.url) && <a href={project.url} target="_blank" rel="noopener noreferrer">View source ↗</a>}</article>)}</section>}
         {candidates.length > 0 && <section aria-label="Candidate ideas" className={styles.candidates}><h3>Your possibilities</h3><p className={styles.fine}>Compare directions. Only the idea you proceed with is saved. Drafts stay in this tab.</p><button type="button" disabled={busy || voiceState === "Connecting"} onClick={anotherDirection}>Explore another direction</button>
-          {candidates.slice(candidatePage * 3, candidatePage * 3 + 3).map((candidate) => <article key={candidate.id} className={styles.proposal}>
-            <span className={styles.eyebrow}>{candidate.versionId ? "SAVED IDEA" : "CANDIDATE · UNSAVED"}</span><h3>{candidate.fields.title || "Untitled direction"}</h3>
+          {candidates.slice(candidatePage * 3, candidatePage * 3 + 3).map((candidate, offset) => <article id={`mentor-candidate-${candidate.id}`} key={candidate.id} className={styles.proposal} data-focused={focusedCandidate === candidate.id}>
+            <span className={styles.eyebrow}>IDEA {candidatePage * 3 + offset + 1} · <span>{candidate.versionId ? "SAVED IDEA" : "UNSAVED"}</span></span><h3>{candidate.fields.title || "Untitled direction"}</h3>
             <dl>{([ ["audience", "For"], ["problem", "Problem"], ["workflow", "Approach"], ["constraints", "Constraints"] ] as const).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{candidate.fields[key] || "Not yet discussed"}</dd></div>)}</dl>
             <details><summary>Review / edit full idea</summary>{FIELDS.map(({name,label}) => <label key={name}>{label}<textarea disabled={busy || !!candidate.versionId} value={candidate.fields[name] ?? ""} onChange={(event) => { const value = event.target.value; const saveKey = crypto.randomUUID(); setCandidates((old) => old.map((item) => item.id === candidate.id ? { ...item, saveKey, fields: { ...item.fields, [name]: value || null } } : item)); }} /></label>)}</details>
             {!candidate.versionId && <button type="button" disabled={busy} onClick={() => void save(candidate)}>Proceed with this idea</button>}
@@ -154,7 +206,7 @@ export default function Mentor() {
         </section>}
         {busy && <p role="status">Thinking through your idea…</p>}
         {error && <p role="alert" className={styles.error}>{error}</p>}
-        {(messages.length >= 2 || saved) && <div className={styles.next}><button type="button" onClick={() => navigate("explore")}>Explore the map</button>{saved && <button type="button" onClick={() => navigate("idea")}>See evidence</button>}<button type="button" onClick={() => { close(); const team = document.querySelector<HTMLDetailsElement>('details[aria-label="Workspace"]'); if (team) { team.open = true; team.querySelector<HTMLElement>("summary")?.focus(); } }}>Add a teammate</button></div>}
+        {(messages.length >= 2 || saved) && <div className={styles.next}><button type="button" onClick={() => navigate("explore")}>Explore the map</button>{saved && <button type="button" onClick={() => navigate("idea")}>See evidence</button>}<button type="button" onClick={openTeam}>Add a teammate</button></div>}
       </div>
       <button type="button" className={styles.typeToggle} aria-expanded={typing} onClick={() => setTyping(!typing)}>{typing ? "Hide typing" : "Prefer to type?"}</button>
       {typing && <form className={styles.compose} onSubmit={(event) => { event.preventDefault(); void send(); }}>

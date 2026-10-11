@@ -129,3 +129,23 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    End releases it. Three distinct proposals yield three separately actionable cards; duplicate delivery adds
    none. Selecting one saves its exact fields once and retains the others and the live connection. More than
    three candidates are paginated without losing data. These fixtures are not a real ElevenLabs audio receipt.
+
+## Hands-free confirmation amendment (human request)
+
+After initial microphone consent, buttons are alternatives rather than required per-turn controls. The UI may
+interpret a bounded set of explicit, whole user utterances from the SDK user-message callback (or typed input):
+show a destination, show a numbered candidate, open the team menu without sending an invitation, minimize,
+end, request save, confirm save, or cancel. Agent speech and retrieved/tool content never execute UI commands.
+Do not imply that this small command vocabulary understands every possible phrasing.
+
+Spoken saving is explicit user confirmation in the app, not a new provider mutation tool: a request to save a
+numbered card first displays its exact candidate and asks for "confirm save idea N". Bind this review to its ID,
+save key and fields, expire it after one minute, and consume it synchronously before the existing POST /api/ideas.
+Wrong numbers, edits, ended/reconnected sessions, unrelated intervening user utterances and a bare "yes" do not
+authorize a write. The ordinary button remains available. Preserve idempotency on retries; report confirmed
+success or failure back to the agent without sharing capabilities. Sharing, invitations, votes and saved-version
+revisions remain outside this UI command set until their own reviewed contracts cover spoken confirmation.
+
+Validation adds parser tests for quoted/negated/ambiguous prose and binding/expiry/edits, plus phone browser
+tests showing a requested save does not write, explicit confirmation writes only that card, and duplicate or
+cancelled confirmation does not write. Mocked text/SDK inputs do not establish real ASR or spoken acceptance.
