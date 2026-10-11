@@ -20,4 +20,16 @@ random Gemini-labelled projects blind; agreement is recorded below.
 re-run with Gemini once it has budget; the store sends only those rows again.
 
 ## Agreement check (30 Gemini-labelled projects, blind)
-_pending: filled in from the pilot_
+A Sonnet agent labelled 30 random Gemini-labelled projects (seed 7, three 10-record prompts) without seeing Gemini's labels:
+
+| | Agree |
+|---|---|
+| Domain | 23/30 (77%) |
+| Reported coding-tool use | 30/30 |
+| Prize kind and place | 3/3 |
+
+All 7 domain splits are borderline, both `clear`: Security4her (security / civic), silverlink (accessibility /
+health), Your Sky Zone (mobility / games), RFIBot (productivity / commerce), Daylight (education / productivity),
+Keeper (security / civic), KnightHacks 0.5 table 33 (games / social). Expect about 1 in 4 new stars to sit in a
+defensible neighbouring domain from Gemini's choice. Categories are labelled `inferred` in the UI, and search never
+uses them.
