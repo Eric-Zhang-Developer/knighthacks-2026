@@ -9,6 +9,7 @@ import { tracks } from "@/lib/rubric/contract";
 import { embed } from "@/lib/search/embed";
 import { neighbors } from "@/lib/search/neighbors";
 import type { Identity } from "@/lib/workspace/service";
+import { searchRecentNews } from "./news";
 import { MentorError, type ToolCall, type ToolData } from "./contract";
 
 const sourceId = z.string().regex(/^[a-f0-9]{40}$/);
@@ -28,7 +29,7 @@ const cardSchema = sourceSchema.omit({ corpusVersion: true }).extend({
 const criteria = CRITERIA.map((criterion) => ({ ...criterion, source: "specs/context/event.md" }));
 
 async function context(identity: Identity, versionId?: string): Promise<ToolData> {
-  const base = { criteria, tracks: tracks.map(({ id, name, rewards, source }) => ({ id, name, rewards, source })) };
+  const base = { criteria, sponsorPreference: "Ask whether the user wants sponsor challenges before recommending any; a catalog listing is not proof of eligibility or implementation.", tracks: tracks.map(({ id, name, rewards, source }) => ({ id, name, rewards, source })) };
   if (!versionId) return { ...base, saved: null, sourceIds: [] };
   const version = await db().execute(sql`select v.title, v.description, v.audience, v.problem, v.workflow, v.constraints,
     v.corpus_version as "corpusVersion"
@@ -69,6 +70,7 @@ export async function executeTool(identity: Identity, call: ToolCall, sourceIds:
   try {
     if (call.tool === "get_context") return await context(identity, call.args.versionId);
     if (call.tool === "find_projects") return await findProjects(call.args.query);
+    if (call.tool === "search_recent_news") return await searchRecentNews(call.args);
     if (call.args.sourceIds.some((id) => !sourceIds.has(id))) throw new MentorError(400, "Proposal cites a source not returned to this session");
     const fields = saveSchema.safeParse(call.args.fields);
     if (!fields.success) throw new MentorError(400, "A proposal needs valid idea fields with some text");

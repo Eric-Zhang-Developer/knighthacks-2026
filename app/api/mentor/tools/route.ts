@@ -7,6 +7,7 @@ import { reserveTool, completeTool, failTool } from "@/lib/mentor/store";
 import { executeTool } from "@/lib/mentor/tools";
 
 export const runtime = "nodejs";
+export const maxDuration = 90;
 export async function POST(request: NextRequest) {
   return boundary(async () => {
     sameOrigin(request);

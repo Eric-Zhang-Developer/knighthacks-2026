@@ -6,10 +6,14 @@ export class MentorError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
-const identity = { sessionId: z.uuid(), turnId: z.number().int().min(0).max(1000), callId: z.string().regex(/^[a-f0-9]{64}$/) };
+const identity = { sessionId: z.uuid(), turnId: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), callId: z.string().regex(/^[a-f0-9]{64}$/) };
 export const toolSchema = z.discriminatedUnion("tool", [
   z.object({ ...identity, tool: z.literal("get_context"), args: z.object({ versionId: z.uuid().optional() }).strict() }).strict(),
   z.object({ ...identity, tool: z.literal("find_projects"), args: z.object({ query: z.string().trim().min(1).max(2000) }).strict() }).strict(),
+  z.object({ ...identity, tool: z.literal("search_recent_news"), args: z.object({
+    problem: z.string().trim().min(1).max(2000), audience: z.string().trim().max(1000).optional(),
+    workflow: z.string().trim().max(2000).optional(),
+  }).strict() }).strict(),
   z.object({ ...identity, tool: z.literal("propose_idea"), args: z.object({ fields: fieldsSchema, rationale: z.string().trim().min(1).max(800), sourceIds: z.array(z.string().min(1).max(200)).max(5) }).strict() }).strict(),
 ]);
 export type ToolCall = z.infer<typeof toolSchema>;

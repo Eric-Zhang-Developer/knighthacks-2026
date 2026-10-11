@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, uuid, jsonb, timestamp, check } from "drizzle-orm/pg-core";
 import { workspaces, members } from "./workspace";
 
-// One workspace row serializes issuance across every server instance. Expired events are pruned on issuance.
+// Retained for compatibility with existing deployments; session issuance no longer uses quota events.
 export const mentorBudgets = pgTable("mentor_budgets", {
   workspaceId: uuid("workspace_id").primaryKey().references(() => workspaces.id, { onDelete: "cascade" }),
   events: jsonb("events").notNull().default([]),
@@ -18,7 +18,7 @@ export const mentorSessions = pgTable("mentor_sessions", {
   calls: jsonb("calls").notNull().default({}),
   sourceIds: jsonb("source_ids").notNull().default([]),
 }, (t) => [
-  check("mentor_session_duration", sql`${t.expiresAt} > ${t.createdAt} and ${t.expiresAt} <= ${t.createdAt} + interval '20 minutes'`),
+  check("mentor_session_duration", sql`${t.expiresAt} > ${t.createdAt} and ${t.expiresAt} <= ${t.createdAt} + interval '2 hours'`),
   check("mentor_calls_bound", sql`jsonb_typeof(${t.calls}) = 'object' and octet_length(${t.calls}::text) <= 6291456`),
   check("mentor_sources_bound", sql`jsonb_typeof(${t.sourceIds}) = 'array' and jsonb_array_length(${t.sourceIds}) <= 200 and octet_length(${t.sourceIds}::text) <= 10000`),
 ]);

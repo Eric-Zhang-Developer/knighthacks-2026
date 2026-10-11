@@ -16,23 +16,13 @@ async function execute(statement: SQL) {
 
 export async function reserveSession(identity: Identity): Promise<string> {
   const id = randomUUID();
-  // ON CONFLICT locks the current budget tuple and rechecks both counts after concurrent updates.
-  // Counting session rows under an advisory lock would instead retain the statement's older snapshot.
-  const result = await execute(sql`with budget as (
-    insert into mentor_budgets(workspace_id, events)
-    select ${identity.workspaceId}::uuid, jsonb_build_array(jsonb_build_object('memberId', ${identity.memberId}::text, 'at', extract(epoch from now())))
+  // Authenticated demo sessions have no application issuance quota. Keep each
+  // provider capability tied to an owned session; never store the capability.
+  const result = await execute(sql`insert into mentor_sessions(id, workspace_id, member_id, expires_at)
+    select ${id}::uuid, ${identity.workspaceId}::uuid, ${identity.memberId}::uuid, now() + interval '2 hours'
     where exists (select 1 from members where id = ${identity.memberId}::uuid and workspace_id = ${identity.workspaceId}::uuid)
-    on conflict (workspace_id) do update
-    set events = coalesce((select jsonb_agg(event) from jsonb_array_elements(mentor_budgets.events) event
-      where (event->>'at')::numeric > extract(epoch from now() - interval '1 hour')), '[]'::jsonb) || excluded.events
-    where (select count(*) from jsonb_array_elements(mentor_budgets.events) event
-      where (event->>'at')::numeric > extract(epoch from now() - interval '1 hour')) < 12
-      and (select count(*) from jsonb_array_elements(mentor_budgets.events) event
-        where event->>'memberId' = ${identity.memberId}::text and (event->>'at')::numeric > extract(epoch from now() - interval '10 minutes')) < 3
-    returning workspace_id
-  ) insert into mentor_sessions(id, workspace_id, member_id, expires_at)
-    select ${id}::uuid, workspace_id, ${identity.memberId}::uuid, now() + interval '20 minutes' from budget returning id`);
-  if (!result.rows.length) throw new MentorError(429, "Mentor session limit reached. Please try again later.");
+    returning id`);
+  if (!result.rows.length) throw new MentorError(404, "Workspace member not found");
   return id;
 }
 
@@ -50,8 +40,6 @@ export async function reserveTool(identity: Identity, call: ToolCall): Promise<R
     set calls = case when s.calls ? ${call.callId} then s.calls else s.calls || jsonb_build_object(${call.callId}::text, ${JSON.stringify(entry)}::jsonb) end
     where s.id = ${call.sessionId}::uuid and s.workspace_id = ${identity.workspaceId}::uuid and s.member_id = ${identity.memberId}::uuid
       and s.ended_at is null and s.expires_at > clock_timestamp()
-      and (s.calls ? ${call.callId} or ((select count(*) from jsonb_object_keys(s.calls)) < 40
-        and (select count(*) from jsonb_each(s.calls) c where (c.value->>'turnId')::int = ${call.turnId}) < 8))
     returning s.calls->${call.callId} as entry, s.source_ids as "sourceIds"`);
   const row = result.rows[0];
   if (!row) {
@@ -59,7 +47,7 @@ export async function reserveTool(identity: Identity, call: ToolCall): Promise<R
       where id = ${call.sessionId}::uuid and workspace_id = ${identity.workspaceId}::uuid and member_id = ${identity.memberId}::uuid`);
     if (!current.rows[0]) throw new MentorError(404, "Mentor session not found");
     if (current.rows[0].endedAt || current.rows[0].expired) throw cancelled();
-    throw new MentorError(429, "Mentor tool limit reached for this turn or session");
+    throw new MentorError(409, "Mentor session changed while reserving this call. Please retry.");
   }
   const stored = row.entry as StoredCall;
   if (stored.digest !== digest) throw new MentorError(409, "Tool call ID was already used for different arguments");
