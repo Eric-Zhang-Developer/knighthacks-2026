@@ -810,7 +810,9 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
         el.setAttribute("aria-label", `Select ${titles[i]}`);
       }
       el.setAttribute("data-on", "");
-      el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
+      // `translate`, not `transform`: a pressed button's transform is reset under reduced motion (globals.css), which
+      // jumped the name off the pointer mid-click and let the map pick the star underneath instead.
+      el.style.translate = `${p.x.toFixed(1)}px ${p.y.toFixed(1)}px`;
     }
   });
   return null;
