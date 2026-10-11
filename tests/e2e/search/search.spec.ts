@@ -49,6 +49,7 @@ test("meaning search down: title matches with a notice, not an error page", asyn
 
 // UI only: fixed results, so it doesn't wait on the embedding API. The records are real (the drawer loads them).
 test("the results panel folds away on a pick, a click on the map, or Escape, and the box brings it back", async ({ page }) => {
+  test.setTimeout(60_000); // eleven steps; at load ~15 each click takes ~3 s
   await page.route("**/api/search?*", (r) =>
     r.fulfill({ json: { results: fixture.map((f, i) => ({ ...f, tagline: null, event: null, year: null, similarity: 0.9 - i / 10 })), textMatches: [], meaning: "ok" } }),
   );
