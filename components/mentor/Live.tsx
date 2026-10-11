@@ -3,7 +3,7 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useEffect, useRef } from "react";
 import { initWorkspace } from "@/components/workspace/api";
-import { getState } from "@/lib/store";
+import { getState, subscribe } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
 import { readFields, readNewsData, request, toolIdentity } from "./protocol";
 import { LIVE_CONNECTION, connectionFailureNotice } from "./live-connection";
@@ -25,6 +25,15 @@ export function supersedeTools(turn: { current: number }, requests: Set<AbortCon
   turn.current++;
   for (const controller of requests) controller.abort();
   requests.clear();
+}
+export function watchIdeaSelection(turn: { current: number }, requests: Set<AbortController>) {
+  let active = getState().activeIdeaVersionId;
+  return subscribe(() => {
+    const next = getState().activeIdeaVersionId;
+    if (next === active) return;
+    active = next;
+    supersedeTools(turn, requests);
+  });
 }
 
 export default function Live(props: Props) { return <ConversationProvider><Session {...props} /></ConversationProvider>; }
@@ -64,10 +73,9 @@ function Session(props: Props) {
   const startRef = useRef(start);
   startRef.current = start;
   useEffect(() => {
-    const selected = () => supersedeTools(turn, requests.current);
-    window.addEventListener("idea:selected", selected);
+    const stopWatchingIdea = watchIdeaSelection(turn, requests.current);
     callbacks.current.onReady(() => { void startRef.current(); });
-    return () => { window.removeEventListener("idea:selected", selected); callbacks.current.onReady(null); release(); };
+    return () => { stopWatchingIdea(); callbacks.current.onReady(null); release(); };
   }, []);
 
   async function start() {
