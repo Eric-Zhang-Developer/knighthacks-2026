@@ -1,19 +1,19 @@
-.shell { position: relative; height: 100dvh; overflow: hidden; background: #03050a; color: #f3f4f8; }
+.shell { position: relative; height: 100dvh; overflow: hidden; background: var(--sky); color: var(--ink); }
 .top { position: absolute; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 32px; padding: 16px 112px 16px 24px; pointer-events: none; }
 .top > * { pointer-events: auto; }
 .brand { flex: none; display: grid; gap: 7px; margin: 0; font: inherit; } /* the page's h1 (#472) */
 .wordmark { font-size: 17px; font-weight: 650; letter-spacing: .26em; color: #fff; }
-.tagline { color: #b2bbc9; font-size: 12px; }
+.tagline { color: var(--ink-2); font-size: 12px; }
 .search { width: min(500px, 100%); min-width: 0; }
 .map { position: absolute; inset: 0; }
 .chart { position: absolute; inset: 85px 0 0; }
-.rail { position: absolute; z-index: 4; left: 20px; top: 94px; max-width: 290px; border: 1px solid #ffffff26; border-radius: 22px; background: #10141dd9; backdrop-filter: blur(18px); }
-.rail > summary { list-style: none; cursor: pointer; padding: 13px 18px; font-size: 13px; color: #e0e5ef; }
+.rail { position: absolute; z-index: 4; left: 20px; top: 94px; max-width: 290px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface-low); backdrop-filter: var(--material-blur); }
+.rail > summary { list-style: none; cursor: pointer; padding: 13px 18px; color: var(--ink); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: var(--tracking-controls); text-transform: uppercase; }
 .rail[open] { width: min(290px, calc(100vw - 40px)); }
 .railControls { max-height: 55dvh; overflow: auto; padding: 0 12px 14px; }
 .railControls :global([aria-label="Universe"]) { display: none; }
 .composer { position: absolute; z-index: 10; bottom: 24px; left: 50%; transform: translateX(-50%); }
-.side { display: none; position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 384px); /* ends above the zoom stack */ width: 350px; z-index: 3; overflow: auto; overscroll-behavior: contain; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
+.side { display: none; position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 384px); /* ends above the zoom stack */ width: 350px; z-index: 3; overflow: auto; overscroll-behavior: contain; border-radius: var(--radius); background: var(--surface-low); backdrop-filter: var(--material-blur); border: 1px solid var(--hairline); padding: 12px; }
 /* One contextual destination on every screen size; Explore keeps the map clear.
    A selected source can still open its inspection sheet from any destination. */
 .ideaPath, .decide, .plan { display: none; }
@@ -21,11 +21,11 @@
 .side:has(:global(.shell-sheet[data-open="true"])) { display: block; }
 :global(html[data-dest="talk"]) .ideaPath, :global(html[data-dest="idea"]) .ideaPath,
 :global(html[data-dest="decide"]) .decide, :global(html[data-dest="plan"]) .plan { display: block; }
-.side :global(.ui-panel) { background: #121722; box-shadow: none; }
+.side :global(.ui-panel) { background: var(--surface); box-shadow: none; }
 .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 384px); }
-.empty { color: #aeb7c9; padding: 20px; font-size: 14px; }
-.group { border-top: 1px solid #ffffff20; margin-top: 12px; }
-.group > summary { min-height: 48px; padding: 14px 8px; cursor: pointer; color: #d7e3f6; font-size: 14px; }
+.empty { color: var(--ink-2); padding: 20px; font-size: 14px; }
+.group { border-top: 1px solid var(--hairline); margin-top: 12px; }
+.group > summary { min-height: 48px; padding: 14px 8px; cursor: pointer; color: var(--ink); font-size: 14px; }
 .decide:has(:global(.ui-panel)) .empty, .plan:has(:global(.ui-panel)) .empty { display: none; }
 @media (max-width: 720px) {
   .shell { height: 100dvh; flex: none; }
@@ -41,6 +41,7 @@
   .composer { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
   /* "Browse the map" holds the map's top left, so the galaxy's layout toggle takes the top right. */
   .chart :global([aria-label="Arrange stars"]) { left: auto; right: 16px; transform: none; }
+  .rail > summary { padding: 13px 12px; letter-spacing: 0.04em; }
   .side { inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
   /* An open project sheet is fixed to the viewport, but .side's backdrop-filter made .side its containing block: the
      sheet sat clipped inside a 22px panel under the header, its Close under "Filters" (#473). */
@@ -51,5 +52,5 @@
   :global(html[data-dest="idea"]) .rail, :global(html[data-dest="decide"]) .rail, :global(html[data-dest="plan"]) .rail { display: none; }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .side, .rail { background: #10141d; backdrop-filter: none; border-color: #a6afc1; }
+  .side, .rail { background: var(--surface); backdrop-filter: none; border-color: #a6afc1; }
 }

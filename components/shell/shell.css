@@ -9,18 +9,18 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: 350px;
   padding: 4px;
-  border: 1px solid #ffffff26;
-  border-radius: 20px;
-  background: #10141de8;
-  backdrop-filter: blur(18px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface-low);
+  backdrop-filter: var(--material-blur);
 }
-.shell-nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 52px; border-radius: 15px; color: #cbd5e5; font-size: 11px; text-decoration: none; }
+.shell-nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 52px; border-radius: var(--radius); color: var(--ink-2); font: 500 10px/1.2 var(--font-mono); letter-spacing: var(--tracking-controls); text-transform: uppercase; text-decoration: none; }
 .shell-nav-icon { display: grid; place-items: center; }
 .shell-nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
-.shell-nav a[aria-current="page"] { color: #fff; background: #30435f; }
-.shell-nav a:focus-visible { outline: 2px solid #dceaff; outline-offset: -2px; }
+.shell-nav a[aria-current="page"] { color: var(--paper); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.shell-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .shell-nav { background: #10141d; backdrop-filter: none; border-color: #a6afc1; }
+  .shell-nav { background: var(--surface); backdrop-filter: none; border-color: #a6afc1; }
 }
 
 /* The step index: sticky at the top of the contextual rail, Material filter chips; the current step is filled. */
@@ -99,11 +99,11 @@
     grid-template-columns: repeat(5, 1fr);
     height: 60px;
     padding: 4px;
-    border: 1px solid #ffffff26;
-    border-radius: 9999px;
-    background: #10141de8;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    background: var(--surface-low);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
     box-shadow: 0 10px 30px #0009;
   }
   .shell-nav a {
@@ -112,16 +112,16 @@
     align-content: center;
     gap: 2px;
     min-height: 50px;
-    border-radius: 9999px;
+    border-radius: var(--radius);
     font-size: 10px;
     letter-spacing: 0.02em;
-    color: #cbd5e5;
+    color: var(--ink-2);
     text-decoration: none;
   }
   .shell-nav-icon { display: grid; place-items: center; }
   .shell-nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
-  .shell-nav a[aria-current="page"] { color: #fff; background: #30435f; }
-  .shell-nav a:focus-visible { outline: 2px solid #dceaff; outline-offset: -2px; }
+  .shell-nav a[aria-current="page"] { color: var(--paper); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .shell-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
   /* The project sheet hangs from the top (the search, explainer and push-to-talk below stay reachable), with its
      handle at the bottom edge: drag up to dismiss. */
@@ -148,7 +148,7 @@
     touch-action: none;
     cursor: grab;
   }
-  .shell-sheet-handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.6; }
+  .shell-sheet-handle span { width: 32px; height: 4px; border-radius: var(--radius); background: var(--md-sys-color-on-surface-variant); opacity: 0.6; }
 }
 @keyframes sheet-in {
   from { transform: translateY(-100%); }
