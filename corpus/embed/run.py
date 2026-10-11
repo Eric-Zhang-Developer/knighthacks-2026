@@ -11,6 +11,7 @@ The table is replaced as a whole: after a load it holds exactly this run's recor
 import argparse
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 import sys
 import time
 from datetime import date
@@ -24,6 +25,9 @@ CACHE = ROOT / "corpus" / "data" / "embeddings.npz"
 STARS = ROOT / "public" / "corpus" / "stars.json"
 MAX_CHARS = 2000  # the opening of a description (inspiration, what it does) carries the meaning; cost grows with length
 BATCH = 16
+# Batches in flight at once. The provider call is mostly waiting, so overlap is nearly free: on 96 fixture texts,
+# serial batches embedded 2.1 records/s and six in flight 5.5/s, while the 5 rps fetch adds ~2.75 records/s.
+WORKERS = 6
 REQUEST_TIMEOUT = 60  # seconds without a provider response, per attempt
 SEED = 42
 GROUP_SIZE, GROUPS_MAX = 140, 200  # about 140 projects per system: 60 systems at 8,409
@@ -72,15 +76,26 @@ def cached_embeddings(records: list[dict]) -> np.ndarray:
             cache = dict(zip(z["hashes"].tolist(), z["vectors"]))
     todo = [r for r in records if r["content_hash"] not in cache]
     print(f"embed: {len(records) - len(todo)} cached, {len(todo)} to embed", flush=True)
-    for start in range(0, len(todo), BATCH):
-        batch = todo[start:start + BATCH]
-        for r, v in zip(batch, embed([embed_text(r) for r in batch])):
-            cache[r["content_hash"]] = v
+    batches = [todo[i:i + BATCH] for i in range(0, len(todo), BATCH)]
+    for g in range(0, len(batches), WORKERS):
+        group = batches[g:g + WORKERS]
+        with ThreadPoolExecutor(len(group)) as pool:
+            futures = [pool.submit(embed, [embed_text(r) for r in b]) for b in group]
+        # Every batch that finished is kept, in order, even if another in its group failed; then the failure surfaces.
+        failure = None
+        for b, f in zip(group, futures):
+            try:
+                for r, v in zip(b, f.result()):
+                    cache[r["content_hash"]] = v
+            except Exception as e:
+                failure = failure or e
         CACHE.parent.mkdir(parents=True, exist_ok=True)
         checkpoint = CACHE.with_suffix(".tmp.npz")
         np.savez(checkpoint, hashes=np.array(list(cache)), vectors=np.stack(list(cache.values())))
         checkpoint.replace(CACHE)
-        print(f"embed: checkpointed {min(start + BATCH, len(todo))}/{len(todo)} new records", flush=True)
+        print(f"embed: checkpointed {min((g + len(group)) * BATCH, len(todo))}/{len(todo)} new records", flush=True)
+        if failure:
+            raise failure
     return np.stack([cache[r["content_hash"]] for r in records])
 
 
