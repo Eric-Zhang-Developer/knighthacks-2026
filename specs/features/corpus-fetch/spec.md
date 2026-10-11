@@ -26,6 +26,13 @@ assignee: ""
   `content_hash`. A field the page doesn't have stays null; never fill one in.
 - Reject a record with no URL, title or description; count rejections by reason.
 - One project in several events is one record with several `events`.
+- Parallel machines use explicitly assigned `--sources` manifests and exclusive `--data-dir` directories.
+  `--exclude-projects` accepts stable JSONL checkpoints containing known project URLs or SHA-1 IDs (repeatable); skipped
+  project details still retain gallery observations. No two writers share a data directory.
+  `corpus/fetch/merge.py` combines stopped/snapshotted project files into a separate output, validates canonical
+  URL/ID and content hashes, chooses the newest project text, and retains event memberships, known dates, prizes,
+  and source observations. Optional `--summaries` preserves memberships found when a detail fetch was skipped.
+  Summary-only records stay separate: no description is invented. One release owner publishes the combined data.
 - At most `--rps` requests per second: default 2, ceiling 5 (raised from 1, then 2, on 2026-10-10, person's call:
   Devpost publishes no limit and robots.txt sets no crawl delay). `--workers` (1–5, default 1) keeps that many project
   pages in flight, because one page takes ~1 s and a single request in flight caps the rate at ~1/s; pacing and the
@@ -44,6 +51,8 @@ assignee: ""
 2. Open 3 random records' `url`s -> each page matches its title.
 3. `pytest corpus/fetch` -> parser tests against saved real HTML in `corpus/fetch/testdata/`, the dedupe test
    and the rejection tests pass. Keep: the count line.
+4. The parallel-collector tests prove isolated resume and known-project exclusion; merge tests prove idempotent
+   unique records, retained source/event observations, and refusal of invalid input without overwriting output.
 
 ## Defaults
 Check robots.txt per host before fetching; robots.txt on devpost.com allowed `*` on 2026-10-10. Pick galleries of large, recent events first. A full run is operations, not a PR: merge once the script works on a limited run.

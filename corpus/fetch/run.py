@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import sys
 import threading
 import time
@@ -29,7 +30,7 @@ from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
-from parse import canonical, parse_gallery, parse_gallery_cards, parse_project
+from parse import PROJECT_URL, canonical, parse_gallery, parse_gallery_cards, parse_project
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent / "data"
@@ -122,13 +123,15 @@ def now() -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()] if path.exists() else []
 
 
 def discover(args, f: Fetcher) -> None:
-    have = {s["url"] for s in read_jsonl(SOURCES)}
+    source_path = getattr(args, "sources", None) or SOURCES
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    have = {s["url"] for s in read_jsonl(source_path)}
     added = 0
-    with SOURCES.open("a") as out:
+    with source_path.open("a", encoding="utf-8") as out:
         for page in range(1, args.pages + 1):
             url = API.format(page=page) + (f"&search={urllib.parse.quote(args.search)}" if args.search else "")
             hackathons = json.loads(f.get(url)).get("hackathons", [])
@@ -143,7 +146,7 @@ def discover(args, f: Fetcher) -> None:
                 out.write(json.dumps({"name": h["title"], "url": url, "gallery": h["submission_gallery_url"],
                                       "dates": h.get("submission_period_dates"),
                                       "registrations": h.get("registrations_count")}) + "\n")
-    print(f"discover: added {added} sources, {len(have)} total in {SOURCES.name}")
+    print(f"discover: added {added} sources, {len(have)} total in {source_path}")
 
 
 def summary_record(card: dict, src: dict, fetched_at: str) -> dict:
@@ -162,17 +165,39 @@ def summary_record(card: dict, src: dict, fetched_at: str) -> dict:
 
 
 def fetch(args, f: Fetcher) -> int:
-    DATA.mkdir(parents=True, exist_ok=True)
-    sources = read_jsonl(SOURCES)
+    data_dir = getattr(args, "data_dir", None)
+    out_path, rejected_path, summaries_path, progress_path = (
+        (data_dir / name for name in ("projects.jsonl", "rejected.jsonl", "summaries.jsonl", "progress.jsonl"))
+        if data_dir else (OUT, REJECTED, SUMMARIES, PROGRESS))
+    sources = read_jsonl(getattr(args, "sources", None) or SOURCES)
+    if not sources:
+        raise ValueError("no sources: provide a nonempty assigned source manifest")
+    (data_dir or DATA).mkdir(parents=True, exist_ok=True)
     event_dates = {s["url"]: s.get("dates") for s in sources}
-    done = {r["url"] for r in read_jsonl(OUT)} | {r["url"] for r in read_jsonl(REJECTED)}
-    have_summary = {(r["url"], r["event"]["url"]) for r in read_jsonl(SUMMARIES)}
+    done = {r["url"] for r in read_jsonl(out_path)} | {r["url"] for r in read_jsonl(rejected_path)}
+    done_ids = set()
+    for path in getattr(args, "exclude_projects", []) or []:
+        if not path.is_file():
+            raise ValueError(f"missing known-project checkpoint: {path}")
+        for record in read_jsonl(path):
+            if record.get("url"):
+                url = canonical(record["url"])
+                if not PROJECT_URL.fullmatch(url):
+                    raise ValueError(f"invalid known-project URL in {path}")
+                if record.get("id") and record["id"] != hashlib.sha1(url.encode()).hexdigest():
+                    raise ValueError(f"known-project ID does not match URL in {path}")
+                done.add(url)
+            elif re.fullmatch(r"[0-9a-f]{40}", record.get("id", "")):
+                done_ids.add(record["id"])
+            else:
+                raise ValueError(f"known project needs a canonical URL or SHA-1 ID in {path}")
+    have_summary = {(r["url"], r["event"]["url"]) for r in read_jsonl(summaries_path)}
     gallery_only = getattr(args, "gallery_only", False)
     # A gallery-only page wrote its cards but not its projects, so it only lets another gallery-only run skip it.
     walked: dict[str, int] = {}
     last_urls: dict[str, list[str]] = {}  # the last handled page's links, so a repeat is still caught after a restart
     complete: set[str] = set()
-    for r in [] if getattr(args, "rewalk", False) else read_jsonl(PROGRESS):
+    for r in [] if getattr(args, "rewalk", False) else read_jsonl(progress_path):
         if gallery_only or r["projects"]:
             if r["page"] > walked.get(r["source"], 0):
                 walked[r["source"]], last_urls[r["source"]] = r["page"], r.get("urls", [])
@@ -203,7 +228,8 @@ def fetch(args, f: Fetcher) -> int:
 
     pool = ThreadPoolExecutor(max(1, min(getattr(args, "workers", 1), MAX_WORKERS)))
     try:
-        with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ, PROGRESS.open("a") as prog:
+        with out_path.open("a", encoding="utf-8") as out, rejected_path.open("a", encoding="utf-8") as rej, \
+                summaries_path.open("a", encoding="utf-8") as summ, progress_path.open("a", encoding="utf-8") as prog:
             def handled(src, page, urls, last=False):
                 rej.flush()  # the page's rejections are on disk before the line that lets a rerun skip it
                 prog.write(json.dumps({"source": src["url"], "page": page, "projects": not gallery_only, "urls": urls}
@@ -241,7 +267,7 @@ def fetch(args, f: Fetcher) -> int:
                         continue
                     todo = []
                     for url in urls:
-                        if url in seen or url in done:
+                        if url in seen or url in done or hashlib.sha1(url.encode()).hexdigest() in done_ids:
                             counts["deduplicated"] += url in seen  # the same project in another gallery
                             seen.add(url)
                             continue
@@ -294,11 +320,16 @@ def main(argv=None) -> int:
     d.add_argument("--pages", type=int, default=20, help="API pages to read (9 hackathons each)")
     d.add_argument("--min-registrations", type=int, default=200)
     d.add_argument("--search", help="only hackathons matching this text, e.g. \"knight hacks\"")
+    d.add_argument("--sources", type=Path, help="source manifest to append discoveries to")
     fe = sub.add_parser("fetch")
     fe.add_argument("--limit", type=int, default=0, help="stop after writing this many records (0 = no limit)")
     fe.add_argument("--deadline", help="ISO time with offset; stop when it passes")
     fe.add_argument("--rps", type=float, default=DEFAULT_RPS, help=f"requests per second, at most {MAX_RPS:g}")
     fe.add_argument("--workers", type=int, default=1, help=f"project pages in flight at once, at most {MAX_WORKERS}")
+    fe.add_argument("--sources", type=Path, help="assigned event manifest, in collection order")
+    fe.add_argument("--data-dir", type=Path, help="this collector's exclusive output/checkpoint directory")
+    fe.add_argument("--exclude-projects", type=Path, action="append", default=[],
+                    help="stable JSONL with known project URLs or IDs; repeat for several checkpoints")
     fe.add_argument("--rewalk", action="store_true", help="ignore progress.jsonl and walk every gallery from page 1")
     fe.add_argument("--gallery-only", action="store_true",
                     help="write gallery cards to summaries.jsonl and skip project pages (--limit counts summaries)")
@@ -306,6 +337,10 @@ def main(argv=None) -> int:
     rps = getattr(args, "rps", DEFAULT_RPS)
     if not 0 < rps <= MAX_RPS:
         ap.error(f"--rps must be above 0 and at most {MAX_RPS:g}")
+    if args.cmd == "fetch" and not 1 <= args.workers <= MAX_WORKERS:
+        ap.error(f"--workers must be between 1 and {MAX_WORKERS}")
+    if args.cmd == "fetch" and args.deadline and datetime.fromisoformat(args.deadline).utcoffset() is None:
+        ap.error("--deadline must include a timezone offset")
     f = Fetcher(rps)
     if args.cmd == "discover":
         discover(args, f)
