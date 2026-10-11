@@ -43,6 +43,7 @@ export function settle(out: z.infer<typeof outputSchema>, known: Set<string>): C
     const thin = c.score === null || pro.length === 0 || con.length === 0;
     const all = [...pro, ...con];
     return { criterion: name, score: thin ? null : c.score, for: pro, against: con, note: thin ? INSUFFICIENT : null,
-      label: all.length > 0 && all.every((p) => p.label === "supported" && p.sourceIds.length > 0) ? "supported" : "inferred" };
+      // An unscored criterion is never "supported": that label beside "evidence is insufficient" contradicted it (#468).
+      label: !thin && all.every((p) => p.label === "supported" && p.sourceIds.length > 0) ? "supported" : "inferred" };
   });
 }

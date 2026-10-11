@@ -20,7 +20,8 @@ test("originality points without a real neighbour are dropped; unknown sources a
   const [orig] = settle(outputSchema.parse(out), known);
   expect(orig.for).toEqual([{ text: "Unlike p1", label: "supported", sourceIds: ["p1"] }]);
   expect(orig.against).toEqual([]);
-  expect(orig).toMatchObject({ score: null, note: INSUFFICIENT });
+  // #468: an unscored criterion never wears "supported" beside "evidence is insufficient", however well its one side is cited.
+  expect(orig).toMatchObject({ score: null, note: INSUFFICIENT, label: "inferred" });
   const nulled = settle(outputSchema.parse({ ...all(), design: c(null) }), known)[3];
   expect(nulled).toMatchObject({ criterion: "Design", score: null, note: INSUFFICIENT });
 });
