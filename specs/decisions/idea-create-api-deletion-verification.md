@@ -31,3 +31,12 @@ Required full verifier is still blocked: cold and warm production build/start ex
 Evidence is in `.git/agent-evidence/idea-create-api/20261011T104001Z`. No validation was weakened.
 Mac verification request and attempts are recorded on #446, #448 and coordination #269.
 Do not mark full release verification or human phone/voice acceptance complete from the development test.
+
+## Final production-build verifier receipt (October 11)
+The canonical verifier passed unchanged at390f5dc after using the existing Windows pnpm.exe launcher.
+`verify: node scripts/verify.mjs idea-create-api 20261011T112033Z pass at390f5dc`.
+Both committed tests passed (3.7minutes): real built-app creation/placement/idempotency using HF and TEST Neon,
+and deletion authorization/cascades/export preservation. Generation used the committed fixture; embeddings
+and database operations were real. Evidence: `.git/agent-evidence/idea-create-api/20261011T112033Z`.
+This supersedes the startup-timeout blocker above. Production deletion remains disabled by the explicit TEST
+identity guard; no production database write or broader human voice acceptance is implied.
