@@ -25,6 +25,21 @@ test("originality points without a real neighbour are dropped; unknown sources a
   expect(nulled).toMatchObject({ criterion: "Design", score: null, note: INSUFFICIENT });
 });
 
+test("a known citation never promotes inferred or unverified claims to supported", () => {
+  const out = all(c(3,
+    [p("A cautious deduction from p1", ["p1"], "inferred")],
+    [p("An unsupported concern that names p2", ["p2"], "unverified")],
+  ));
+  const result = settle(outputSchema.parse(out), known);
+  expect(result[1].for[0]).toEqual({
+    text: "A cautious deduction from p1", label: "inferred", sourceIds: ["p1"],
+  });
+  expect(result[1].against[0]).toEqual({
+    text: "An unsupported concern that names p2", label: "unverified", sourceIds: ["p2"],
+  });
+  expect(result[1].label).toBe("inferred");
+});
+
 test("a missing criterion or an out-of-range score is rejected, so generate() retries", () => {
   const four = Object.fromEntries(Object.entries(all()).filter(([k]) => k !== "wowFactor"));
   expect(outputSchema.safeParse(four).success).toBe(false);
