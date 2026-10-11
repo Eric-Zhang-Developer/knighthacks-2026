@@ -19,7 +19,7 @@
 @keyframes orbit { to { transform: rotate(360deg); } }
 @keyframes breathe { 50% { transform: scale(1.12); opacity: .3; } }
 @keyframes speaking { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
-.dock { display: grid; grid-template-columns: 92px 64px 92px; align-items: center; gap: 14px; }
+.dock { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .utility { min-height: 44px; border: 1px solid #a4b7d133; border-radius: 18px; padding: 8px; background: #101723ef; color: #e3eaf5; font-size: 11px; cursor: pointer; }
 .voiceNotice { width: min(330px, calc(100vw - 32px)); max-height: 90px; overflow: auto; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid #a4b7d166; border-radius: 16px; color: #e3eaf5; background: #111723; font-size: 12px; line-height: 1.5; }
 .voiceNotice button { flex: none; width: 44px; min-height: 44px; color: inherit; background: none; border: 0; font-size: 23px; cursor: pointer; }

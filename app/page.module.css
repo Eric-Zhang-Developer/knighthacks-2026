@@ -38,7 +38,9 @@
   .rail { left: 16px; top: 136px; max-width: calc(100vw - 32px); }
   .rail > summary { padding: 10px 14px; min-height: 44px; }
   .railControls { max-height: 45dvh; }
-  .composer { position: fixed; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .composer { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  /* "Browse the map" holds the map's top left, so the galaxy's layout toggle takes the top right. */
+  .chart :global([aria-label="Arrange stars"]) { left: auto; right: 16px; transform: none; }
   .side { inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
   :global(html[data-dest="talk"]) .top, :global(html[data-dest="talk"]) .rail { display: none; }
   .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 340px); }

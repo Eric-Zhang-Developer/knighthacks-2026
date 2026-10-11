@@ -146,7 +146,8 @@ export default function Mentor() {
     const id = crypto.randomUUID();
     setCandidates((old) => addCandidate(old, fields, id));
   }
-  function close() { setOpen(false); launcher.current?.focus(); }
+  // Leaving #talk too, so the Talk tab opens the panel again (a tab on the current hash fires no hashchange).
+  function close() { setOpen(false); if (location.hash === "#talk") location.hash = "explore"; launcher.current?.focus(); }
   function navigate(destination: string) {
     pendingSave.current = null;
     location.hash = destination;
@@ -271,11 +272,11 @@ export default function Mentor() {
     </section>, notesMount)}
     {voiceNotice && <div className={styles.voiceNotice} role="status"><span>{voiceNotice}</span><button type="button" aria-label="Dismiss voice notice" onClick={() => setVoiceNotice("")}>×</button></div>}
     <div className={styles.dock}>
-      <button className={styles.utility} type="button" aria-expanded={open} onClick={() => { if (open) close(); else { location.hash = "talk"; setOpen(true); } }}>Type / transcript</button>
       <button ref={launcher} className={styles.bubble} data-state={voiceState.toLowerCase()} type="button" disabled={!voiceReady} aria-label={voiceState === "Connecting" ? "Connecting live conversation" : activeAudio ? voiceState === "Muted" ? "Unmute conversation" : "Mute conversation" : "Start live voice conversation"} aria-describedby="voice-caption" onClick={() => { if (voiceState === "Connecting") return; if (activeAudio) live.current?.toggleMute(); else { close(); startVoice.current?.(); } }}>
         <span className={styles.wave} aria-hidden="true"><i /><i /><i /><i /></span>
       </button>
-      {activeAudio ? <button className={styles.utility} type="button" onClick={() => live.current?.end()}>End conversation</button> : <button className={styles.utility} type="button" onClick={() => navigate("idea")}>Ideas{candidates.length ? ` · ${candidates.length}` : ""}</button>}
+      {/* The bubble stands alone (the person: the side buttons duplicated the Talk and Idea tabs); a live call still needs a way to hang up. */}
+      {activeAudio && <button className={styles.utility} type="button" onClick={() => live.current?.end()}>End conversation</button>}
     </div>
     <span id="voice-caption" className={styles.caption} role="status">{activeAudio ? `${voiceState}${voiceState === "Connecting" ? "…" : voiceState === "Muted" ? " · Tap to unmute" : " · Tap to mute"}` : voiceReady ? "Tap to talk · Uses microphone · ElevenLabs" : "Preparing voice…"}</span>
   </div>;
