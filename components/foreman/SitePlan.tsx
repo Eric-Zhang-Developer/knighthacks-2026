@@ -123,11 +123,11 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
           <svg className={styles.hist} viewBox={`0 0 ${buckets.length} ${peak}`} preserveAspectRatio="none" aria-hidden>
             {buckets.map((b, i) => (
               <g key={i}>
-                <rect x={i + 0.12} y={peak - b.feature - b.other} width={0.76} height={b.other} fill="#ffb547" opacity={0.75} />
-                <rect x={i + 0.12} y={peak - b.feature} width={0.76} height={b.feature} fill="#8fef9a" />
+                <rect x={i + 0.12} y={peak - b.feature - b.other} width={0.76} height={b.other} fill="#d6b37a" opacity={0.75} />
+                <rect x={i + 0.12} y={peak - b.feature} width={0.76} height={b.feature} fill="#7ddc9c" />
               </g>
             ))}
-            <rect x={0} y={0} width={((at - first) / full) * buckets.length} height={peak} fill="#ffb547" opacity={0.08} />
+            <rect x={0} y={0} width={((at - first) / full) * buckets.length} height={peak} fill="#d6b37a" opacity={0.08} />
           </svg>
           {chapters
             .filter((c) => c.t >= first && c.t <= now)

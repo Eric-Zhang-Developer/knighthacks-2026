@@ -9,7 +9,7 @@ assignee: "foreman"
 
 The project is built by several agents at once, faster than the two people on the team can follow. `status.py`
 already works out the state, but as a Markdown issue nobody reads mid-event. Foreman is one unlisted page,
-`/foreman`, styled as a construction terminal, that answers four questions in order:
+`/foreman`, in the main site's observatory theme, that answers four questions in order:
 1. **Will we make it?** Each milestone's ship and freeze countdown, and its features done of total.
 2. **What needs a person?** `plan:`/`contract:` PRs waiting for a human merge, `needs-human` and `blocked` issues,
    duplicate claims, stale draft PRs, cut features still in pick order, done notes whose gaps or "not verified"
@@ -21,7 +21,8 @@ already works out the state, but as a Markdown issue nobody reads mid-event. For
 Two audiences, one page. **The team** opens it to see what needs them; it must say how old its data is. **Judges**
 see it in a live laptop walkthrough; it must load instantly and can never show an error page.
 
-Person's decisions (2026-10-10): construction-terminal look, unlisted and open (no key), tuned for a live laptop
+Person's decisions (2026-10-10): construction-terminal look (replaced 2026-10-11 by the person: the page takes the
+main site's observatory theme from ui-redesign, with its wordmark linking home, so the two read as one product), unlisted and open (no key), tuned for a live laptop
 walkthrough, and **collect the data once, then show it** (after the
 request-time version hit GitHub's rate limit and went blank in production). Owned entirely by worker `foreman`;
 it's in `allow`, not in any milestone's `features`, so other agents never pick it. Implementation plan:

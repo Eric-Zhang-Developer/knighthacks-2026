@@ -37,7 +37,7 @@ export default function CrewTimeline({ data }: { data: Timeline }) {
         <svg viewBox={`0 0 ${W} ${H}`} className={styles.chartSvg} onMouseLeave={() => setHover(null)}>
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={x(t)} x2={x(t)} y1={top - 6} y2={H - 20} stroke="#2c261c" strokeWidth={1} />
+              <line x1={x(t)} x2={x(t)} y1={top - 6} y2={H - 20} stroke="#1f1f24" strokeWidth={1} />
               <text x={x(t)} y={H - 6} textAnchor="middle" className={styles.axis}>
                 {clock(t).replace(/:\d\d$/, "h")}
               </text>
@@ -46,9 +46,9 @@ export default function CrewTimeline({ data }: { data: Timeline }) {
           <text x={0} y={STRIP - 4} className={styles.axis}>
             PRs open
           </text>
-          <path d={`${strip}V${sy(0)}Z`} fill="#ffb547" opacity={0.18} />
-          <path d={strip} fill="none" stroke="#ffb547" strokeWidth={1.5} />
-          <circle cx={x(peak.t)} cy={sy(peak.n)} r={4} fill="#ffb547" stroke="#14110c" strokeWidth={2} />
+          <path d={`${strip}V${sy(0)}Z`} fill="#d6b37a" opacity={0.18} />
+          <path d={strip} fill="none" stroke="#d6b37a" strokeWidth={1.5} />
+          <circle cx={x(peak.t)} cy={sy(peak.n)} r={4} fill="#d6b37a" stroke="#09090b" strokeWidth={2} />
           <text
             x={x(peak.t) + (x(peak.t) > W * 0.75 ? -8 : 8)}
             y={sy(peak.n) + 4}
@@ -61,7 +61,7 @@ export default function CrewTimeline({ data }: { data: Timeline }) {
             const y = ys[i];
             return (
               <g key={r.worker}>
-                {i > 0 && <line x1={0} x2={W - R} y1={y - GAP / 2} y2={y - GAP / 2} stroke="#2c261c" strokeWidth={1} opacity={0.6} />}
+                {i > 0 && <line x1={0} x2={W - R} y1={y - GAP / 2} y2={y - GAP / 2} stroke="#1f1f24" strokeWidth={1} opacity={0.6} />}
                 <text x={0} y={y + LANE / 2 + 4} className={styles.chartLabel}>
                   {r.worker.length > 22 ? `${r.worker.slice(0, 21)}…` : r.worker}
                 </text>
@@ -81,7 +81,7 @@ export default function CrewTimeline({ data }: { data: Timeline }) {
                         height={BAR}
                         rx={2}
                         fill={b.state === "merged" ? c : "none"}
-                        stroke={b.state === "merged" ? "#14110c" : c}
+                        stroke={b.state === "merged" ? "#09090b" : c}
                         strokeWidth={b.state === "merged" ? 1 : 1.5}
                         strokeDasharray={b.state === "closed" ? "3 2" : undefined}
                         className={b.state === "open" ? styles.pulse : undefined}
@@ -94,7 +94,7 @@ export default function CrewTimeline({ data }: { data: Timeline }) {
               </g>
             );
           })}
-          <line x1={x(snapshot)} x2={x(snapshot)} y1={0} y2={H - 20} stroke="#ffb547" strokeWidth={1} strokeDasharray="3 3" />
+          <line x1={x(snapshot)} x2={x(snapshot)} y1={0} y2={H - 20} stroke="#d6b37a" strokeWidth={1} strokeDasharray="3 3" />
         </svg>
         {hover && (
           <div
