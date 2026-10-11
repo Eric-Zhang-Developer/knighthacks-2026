@@ -40,6 +40,12 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   of #113. Then polish where the demo is weakest: a reload keeps the chosen idea, snapshots and share links
   (revocable later), and search filters by event and year. (Camera flight belongs to experience-shell, #222.) Then demo rehearsal
   (F18): a pitch from what is actually built and three judge questions.
+- **submission, decision context** (human-requested gap closure, Sat Oct 10): team-fit inputs that influence
+  recommendations (F15) and explicit core/optional/later scope (F17). Windows owns `decision-context-api`;
+  Mac owns `decision-context-ui`. Saved scope becomes part of the existing immutable decision snapshot and share,
+  without creating a second decision artifact. This does not implement F08 before/after comparison, F21 live-event
+  ingestion, F22 personas or F31 evidence updates. Those remain explicit separate gaps. Existing sponsor-upload
+  plan #190 remains separate; this addition does not replace or complete it.
 - **Backlog** (no milestone, never picked unless a `plan:` PR moves it): every other F-ID, and Databricks.
 
 ## Sponsor briefs: user-requested addition, 2026-10-10
