@@ -141,3 +141,36 @@ test("phone: the readout is one ledger line and the map keeps its space", async 
   await page.screenshot({ path: info.outputPath("phone.png") });
   await page.close();
 });
+
+// #458: switching to another saved idea plays that idea's own scan, framed on its own neighbours.
+test("switching to a second saved idea scans it with its own neighbours, and its tags show on the map", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  const seedB = stars[4321];
+  const nearB = [...stars].sort((a, b) => dist(a, seedB) - dist(b, seedB)).slice(0, 5);
+  const B = "5d1e2f3a-4b5c-4d6e-8f70-819a2b3c4d5e";
+  const versionB = {
+    ...version, ideaId: "6e2f3a4b-5c6d-4e7f-9081-92a3b4c5d6e7", versionId: B, title: "Second idea for the switch",
+    x: nearB.reduce((s, p) => s + p.x, 0) / 5, y: nearB.reduce((s, p) => s + p.y, 0) / 5, z: nearB.reduce((s, p) => s + p.z, 0) / 5,
+    neighborIds: nearB.map((p) => p.id), createdAt: "2026-10-11T07:00:00.000Z",
+  };
+  await page.route("**/api/workspace", (r) =>
+    r.request().method() === "POST" ? r.fulfill({ json: { workspaceId: "0b6f5c1e-1111-4a2b-8c3d-000000000001", memberId: "0b6f5c1e-2222-4a2b-8c3d-000000000002" } }) : r.fallback(),
+  );
+  await page.route("**/api/ideas", (r) => (r.request().method() === "GET" ? r.fulfill({ json: [version, versionB] }) : r.fallback()));
+  await page.route(`**/api/scan/${VERSION}`, (r) => r.fulfill({ json: scanBody }));
+  await page.route(`**/api/scan/${B}`, (r) =>
+    r.fulfill({ json: { versionId: B, searched: stars.length, neighbors: nearB.map((p, k) => ({ id: p.id, title: p.title, url: `https://devpost.com/software/${p.id}`, similarity: SIMS[k] })) } }),
+  );
+  await page.goto("/");
+  await expect(galaxy(page)).toHaveAttribute("data-scan", "done", { timeout: 30_000 });
+  await expect(tags(page)).toHaveCount(5);
+
+  // The saved-ideas chooser lives in the Idea destination (the shell shows one destination at a time).
+  await page.getByRole("navigation", { name: "Destinations" }).getByRole("link", { name: "Idea" }).click();
+  await page.getByRole("combobox", { name: "Select saved idea" }).selectOption({ label: versionB.title });
+  await expect(galaxy(page)).toHaveAttribute("data-scan", "done", { timeout: 30_000 });
+  // The tags name B's neighbours, closest first, and the camera framed them: at least one is visible on the map.
+  await expect.poll(async () => (await tags(page).allInnerTexts()).map((t) => t.replace(/\s+/g, " "))).toEqual(nearB.map((p, k) => `${SIMS[k].toFixed(2)} ${short(p.title)}`));
+  await expect.poll(() => tags(page).evaluateAll((els) => els.filter((e) => getComputedStyle(e.parentElement!).visibility === "visible" || getComputedStyle(e).visibility === "visible").length), { timeout: 10_000 }).toBeGreaterThan(0);
+  await page.screenshot({ path: info.outputPath("second-idea-scan.png") });
+});

@@ -31,7 +31,10 @@ export default function Galaxy() {
   const classes = useClasses((s) => s.load);
   const filter = useClasses((s) => s.filter);
   const focusOn = useClasses((s) => s.focus);
-  const [neighbors, setNeighbors] = useState<string[] | null>(null);
+  // The active idea's stored neighbours, keyed by idea: when the active idea changes, the previous idea's list must
+  // never stand in for the new one's, or the scan starts (and frames the camera) on the old neighbours (#458).
+  const [near, setNear] = useState<{ key: string; ids: string[] | null } | null>(null);
+  const neighbors = near && near.key === activeIdea ? near.ids : null;
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
   const [nameLayer, setNameLayer] = useState<HTMLDivElement | null>(null);
   // The 3D camera, shared by the scene (input, drift) and the map buttons and keys.
@@ -81,10 +84,9 @@ export default function Galaxy() {
   }, [load]);
   useEffect(() => {
     let live = true;
-    setNeighbors(null);
     setFocus(true); // a new idea is focused again
     setScan({ state: "loading" });
-    if (activeIdea) neighborsOf(activeIdea).then((n) => live && setNeighbors(n));
+    if (activeIdea) neighborsOf(activeIdea).then((ids) => live && setNear({ key: activeIdea, ids }));
     // The neighbours' real similarity, for the scan's tags; the scan itself never waits for it.
     if (activeIdea) scanOf(activeIdea).then((r) => live && setScan(r));
     return () => {
