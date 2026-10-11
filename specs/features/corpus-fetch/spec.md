@@ -11,7 +11,12 @@ assignee: ""
 1. `corpus/fetch/` script (own `requirements.txt`): `run.py discover` adds ended hackathons from Devpost's hackathon
    API to the committed `sources.jsonl`; `run.py fetch` walks each gallery's pages, then each project page.
 2. Parse each project; write one JSON line per project to `corpus/data/projects.jsonl` (gitignored), with a
-   checkpoint so a rerun resumes.
+   checkpoint so a rerun resumes. The checkpoint covers gallery pages too: once every project on a gallery page is
+   written or rejected, a line in `corpus/data/progress.jsonl` records it, and a rerun starts each source after its
+   last handled page, and skips a source that ended on a short page followed by an empty one (a lone empty reply
+   may be transient, so it's asked again). A page cut short by a stop, the deadline or `--limit` is redone, and so is
+   every page after it in that source: progress stays contiguous.
+   Gallery-only progress never lets a full run skip a page's projects. `--rewalk` ignores the file.
 3. Commit `corpus/fixtures/sample.jsonl`: up to 100 real records the run produced.
 
 ## Requirements
