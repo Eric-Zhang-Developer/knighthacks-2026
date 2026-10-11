@@ -5,6 +5,7 @@ import { PanelState } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { useAppState } from "@/lib/store";
 import styles from "./votes.module.css";
+import Waiting from "./Waiting";
 
 // Shapes pinned by team-vote-api (lib/votes/service.ts) and idea-create-api.
 type Vote = { versionId: string; concern: string | null; changedAfterReveal: boolean };
@@ -122,7 +123,7 @@ export default function Votes() {
         votes?.mine && (
           <div role="status" aria-label="Vote result">
             <Pick who="You" vote={votes.mine} options={options} />
-            <PanelState kind="loading" message="Waiting for your teammate to vote." />
+            <Waiting />
           </div>
         )
       )}
