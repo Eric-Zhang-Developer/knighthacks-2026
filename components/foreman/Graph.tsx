@@ -83,11 +83,13 @@ export default function Graph({
   repo,
   shown,
   flash,
+  pulse,
 }: {
   features: Feature[];
   repo: string;
   shown?: Map<string, State>;
   flash?: Set<string>; // features that just landed in the replay
+  pulse?: Set<string>; // features that just had any other PR merged in the replay: a ring, no unlock
 }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
@@ -181,7 +183,7 @@ export default function Graph({
               ? ""
               : f.missed
                 ? `missed ${f.milestone}`
-                : [f.pr ? `#${f.pr.number}` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
+                : [f.pr ? `#${f.pr.number}` : null, f.prs > 1 ? `${f.prs} PRs` : null, f.buildMin !== null ? dur(f.buildMin) : null, f.worker]
                   .filter(Boolean)
                   .join(" · ");
             const href = f.pr?.url ?? `https://github.com/${repo}/tree/main/${f.specDir}`;
@@ -191,7 +193,7 @@ export default function Graph({
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) ? styles.flash : ""}`}
+                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) || pulse?.has(f.slug) ? styles.flash : ""}`}
                 // A plain click opens the card in place; cmd/ctrl/shift-click still opens GitHub.
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -221,7 +223,7 @@ export default function Graph({
                     filter="url(#heat)"
                   />
                 )}
-                {flash?.has(f.slug) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
+                {(flash?.has(f.slug) || pulse?.has(f.slug)) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
                 <rect
                   className={`box ${state === "flight" ? styles.pulse : ""}`}
                   x={p.x}

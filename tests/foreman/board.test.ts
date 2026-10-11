@@ -80,7 +80,7 @@ test("states follow AGENTS.md: done, in flight, ready, blocked, cut, backlog", (
   const state = Object.fromEntries(b.features.map((f) => [f.slug, f.state]));
   // b has an open feat PR, so it's in flight even though stale; c waits on b; d is in flight; f is in no milestone.
   expect(state).toEqual({ a: "done", b: "flight", c: "blocked", d: "flight", e: "cut", f: "backlog", foreman: "ready" });
-  expect(b.features.find((f) => f.slug === "a")).toMatchObject({ verified: true, fixes: 1, doneAt: "2026-10-10T12:30:00Z" });
+  expect(b.features.find((f) => f.slug === "a")).toMatchObject({ verified: true, fixes: 1, prs: 2, doneAt: "2026-10-10T12:30:00Z" });
   expect(b.features.find((f) => f.slug === "d")?.worker).toBe("kiro-agent-1");
   expect(b.features.find((f) => f.slug === "d")?.specDir).toBe("specs/features/d");
 });
