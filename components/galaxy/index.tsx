@@ -128,6 +128,39 @@ export default function Galaxy() {
   );
   const ringCount = useMemo(() => (ringAt ? ids.filter((_, i) => visible[i] && ringAt(i)).length : 0), [ringAt, ids, visible]);
   const shown = useMemo(() => visible.reduce((n, v) => n + v, 0), [visible]);
+  // The project list (specs/decisions/galaxy-project-list.md): one row per visible star stopped being usable at 57k.
+  // A few stars (a narrow filter) are all listed; otherwise, over the whole map it lists the clouds, each flying the
+  // camera in, and zoomed in (or without categories) the projects nearest the middle of the view, from the scene.
+  const [listOpen, setListOpen] = useState(false);
+  const [nearby, setNearby] = useState<Nearby>({ ids: [], zoomed: false });
+  const onNearby = useCallback((ids: number[], zoomed: boolean) => setNearby({ ids, zoomed }), []);
+  const listHeld = useRef(false); // pointer or focus in the list: its rows stay put
+  const nearbyHold = useCallback(() => listHeld.current, []);
+  const onListHold = useCallback((held: boolean) => void (listHeld.current = held), []);
+  const listClouds = useMemo((): ListCloud[] => {
+    if (!data || !cats) return [];
+    const sum = new Map<number, number[]>(); // slot -> [x, y, z, count]
+    for (let i = 0; i < cats.length; i++) {
+      if (!visible[i] || cats[i] < 0) continue;
+      const a = sum.get(cats[i]) ?? [0, 0, 0, 0];
+      a[0] += positions[3 * i];
+      a[1] += positions[3 * i + 1];
+      a[2] += positions[3 * i + 2];
+      a[3]++;
+      sum.set(cats[i], a);
+    }
+    return [...sum.entries()]
+      .map(([slot, [x, y, z, n]]) => ({
+        key: slots[slot],
+        n,
+        at: [x / n, y / n, z / n] as [number, number, number],
+        label: data.domains.find((d) => d.id === slots[slot])?.label ?? (slots[slot] === MIXED ? "Mixed" : "Not enough text"),
+        colour: colourOf(data, { domain: slots[slot], status: slots[slot] === MIXED ? "mixed" : slots[slot] === UNCLEAR ? "insufficient_text" : "clear", prizes: [] } as Parameters<typeof colourOf>[1]) ?? [1, 1, 1],
+      }))
+      .sort((a, b) => b.n - a.n);
+  }, [data, cats, visible, positions, slots]);
+  const listMode: ListMode = shown <= LIST_ALL ? "all" : !nearby.zoomed && listClouds.length > 0 ? "clouds" : "near";
+  const flyToCloud = useCallback((at: [number, number, number]) => view.flyToCloud(at), [view]);
   const dimmed = useMemo(() => (focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0), [focus, ids, visible]);
   const unknownYear = useMemo(() => stars.filter((s) => s.year == null).length, [stars]);
   const shownAt = useCallback((i: number) => revealed[i] === 1, [revealed]);
@@ -243,6 +276,8 @@ export default function Galaxy() {
         director={director}
         cats={cats}
         tagLayer={tagLayer}
+        nearby={listOpen && listMode !== "all" ? onNearby : undefined}
+        nearbyHold={nearbyHold}
       />
       {/* The scan's tags: each neighbour's real similarity and title, placed beside its star by the scene. */}
       <div ref={setTagLayer} className={styles.tags} role="group" aria-label="Nearest projects to your idea" onWheel={passWheel}>
@@ -324,7 +359,19 @@ export default function Galaxy() {
         <div className={rail ? styles.railControls : styles.controls}>
           {legend}
           {history}
-          <ProjectList stars={stars} visible={visible} selectedId={selectedId} data={data} />
+          <ProjectList
+            stars={stars}
+            visible={visible}
+            selectedId={selectedId}
+            data={data}
+            mode={listMode}
+            near={nearby.ids}
+            clouds={listClouds}
+            shown={shown}
+            onCloud={flyToCloud}
+            onOpen={setListOpen}
+            onHold={onListHold}
+          />
         </div>,
       )}
     </div>
@@ -333,18 +380,74 @@ export default function Galaxy() {
 
 // Memoised, so a hover (which re-renders the galaxy) doesn't re-render every row; and its rows exist only while it's
 // open, so a collapsed list costs nothing at any corpus size.
-// ponytail: an open list renders every visible row (100k at full scale); window it if people browse it at that size.
-const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: Uint8Array; selectedId: string | null; data: ClassesFile | null }) {
-  const { stars, visible, selectedId, data } = props;
-  const [open, setOpen] = useState(false);
+const LIST_ALL = 200; // at most this many visible stars are all listed
+type ListMode = "all" | "clouds" | "near";
+type ListCloud = { key: string; n: number; at: [number, number, number]; label: string; colour: readonly number[] };
+type Nearby = { ids: number[]; zoomed: boolean };
+const ProjectList = memo(function ProjectList(props: {
+  stars: Star[];
+  visible: Uint8Array;
+  selectedId: string | null;
+  data: ClassesFile | null;
+  mode: ListMode;
+  near: number[];
+  clouds: ListCloud[];
+  shown: number;
+  onCloud: (at: [number, number, number]) => void;
+  onOpen: (open: boolean) => void;
+  onHold: (held: boolean) => void;
+}) {
+  const { stars, visible, selectedId, data, mode, near, clouds, shown, onCloud, onOpen, onHold } = props;
+  const [open, setOpenState] = useState(false);
+  const setOpen = (o: boolean) => (setOpenState(o), onOpen(o));
+  const caption = useRef<HTMLParagraphElement>(null);
+  const rows = mode === "all" ? stars.flatMap((s, i) => (visible[i] ? [i] : [])) : mode === "near" ? near.filter((i) => visible[i]) : [];
   return (
-    <details className={styles.list} onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details
+      className={styles.list}
+      data-list-mode={mode}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      onPointerEnter={() => onHold(true)}
+      onPointerLeave={(e) => onHold(e.currentTarget.contains(document.activeElement))}
+      onFocus={() => onHold(true)}
+      onBlur={(e) => onHold(e.currentTarget.contains(e.relatedTarget as Node | null) || e.currentTarget.matches(":hover"))}
+    >
       {/* Click (Enter on a summary is one) renders the rows at once: toggle fires a task later, after a quick Tab. */}
       <summary onClick={(e) => setOpen(!(e.currentTarget.parentElement as HTMLDetailsElement).open)}>Projects ({stars.length})</summary>
+      {open && mode !== "all" && (
+        <p ref={caption} tabIndex={-1} className={styles.listNote}>
+          {mode === "clouds"
+            ? `${shown.toLocaleString("en-US")} projects. Pick a cloud, zoom in or search to list projects.`
+            : rows.length > 0
+              ? `${rows.length} nearest the middle of the view, of ${shown.toLocaleString("en-US")}.`
+              : "No projects in view. Move the map or search."}
+        </p>
+      )}
+      {open && mode === "clouds" && (
+        <ul aria-label="Clouds">
+          {clouds.map((c) => (
+            <li key={c.key}>
+              <button
+                type="button"
+                className={styles.cloudRow}
+                style={{ "--hue": `rgb(${c.colour.map((v) => Math.round(v * 255)).join(" ")})` } as React.CSSProperties}
+                onClick={() => {
+                  onCloud(c.at);
+                  caption.current?.focus(); // the row is about to become that cloud's projects
+                }}
+              >
+                {c.label}
+                <span className={styles.meta}>{c.n.toLocaleString("en-US")} projects</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <ul aria-label="Projects">
         {open &&
-          stars.map((s, i) =>
-            visible[i] ? (
+          rows.map((i) => {
+            const s = stars[i];
+            return (
               <li key={s.id}>
                 <button type="button" aria-pressed={s.id === selectedId} onClick={() => setState({ selectedProjectId: s.id })}>
                   {s.title}
@@ -352,8 +455,8 @@ const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: U
                   <Category data={data} id={s.id} />
                 </button>
               </li>
-            ) : null,
-          )}
+            );
+          })}
       </ul>
     </details>
   );

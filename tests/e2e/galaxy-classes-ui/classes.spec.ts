@@ -28,6 +28,16 @@ const galaxy = (page: Page) => page.locator("[data-star-count]");
 const legend = (page: Page) => page.getByRole("region", { name: "Categories" });
 const count = (s: string) => Number(s.replace(/,/g, ""));
 const listed = (page: Page) => page.getByLabel("Galaxy", { exact: true }).getByRole("list", { name: "Projects" }).locator("li:not([hidden])");
+// Up to 200 visible stars are all listed; past that the list holds at most the 50 nearest the view (specs/decisions/
+// galaxy-project-list.md), every one of them still inside the filter.
+async function expectListed(page: Page, n: number, each?: string) {
+  if (n <= 200) return expect(listed(page)).toHaveCount(n);
+  const list = page.locator("[data-list-mode]");
+  if ((await list.getAttribute("data-list-mode")) === "clouds") await list.getByRole("list", { name: "Clouds" }).getByRole("button").first().click();
+  await expect(listed(page).first()).toBeVisible({ timeout: 15_000 });
+  expect(await listed(page).count()).toBeLessThanOrEqual(50);
+  if (each) for (const t of await listed(page).allInnerTexts()) expect(t).toContain(each);
+}
 
 test("categories colour, filter and ring the galaxy, and an idea focuses on its stored neighbours", async ({ page }, info) => {
   test.setTimeout(180_000);
@@ -54,7 +64,7 @@ test("categories colour, filter and ring the galaxy, and an idea focuses on its 
   await expect(page.getByLabel("Search results")).toHaveCount(0); // the legend doesn't pop the search panel open
   await expect(galaxy(page)).toHaveAttribute("data-visible-count", String(financeCount));
   await page.locator("summary", { hasText: /^Projects \(/ }).click();
-  await expect(listed(page)).toHaveCount(financeCount);
+  await expectListed(page, financeCount, "Finance (inferred)");
   await legend(page).getByRole("button", { name: "Reset" }).click();
   await expect(galaxy(page)).toHaveAttribute("data-visible-count", String(total));
 
@@ -64,12 +74,15 @@ test("categories colour, filter and ring the galaxy, and an idea focuses on its 
   await winners.click();
   await expect(galaxy(page)).toHaveAttribute("data-visible-count", String(winnerCount));
   await expect(galaxy(page)).toHaveAttribute("data-ring-count", String(winnerCount));
-  await expect(listed(page)).toHaveCount(winnerCount);
-  const first = corpus.stars.find((_, i) => i % 41 === 0)!; // a 1st-place fixture winner
-  await page.getByLabel("Galaxy", { exact: true }).getByRole("list", { name: "Projects" }).getByRole("button", { name: new RegExp(`^${escape(first.title)}`) }).first().click();
+  await expectListed(page, winnerCount);
+  // A listed winner (1st place or a sponsor prize in the fixture) shows its prize in the drawer.
+  const row = listed(page).getByRole("button").first();
+  const title = (await row.innerText()).split("\n")[0];
+  const first = corpus.stars.find((p) => p.title === title)!;
+  await row.click();
   const prizes = page.getByRole("region", { name: "Project" }).getByRole("list", { name: "Prizes" });
-  await expect(prizes).toContainText("1st Place Overall");
-  await expect(prizes).toContainText(`${first.event ?? "event unknown"} · placement · 1st`);
+  await expect(prizes).toContainText(/1st Place Overall|Best Use of Neon/);
+  await expect(prizes).toContainText(new RegExp(`${escape(first.event ?? "event unknown")} · (placement · 1st|sponsor)`));
   await expect(page.getByRole("region", { name: "Project" })).toContainText("inferred");
   await legend(page).getByRole("button", { name: "Reset" }).click();
   await page.getByRole("region", { name: "Project" }).getByRole("button", { name: /Close/ }).click();

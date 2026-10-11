@@ -1036,6 +1036,48 @@ function Rings({ idea, morph, live }: { idea: Idea; morph: Morph; live: Live }) 
   return <points geometry={geometry} material={mat} renderOrder={5} frustumCulled={false} />;
 }
 
+// The project list's rows when it can't list every star: the visible projects nearest the middle of the view, nearest
+// first, and whether the camera is in close (past this, the list shows projects instead of clouds). Only while the
+// list is open; recomputed a few times a second while the camera is at rest, and reported only when it changes. While
+// someone is pointing at or focused in the list (`hold`) its rows stay put, so they don't reshuffle under the pointer;
+// a change between clouds and projects still goes through.
+const NEARBY_MAX = 50;
+const NEARBY_REFRESH = 0.4; // s
+const NEARBY_ZOOM = 1.5; // zoom over the whole-map view: a cloud's label flies to 2.2x
+function Nearby(props: { visible: Uint8Array; morph: Morph; view: Orbit; onChange: (ids: number[], zoomed: boolean) => void; hold?: () => boolean }) {
+  const { visible, morph, view, onChange, hold } = props;
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  const last = useRef({ at: -1, key: "", zoomed: false, any: false });
+  useFrame(({ clock }) => {
+    if (clock.elapsedTime - last.current.at < NEARBY_REFRESH) return;
+    const zoomed = view.zoomOverFit >= NEARBY_ZOOM;
+    const held = last.current.any && zoomed === last.current.zoomed && (view.moving || hold?.());
+    if (held) return;
+    last.current.at = clock.elapsedTime;
+    const at = morph.current;
+    const best: { i: number; d: number }[] = [];
+    for (let i = 0; i < visible.length; i++) {
+      if (visible[i] !== 1) continue;
+      v.set(at[3 * i], at[3 * i + 1], at[3 * i + 2]).project(camera);
+      if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue; // behind the camera or off the map
+      const d = Math.hypot((v.x * size.width) / 2, (v.y * size.height) / 2);
+      if (best.length === NEARBY_MAX && d >= best[NEARBY_MAX - 1].d) continue;
+      let k = best.length;
+      while (k > 0 && best[k - 1].d > d) k--;
+      best.splice(k, 0, { i, d });
+      if (best.length > NEARBY_MAX) best.pop();
+    }
+    const ids = best.map((b) => b.i);
+    const key = `${zoomed}:${ids.join(",")}`;
+    if (key === last.current.key) return;
+    last.current = { at: clock.elapsedTime, key, zoomed, any: ids.length > 0 };
+    onChange(ids, zoomed);
+  });
+  return null;
+}
+
 export default function Scene(props: {
   ids: string[];
   positions: Float32Array;
@@ -1057,8 +1099,11 @@ export default function Scene(props: {
   director?: Director;
   cats?: Float32Array;
   tagLayer?: HTMLDivElement | null;
+  // While the project list is open and can't list every star: its rows, the projects nearest the middle of the view.
+  nearby?: (ids: number[], zoomed: boolean) => void;
+  nearbyHold?: () => boolean;
 }) {
-  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer, director, cats, tagLayer } = props;
+  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer, director, cats, tagLayer, nearby, nearbyHold } = props;
   const live = useMemo((): Live => ({ frame: null, intro: false, focused: false }), []);
   // Idea focus: the neighbours keep their colour and every other star dims, drawn by the star shader (uFade).
   useEffect(() => void (live.focused = Boolean(idea?.lines && idea.neighbours.length > 0)), [live, idea]);
@@ -1114,6 +1159,7 @@ export default function Scene(props: {
       {ideaPoint && <Pulse at={ideaPoint} colour={IDEA_RGB} view={view} />}
       <Pulse at={selectedPoint} colour={SELECTED_RGB} view={view} />
       {titles && <Names ids={ids} titles={titles} visible={visible} layer={nameLayer ?? null} clouds={labelLayer ?? null} tags={tagLayer ?? null} morph={morph} view={view} />}
+      {nearby && <Nearby visible={visible} morph={morph} view={view} onChange={nearby} hold={nearbyHold} />}
       {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} tags={tagLayer ?? null} idea={idea ?? null} morph={morph} view={view} live={live} />}
     </Canvas>
   );
