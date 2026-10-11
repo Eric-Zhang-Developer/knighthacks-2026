@@ -57,3 +57,19 @@ idea rail, a selected project still opens inspection, and Idea/Decide/Plan no lo
 mentor mount is unchanged. Added 390px/1440px browser assertions for destination isolation, bubble visibility
 and horizontal overflow. These new browser assertions are not run here because browser access is policy-blocked;
 Mac visual verification and production integration remain required. This is not a whole-app redesign completion.
+
+## Plan 443 saved-idea controls (October 11)
+
+Added a compact saved-idea picker, Add idea, exact-title deletion review and bounded named voice intents.
+Selection clears conversation evidence and pending save confirmations; late initial lists/interpretations and
+save receipts cannot replace a newer selection. Optional typing and the persistent voice bubble are unchanged.
+Deletion is intentionally disabled in this feature branch until API #448 is integrated and validated; there is
+no claim that its button deletes here. The backend owner reported a dedicated TEST_DATABASE_URL receipt for
+19280d6 (targeted real-DB deletion test passed), but the full production-build verifier remains blocked.
+Type checking, scoped lint and 32 mentor unit tests pass. Added 390px/1440px selector/review/cancel/reload and
+late-list browser assertions; these remain unrun here under the existing browser access restriction.
+Live.tsx selection invalidation is coordinated with the mentor-quality owner, not duplicated in this patch.
+After repairing a missing local pinned dependency, the full unit suite passed 584 tests (two skipped).
+The production build passed; full lint and type checking are also required on the integration candidate.
+Full deletion UI acceptance (selected/unselected/last, failure and real voice), visual QA, and the previously
+outstanding real evidence -> confirmed save -> decision/share journey still block feature completion.

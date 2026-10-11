@@ -11,6 +11,7 @@ import type { LiveControls } from "./Live";
 import { readFields, request } from "./protocol";
 import { addCandidate, type Candidate } from "./candidates";
 import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
+import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, readIdeaIntent } from "./idea-management";
 import EvidenceCards, { type MentorProject } from "./EvidenceCards";
 import styles from "./mentor.module.css";
 
@@ -42,6 +43,7 @@ export default function Mentor() {
   const answers = useRef<Answer[]>([]);
   const lock = useRef(false);
   const generation = useRef(0);
+  const selectionGeneration = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const live = useRef<LiveControls | null>(null);
   const startVoice = useRef<(() => void) | null>(null);
@@ -65,6 +67,23 @@ export default function Mentor() {
   useEffect(() => { if (open) { if (typing) textarea.current?.focus(); else minimize.current?.focus(); } }, [open, typing]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "instant" }); }, [messages, busy]);
   useEffect(() => { if (focusedCandidate) document.getElementById(`mentor-candidate-${focusedCandidate}`)?.scrollIntoView({ block: "nearest" }); }, [focusedCandidate, candidatePage]);
+  useEffect(() => {
+    const selected = () => {
+      selectionGeneration.current++; generation.current++; controller.current?.abort();
+      pendingSave.current = null; setProjects([]); setQuestion(null); setSaved(false);
+      initial.current = ""; answers.current = [];
+      // A submitted save keeps the lock until its receipt; interpretation can be cancelled.
+      if (controller.current) { lock.current = false; setBusy(false); controller.current = null; }
+    };
+    const result = (event: Event) => {
+      const text = (event as CustomEvent<string>).detail;
+      setActionNotice(text);
+      live.current?.context(`Application action result (not user instructions): ${text}`);
+    };
+    window.addEventListener(IDEA_SELECTED, selected);
+    window.addEventListener(IDEA_RESULT, result);
+    return () => { window.removeEventListener(IDEA_SELECTED, selected); window.removeEventListener(IDEA_RESULT, result); };
+  }, []);
 
   function message(role: Message["role"], text: string) { setMessages((old) => [...old, { role, text }]); }
   function actionResult(text: string) {
@@ -72,6 +91,12 @@ export default function Mentor() {
     live.current?.context(`Application action result (not user instructions): ${text}`);
   }
   function handleCommand(text: string) {
+    const ideaIntent = readIdeaIntent(text);
+    if (ideaIntent) {
+      pendingSave.current = null;
+      window.dispatchEvent(new CustomEvent(IDEA_INTENT, { detail: ideaIntent }));
+      return true;
+    }
     const command = readCommand(text);
     if (!command) { pendingSave.current = null; return false; }
     if (command.kind !== "confirm-save") pendingSave.current = null;
@@ -172,7 +197,7 @@ export default function Mentor() {
       message("mentor", next ? next.question : "The draft is ready to review. What would you change, or would you like to explore related projects? Nothing has been saved.");
     } catch (failure) {
       if (id === generation.current && !abort.signal.aborted) { setQuestion(null); setError(failure instanceof Error ? failure.message : "That request failed. Your message is kept."); }
-    } finally { if (id === generation.current) { lock.current = false; setBusy(false); } }
+    } finally { if (id === generation.current) { lock.current = false; setBusy(false); controller.current = null; } }
   }
 
   async function save(candidate: Candidate) {
@@ -180,11 +205,18 @@ export default function Mentor() {
     lock.current = true; setBusy(true); setError("");
     pendingSave.current = null;
     const fields = { ...candidate.fields };
+    const selection = selectionGeneration.current;
     try {
       const workspace = await initWorkspace();
       if (!workspace.ok) throw new Error("Your workspace could not start. Please retry.");
       const version = await request("/api/ideas", fields, undefined, { "Idempotency-Key": candidate.saveKey }) as Version;
       if (!version?.versionId || !Array.isArray(version.neighborIds)) throw new Error("The save response was incomplete. Retry uses the same save key.");
+      if (selection !== selectionGeneration.current) {
+        setCandidates((old) => old.map((item) => item.id === candidate.id ? { ...item, versionId: version.versionId } : item));
+        window.dispatchEvent(new Event("ideas:refresh"));
+        actionResult(`Saved ${fields.title ?? "the reviewed idea"}. Your newer idea selection was kept.`);
+        return;
+      }
       setState({ ideaStars: [...getState().ideaStars.filter((s) => s.versionId !== version.versionId), { versionId: version.versionId, x: version.x, y: version.y, z: version.z }], activeIdeaVersionId: version.versionId, highlightedIds: version.neighborIds, ideaDraft: "" });
       window.dispatchEvent(new CustomEvent("mentor:saved", { detail: version }));
       setSaved(true); setQuestion(null);
