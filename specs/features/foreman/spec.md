@@ -36,6 +36,17 @@ follow it unchanged. The tour, in the walkthrough:
 2. (25 s) Space: the graph fills in, nodes flash as features land, counters climb, chapters caption the moments.
 3. (10 s) Click one node: its spec, its PR and its done note, on GitHub. Every node is real.
 
+## The story
+The person (2026-10-11): tailor the page to judging, as a story with arrows, in the main site's theme. **The story
+now leads the page and the tour follows it**: a judge first sees the loop that built the product, then the replay
+as its evidence. The story ("How Golden Egg was built") is the loop every agent runs, as six steps with arrows:
+**Spec → Claim → Gate → Verify → Merge → Live**. Each step has its rule from AGENTS.md and the snapshot's number
+for it. Under the steps runs **the thread**: one real feature traced through every step (its spec file; the PR that
+built it, its worker and when it opened; that PR's checks; its done note and whether it was verified; when it merged
+and how long it took; main's commit and the PRs on it since), each linking to GitHub. The traced feature is the same
+one story mode opens (`proofFeature`): the done feature with a merged feat PR that most features depend on directly.
+Without PR data the thread is left out, and steps counted from PRs show — as before.
+
 ## Architecture
 ```
 next build (every deploy; every merge to main deploys)
@@ -88,15 +99,16 @@ page view: zero server work, zero GitHub calls. Client code only ticks clocks an
 - Header: brand, repo link, `snapshot <time> · main @ <sha>` (the commit built, also in `data-sha`), API status
   (`API: token · N calls · R/L left`, `API: no token`, or `API: failed`), wall clock, T+, snapshot age (amber past
   30 min).
-- Sections, in pitch order, with demo keys 1-5 to jump, space to play the replay and → to start story mode (below): the tour (below), milestones (countdown, freeze,
-  cells per feature, what's left with in-flight ages at snapshot, pace forecast when 3 or more are left); needs a
-  person, beside build stats (features built, PRs merged, agents active in 3 h, median PR open to merge, merged PRs
-  by type, longest builds); the pipeline (AGENTS.md's loop with snapshot numbers); the crew (open PRs per worker with CI dots). Plus an intro sentence (who built it, under which rule, since when, read when; the tour's counters carry the
+- Sections, in page order, with demo keys 1-5 to jump, space to play the replay and → to start story mode (below):
+  the story (§ The story); the tour (below); the crew (open PRs per worker with CI dots); then, under a "For the
+  team" divider, milestones (countdown, freeze, cells per feature, what's left with in-flight ages at snapshot, pace
+  forecast when 3 or more are left) and needs a person, beside build stats (features built, PRs merged, agents active
+  in 3 h, median PR open to merge, merged PRs by type, longest builds). Plus an intro sentence (who built it, under which rule, since when, read when; the tour's counters carry the
   numbers when PR data is there), and a "since
   you last looked" banner (browser storage only).
 - Sections that need PR data say so in place when it's missing, instead of rendering empty.
 
-**The tour** ("Watch it get built"): first section, right under the header and intro.
+**The tour** ("Watch it get built"): second section, right under the story.
 - The site plan: the graph (critical path, hover trace, click card with spec/PR/done-note links, cmd-click to
   GitHub) and its replay, which scrubs from the first PR to the snapshot and plays it in about 24 s.
 - **Counters**, large, for the scrubbed moment: features built of planned, PRs merged, and agents at work (named
@@ -130,10 +142,10 @@ at their own pace. Judging is 6 minutes with questions, so nothing advances by i
   a control stay the control's (the scrubber keeps its arrows).
 - Five beats, in order. Each scrolls to its section, outlines it, and shows a caption bar at the bottom of the
   screen: `n / 5`, one line, and the keys. Every number in a caption comes from the snapshot, never typed by hand.
-  1. **The tour:** features built of planned, PRs merged and agent workers since the first PR; space replays it.
-  2. **One feature, opened** (the proof click): the card of the done feature with a PR that the most features
+  1. **The loop:** the story's six steps, with the feature PRs merged through it and the feature the thread follows.
+  2. **The tour:** features built of planned, PRs merged and agent workers since the first PR; space replays it.
+  3. **One feature, opened** (the proof click): the card of the done feature with a PR that the most features
      depend on directly (ties: the first in graph order), with how many depend on it. Leaving this beat closes it.
-  3. **The loop:** the pipeline from AGENTS.md, with the feature PRs merged through it.
   4. **The crew:** named workers and the peak of PRs open at once.
   5. **Needs a person:** how many things agents can't clear themselves.
 - Needs PR data: without it the story keys do nothing and the header doesn't offer them.
@@ -184,7 +196,7 @@ legend or direct labels so identity is never colour alone, and a table view (`<d
    Run it again after the next merge to main: the SHA must have moved (one snapshot per deploy).
 6. **Tour:** unit tests pin the chapters (first PR, a milestone built at its last live feature's merge, none for an
    unbuilt milestone, the peak equal to the timeline's) and agents at work at a given moment, on fixed inputs. The
-   e2e checks the tour is the first section; Space plays it; a chapter caption and a node flash appear during
+   e2e checks the story is the first section and the tour the second; Space plays it; a chapter caption and a node flash appear during
    playback; at the end the counters equal the snapshot's; with reduced motion no node animates. Screenshot it
    mid-playback. Motion: unit tests pin the playhead's speed curve (starts from rest, never above the base speed,
    reaches the snapshot exactly, a full play within 10% of its 24 s); the e2e sees a landing ring and an edge
@@ -192,8 +204,8 @@ legend or direct labels so identity is never colour alone, and a table view (`<d
    frame intervals during a local play and report them in the PR.
 7. **Story mode:** unit tests pin the beats on fixed inputs (five, in order; the opened feature is the done one with a
    PR and the most direct dependents; the captions carry the snapshot's numbers). The e2e presses → five times and
-   sees each section outlined in order with its `n / 5` caption, the card of the computed feature open on beat 2,
-   ← back to beat 1 closing the card, and Escape removing the caption bar. Screenshot each beat.
+   sees each section outlined in order with its `n / 5` caption, the card of the computed feature open on beat 3,
+   ← back to beat 2 closing the card, and Escape removing the caption bar. Screenshot each beat.
 8. Report `merged`, `checked by CI`, `verified locally` and `verified live` separately. A step not run is a gap in
    the done note.
 

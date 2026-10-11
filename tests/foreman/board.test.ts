@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { buildBoard, layers, pace, statesAt, type PR, type Raw } from "@/lib/foreman/board";
-import { atWork, beats, buildUp, chapters, timeline } from "@/lib/foreman/charts";
+import { atWork, beats, buildUp, chapters, proofFeature, timeline } from "@/lib/foreman/charts";
 import { advance, CRUISE_MS } from "@/lib/foreman/time";
 import { firstGap, frontMatter, isVerified, parseMilestonesToml, parseTitle, parseWhen, workerNoteOf, workerOf } from "@/lib/foreman/parse";
 
@@ -300,14 +300,15 @@ test("story beats: five in order, the proof card the done feature most others wa
   const b = buildBoard(raw, NOW);
   const crew = timeline(raw.prs, NOW)!;
   const out = beats(b, crew);
-  expect(out.map((x) => x.section)).toEqual(["graph", "graph", "how", "crew", "ask"]);
-  // a is the only done feature; b and d depend on it. Its card opens on beat 2, and only there.
-  expect(out.map((x) => x.open)).toEqual([undefined, "a", undefined, undefined, undefined]);
+  expect(out.map((x) => x.section)).toEqual(["how", "graph", "graph", "crew", "ask"]);
+  // a is the only done feature; b and d depend on it. The story follows it, and its card opens on beat 3, and only there.
+  expect(proofFeature(b.features)).toEqual({ slug: "a", n: 2 });
+  expect(out.map((x) => x.open)).toEqual([undefined, undefined, "a", undefined, undefined]);
   expect(b.features.find((f) => f.slug === "a")!.builtBy?.number).toBe(1); // the card links #1, the feat PR that merged
   expect(b.features.find((f) => f.slug === "b")!.builtBy).toBeNull(); // in flight: nothing built yet
-  expect(out[0].caption).toBe("1/6 features built, 2 PRs merged, by 1 agent worker since Sat 08:00. Space replays it.");
-  expect(out[1].caption).toMatch(/^a: 2 features depend on it\./);
-  expect(out[2].caption).toMatch(/1 feature PR merged through it/);
+  expect(out[0].caption).toMatch(/1 feature PR merged through it, followed here for a\./);
+  expect(out[1].caption).toBe("1/6 features built, 2 PRs merged, by 1 agent worker since Sat 08:00. Space replays it.");
+  expect(out[2].caption).toMatch(/^a: 2 features depend on it\./);
   expect(out[3].caption).toMatch(new RegExp(`up to ${crew.peak.n} PRs open at once`));
   expect(out[4].caption).toMatch(new RegExp(`^${b.asks.filter((a) => a.kind !== "review").length} things`));
   // Without PR data there is no story: the keys do nothing.
