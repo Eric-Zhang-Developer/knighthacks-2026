@@ -39,6 +39,16 @@ tests must assert preserved behavior through the new entry rather than require t
   the owned shell/mentor surfaces: translucent fills, subtle borders and limited blur with solid fallbacks.
   Preserve WCAG AA, reduced-transparency, reduced-motion and high-contrast behavior. Do not replace project
   categories with fabricated data or obscure the map beneath a permanent form rail.
+- Phone cleanup from the user's screenshot: remove the Projects/Events/Categories totals strip and the
+  "What am I looking at?" explainer from the primary shell. Move secondary discovery/history controls out of
+  the initial viewport into an explicit disclosure; retain an accessible project-list alternative to the map.
+  Replace the four cramped inline filter selects with a clearly labelled Filters disclosure/sheet, full-width
+  readable fields, active-filter summary and Clear filters. Keep the search field directly reachable.
+  Use a compact brand/header with a workspace menu for the identifier and cookie-persistence explanation;
+  keep an obvious teammate action without a permanent multi-line workspace banner. Remove the Hold to talk
+  dictation bar from the shipped primary experience rather than showing it alongside the new bubble.
+  These changes require a coordinated ownership amendment for search/workspace/discovery components before
+  editing those features' files; do not conceal controls with broad CSS or delete their behavior/tests.
 - Typing is a conversational alternative, not only a dictation destination. Reuse the existing authorized
   interpretation/interview operations and bounded policies. Provider failure must be explicit; never simulate
   a live ElevenLabs session or silently substitute canned spoken replies.
