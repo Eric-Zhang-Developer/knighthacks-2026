@@ -7,6 +7,9 @@ assignee: "eric-frontend-agent"
 
 # Galaxy 2D
 
+Superseded by `galaxy-3d` (person, 2026-10-10, evening): the map is 3D again, with a by-category and a by-meaning
+layout. This spec records what shipped in #332.
+
 Frontend only: Mac workers (user decision 2026-10-10, owner eric-frontend-agent). The person: rotating a 3D cloud adds
 nothing for reading the map; it should be 2D, and fancy. This replaces the orbit camera, not the data: positions
 still come from `public/corpus/stars.json`. Until `corpus-layout-2d` ships a true 2D layout, the map draws `x, y` and
