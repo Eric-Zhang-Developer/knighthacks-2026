@@ -31,7 +31,7 @@ test("delete isolates workspaces, cascades branched versions, and preserves inde
       await sql`insert into idea_versions(id, idea_id, parent_id, title, embedding, x, y, z, neighbor_ids, corpus_version)
         values (${id}::uuid, ${idea}::uuid, ${parent}::uuid, 'Deletion test idea', ${vector}::vector, 0, 0, 0, array[]::text[], 'test-only')`;
     }
-    await sql`insert into evidence_cards(version_id, project_id, url, title, excerpt, overlaps, differences, uncertainty)
+    await sql`insert into evidence_cards(version_id, project_id, url, title, excerpt, "overlaps", differences, uncertainty)
       values (${child}::uuid, 'deletion-test', 'https://example.com', 'Test fixture', '', '[]', '[]',
         '{"text":"Test fixture","label":"unverified","sourceIds":[]}')`;
     await sql`insert into snapshots(id, workspace_id, data) values (${snapshotId}::uuid, ${workspaces[0]}::uuid, ${JSON.stringify(snapshot)}::jsonb)`;
