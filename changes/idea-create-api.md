@@ -1,8 +1,8 @@
 ## What shipped
-Authenticated six-field interpretation and immutable idea version creation with real HF embeddings, five-neighbor D1 placement, workspace-scoped reads and atomic idempotent saves.
+Authenticated idea interpretation/create/list with idempotent real placement; confirmed workspace-scoped deletion removes its versions/dependents while preserving independent snapshot/share exports.
 ## Where it lives
-app/api/ideas/, lib/ideas/, db/schema/ideas.ts, tests/idea-create-api/, tests/e2e/idea-create-api/; boundaries in specs/decisions/idea-create-api-boundaries.md.
+app/api/ideas/, lib/ideas/, db/schema/ideas.ts, tests/idea-create-api/, tests/e2e/idea-create-api/; deletion receipt in specs/decisions/idea-create-api-deletion-verification.md.
 ## How to check it
-verify: `node scripts/verify.mjs idea-create-api "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\idea-create-api\20261010T132955Z"` pass at 9b710fe (generation fixture, real HF/Neon). Live Gemini `gemini-3.8-flash` + `BAAI/bge-m3` also passed at 2b95e2c in 20261010T132357Z; saved version b9fbd8d7-6a52-45be-8f0c-4bef42014b15 remains on the test branch with its response evidence. Retry races returned 200/201 and exactly one idea/version; 79 units passed after rebase.
+verify: node scripts/verify.mjs idea-create-api 20261011T112033Z pass at390f5dc; both production-build E2E tests passed (3.7min) with generation fixtures, real HF and TEST Neon. Eight rollout-guard unit tests also pass; prior full suite556pass3skip, typecheck/lint passed.
 ## Gaps
-Schema and persistence verified only on TEST_DATABASE_URL; production rollout is unverified. The first live interpretation returned 502 after about 30 seconds; the same prompt then succeeded and the full live rerun passed, without changing timeouts. Claude's separate provider configuration issue remains #61; no Claude acceptance claimed.
+Deletion is intentionally restricted to DATABASE_URL matching nonblank TEST_DATABASE_URL; production deletion rollout is not enabled or verified. Human voice/browser acceptance remains separate. Earlier verifier startup timeouts are superseded by this passing canonical run.
