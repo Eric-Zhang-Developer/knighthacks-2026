@@ -38,6 +38,18 @@ describe("Morph", () => {
     expect(Array.from(m.current)).toEqual(Array.from(b));
   });
 
+  it("the first animated layout bursts out from the core and lands on the layout", () => {
+    const m = new Morph();
+    m.set(a, 0, true);
+    expect(m.t).toBe(0);
+    m.current.forEach((v, i) => expect(v).toBeCloseTo(a[i] * 0.04, 6));
+    m.step(0.7);
+    const mid = Math.hypot(...m.current.slice(0, 3));
+    expect(mid).toBeGreaterThan(Math.hypot(a[0], a[1], a[2]) * 0.04);
+    m.step(1.4);
+    expect(Array.from(m.current)).toEqual(Array.from(a));
+  });
+
   it("turns around mid-flight from where the stars are drawn", () => {
     const m = new Morph();
     m.set(a, 0, false);
