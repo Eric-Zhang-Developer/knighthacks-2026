@@ -8,7 +8,7 @@
 Every gallery page's cards (title, tagline, winner badge) also go to corpus/data/summaries.jsonl, one line per
 project per event, at no extra request. --gallery-only stops there: ~24 projects per request instead of one.
 
-Polite by construction: at most --rps requests per second (default 2, at most 5; --workers pages in flight), one retry, and every source is on
+Polite by construction: at most --rps requests per second (default 2, at most 8; --workers pages in flight), one retry, and every source is on
 devpost.com. The first 429 waits as asked (Retry-After, else 60 s) and drops to 1 request per second for the rest
 of the run; a second 429, or any 403, stops the run. Rerunning resumes: work already written is skipped, and so are
 gallery pages already handled (corpus/data/progress.jsonl), so a restart doesn't re-walk them. --rewalk ignores it.
@@ -43,7 +43,7 @@ UA = "Mozilla/5.0 (compatible; uncharted-knighthacks-research; +https://github.c
 HEADERS = {"User-Agent": UA, "Accept": "*/*"}
 API = "https://devpost.com/api/hackathons?status[]=ended&order_by=recently-added&page={page}"
 DEFAULT_RPS = 2.0  # Devpost publishes no limit and robots.txt sets no crawl delay; this is our own default
-MAX_RPS, MAX_WORKERS = 5.0, 5  # person's ceiling (2026-10-10): a project page takes ~1 s, so one in flight caps at ~1/s
+MAX_RPS, MAX_WORKERS = 8.0, 8  # person's ceiling (2026-10-10, raised from 5): a project page takes ~1 s, so one in flight caps at ~1/s
 BACKOFF_DEFAULT, BACKOFF_MAX = 60, 300  # seconds to wait on a 429 without, or with too long, a Retry-After
 
 
