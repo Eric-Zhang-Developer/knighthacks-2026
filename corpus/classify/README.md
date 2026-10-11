@@ -49,3 +49,21 @@ is written to `DIR/prompts/<digest>.txt`, an agent writes `DIR/answers/<digest>.
 same validators on it. `--labels-only --from-jsonl rows.jsonl` labels a corpus that has no star manifest yet (the
 growth fetch). An agent run that still has unanswered batches withholds `classes.json` instead of publishing
 `insufficient_text` for them. `classes.json`'s `model` names every model whose labels it contains.
+
+## Jev trial provider
+
+Set `OPENROUTER_API_KEY` in your environment, then use a separate label directory for trials:
+
+```sh
+python corpus/classify/run.py --provider jev --labels-only --from-jsonl records.jsonl \
+  --labels /tmp/jev-trial-labels --cache /tmp/jev-trial-cache --concurrency 4
+```
+
+This calls OpenRouter Decisions with `typesafe/jev-1.13`. Questions select fixed choices and exact source
+passages; the existing validators check the translated labels. Conflicting answers remain pending, return a
+nonzero exit, and withhold public artifacts. Completed labels and raw answers are cached for resumption.
+Inspect `jev/pending.json`, `jev/usage.json` and `jev/responses/` inside the selected cache directory.
+Keep that cache local: it contains source passages. Credential, quota and configuration failures stop the run.
+
+The 500-project pilot produced 470 validated labels and 30 pending projects. Bulk use is parked; see
+`specs/decisions/corpus-classify-jev-trial.md`. Schema validation alone does not establish semantic accuracy.
