@@ -1,6 +1,6 @@
 ---
 name: Persist team fit and version-specific feature scope
-depends_on: [build-plan-api, decision-snapshot-api, share-qr-api]
+depends_on: [guest-workspace, idea-revisions-api, decision-snapshot-api, share-qr-api]
 owns: [app/api/decision-context/, lib/decision-context/, db/schema/decision-context.ts, lib/snapshots/contract.ts, lib/snapshots/service.ts, tests/decision-context-api/, tests/e2e/decision-context-api/]
 assignee: ""
 ---
@@ -18,7 +18,7 @@ F08 requires a separate feature; this slice makes no before/after or originality
    Return 401 without session, 404 for absent/foreign resources, 400 for invalid input, 409 for stale revision,
    and safe retryable 502 for generation failure. Mutations enforce the existing same-origin policy.
 2. `GET /api/decision-context/profile` -> `{profileRevision, profile}`; initially `{profileRevision:0, profile:null}`.
-   `PUT` to that route accepts `{expectedRevision, profile}` and returns a newly persisted revision.
+   `PUT` to that route accepts `{expectedRevision, profile}` and returns the newly persisted `{profileRevision, profile}`.
    `Profile = {interests:string[], skills:string[], hardware:string[], hoursLeft:number|null,
    teamSize:number|null, enthusiasm:1|2|3|4|5|null}`. Arrays have at most 12 trimmed entries of 80 chars;
    hoursLeft is 0.25..72, teamSize integer 1..20. Empty/null means unknown, not unavailable or zero.
@@ -33,8 +33,10 @@ F08 requires a separate feature; this slice makes no before/after or originality
    Missing inputs produce visible unverified gaps, never invented skills, devices, enthusiasm or availability.
    Revision 0 uses an entirely unknown profile. Validate generated influence values against the stored profile
    and source IDs against the retrieved evidence; reject unsupported references. Profile text is data, never instructions.
-4. Profile changes must affect the decision: derive candidate requirements from the saved idea, then assess
-   skill match, available hardware, time, interests and enthusiasm against those requirements. Explain each
+4. Profile changes must affect the decision: the model proposes each candidate feature with its requirements
+   (`{skills:string[], hardware:string[], hours:number|null}`, stored on the recommendation); application code, not
+   the model, assesses skill match, available hardware, time, interests and enthusiasm against them and sets
+   `recommendedScope`, so the same candidates and profile always give the same scopes. Explain each
    affected recommendation with exact inputs and the resulting scope tradeoff. Unknown hardware cannot justify
    excluding a feature as impossible. No fit percentage, eligibility assertion, prize odds or win probability.
    Do not merely echo profile metadata. For identical candidates, reducing known time or removing a required
@@ -46,7 +48,8 @@ F08 requires a separate feature; this slice makes no before/after or originality
    recommendationId,choices,demoSketch,createdAt}`. Demo sketch is deterministically the selected core items'
    saved demoStep claims in recommendation order; optional/later items remain visible outside the sketch.
 6. `GET /api/decision-context/versions/:versionId` returns `{recommendation,selection}` (null/null
-   initially), with the newest saved recommendation and selection. Each selection includes its
+   initially), with the newest saved recommendation (the item 3 response shape) and selection (the item 5 response
+   shape plus `profileRevision`). Each selection includes its
    exact recommendation and profile revision so regeneration cannot reinterpret old choices. No implicit AI call.
    Recommendation regeneration does not move existing choices; selection starts explicitly for the new IDs.
 7. Extend existing `SnapshotData` additively with optional `scope:{selectionId,features,choices,demoSketch}`.
@@ -71,8 +74,9 @@ F08 requires a separate feature; this slice makes no before/after or originality
 ## Validation
 1. Real test DB: save profile, restart/reopen with same cookie, GET exact values; different workspace cannot read
    or mutate them. Two writes with the same expected revision yield one success and one 409.
-2. Stub AI only at provider boundary: assert the prompt contains exact saved profile/idea/evidence; fixed candidate
-   fixtures with different time/skills/hardware produce an affected recommendation and accurate input explanation.
+2. Stub AI only at provider boundary: assert the prompt contains exact saved profile/idea/evidence. With the stub
+   returning identical candidates for both, a profile with less time, or without a required device, changes an
+   affected `recommendedScope` (or explains why not) through the application-code assessment, not canned responses.
    One live provider run is recorded separately; absent live credentials are an explicit gap, never a pass.
 3. Persist core/optional/later, reopen via GET and assert IDs, choices and core-only sketch. Reject foreign, duplicate,
    missing or wrong-version IDs; concurrent stale saves cannot overwrite a choice. Switching versions leaks nothing.
