@@ -85,8 +85,8 @@ export default function History(props: {
         All
       </button>
       <p className={styles.label} aria-live="polite">
-        {reveal === null ? "All years" : `Created through ${reveal}`} · {shown} of {total} shown
-        {unknown > 0 && ` · ${unknown} date unknown`}
+        {reveal === null ? "All years" : `Created through ${reveal}`} · {shown.toLocaleString()} of {total.toLocaleString()} shown
+        {unknown > 0 && ` · ${unknown.toLocaleString()} date unknown`}
       </p>
     </div>
   );

@@ -7,7 +7,7 @@ const stars = JSON.parse(readFileSync("public/corpus/stars.json", "utf8"));
 test("the panel's count and coverage come from stars.json", async ({ page }) => {
   await page.goto("/");
   await page.getByText("What am I looking at?").click();
-  await expect(page.getByTestId("explainer-count")).toHaveText(String(stars.count));
+  await expect(page.getByTestId("explainer-count")).toHaveText(stars.count.toLocaleString("en-US"));
   const events = new Set(stars.stars.map((s: { event: string | null }) => s.event ?? "Event unknown"));
   await expect(page.getByRole("list", { name: "Source coverage" }).getByRole("listitem")).toHaveCount(events.size);
   await expect(page.getByTestId("explainer-text")).toContainText("does not mean an idea is original");

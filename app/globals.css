@@ -325,6 +325,11 @@ footer[aria-label="Voice"] .ui-panel {
   :root { --material-thick: var(--surface-low); --material-blur: none; }
 }
 /* More contrast: solid surfaces with defined edges. */
+/* Windows High Contrast drops the tints and inset shadows that mark a pressed toggle, so the layout toggle, legend
+   rows and chips looked unpressed (#472). Under forced colors a pressed control takes the system's selection colours. */
+@media (forced-colors: active) {
+  button[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
+}
 @media (prefers-contrast: more) {
   :root {
     --material-thick: var(--surface-low);
