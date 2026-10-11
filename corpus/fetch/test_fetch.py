@@ -359,3 +359,43 @@ def test_gallery_only_progress_does_not_let_a_full_run_skip_projects(tmp_path, m
     assert fetched == []  # gallery-only rerun skips it
     run.fetch(type("A", (), {"limit": 0, "deadline": None}), _paged(fetched))
     assert [u for u in fetched if "/software/" in u] == ["https://devpost.com/software/p1", "https://devpost.com/software/p2"]
+
+
+def test_a_page_cut_short_by_the_limit_is_not_skipped_by_a_later_page(tmp_path, monkeypatch):
+    """Codex: --limit truncates page 1 (its first project is rejected, so the run goes on); page 2 then finishes.
+    A rerun must start at page 1 again, not page 3."""
+    _sources(tmp_path, monkeypatch)
+    pages = {1: ["bad", "b"], 2: ["c"]}
+
+    class Fake:
+        def get(self, url):
+            if "/software/" in url:
+                return "<html></html>" if url.endswith("/bad") else PROJECT
+            n = int(url.rsplit("page=", 1)[1])
+            return "".join(f'<a href="https://devpost.com/software/{s}">x</a>' for s in pages.get(n, []))
+
+    run.fetch(type("A", (), {"limit": 1, "deadline": None}), Fake())
+    assert not (tmp_path / "progress.jsonl").read_text()
+
+
+def test_an_empty_reply_after_a_full_page_does_not_complete_the_source(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+    fetched = []
+
+    class Fake:
+        def __init__(self, empty):
+            self.empty = empty
+
+        def get(self, url):
+            fetched.append(url)
+            if "/software/" in url:
+                return PROJECT
+            return "" if self.empty or not url.endswith("page=1") else GALLERY
+
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake(empty=True))  # a transient empty first page
+    fetched.clear()
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake(empty=False))
+    assert fetched[0].endswith("page=1")  # asked again
+    fetched.clear()
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake(empty=False))
+    assert fetched == ["https://a.devpost.com/project-gallery?page=2"]  # a full page then empty: one request, not complete

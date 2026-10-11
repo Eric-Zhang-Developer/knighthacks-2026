@@ -36,6 +36,7 @@ DATA = HERE.parent / "data"
 SOURCES = HERE / "sources.jsonl"  # committed: which galleries we read, and why
 OUT, REJECTED, SUMMARIES = DATA / "projects.jsonl", DATA / "rejected.jsonl", DATA / "summaries.jsonl"
 PROGRESS = DATA / "progress.jsonl"  # one line per gallery page fully handled: where a rerun picks up
+GALLERY_PAGE = 24  # projects per full gallery page (testdata/gallery.html)
 # Standard crawler UA format (like Googlebot's); Devpost's CDN refuses urllib's default bare headers.
 UA = "Mozilla/5.0 (compatible; uncharted-knighthacks-research; +https://github.com/Eric-Zhang-Developer/knighthacks-2026)"
 HEADERS = {"User-Agent": UA, "Accept": "*/*"}
@@ -211,13 +212,17 @@ def fetch(args, f: Fetcher) -> int:
                 if src["url"] in complete:
                     continue
                 prev: list[str] = []
+                cut_short = False  # once a page is left unfinished, later pages aren't recorded: progress stays contiguous
                 for page in range(walked.get(src["url"], 0) + 1, 10_000):  # ended galleries don't reorder
                     if out_of_time() or at_limit():
                         raise StopIteration
                     html = f.get(f"{src['gallery']}?page={page}")
                     urls = parse_gallery(html, src["gallery"])
                     if not urls or urls == prev:  # past the last page, or pagination repeating
-                        handled(src, page - 1, last=True)
+                        # Complete only after a short page: an empty reply after a full one may be transient, so a
+                        # rerun asks again (one request) rather than never again.
+                        if prev and len(prev) < GALLERY_PAGE and not cut_short:
+                            handled(src, page - 1, last=True)
                         break
                     prev = urls
                     for card in parse_gallery_cards(html, src["gallery"]):
@@ -229,7 +234,7 @@ def fetch(args, f: Fetcher) -> int:
                             summarized += 1
                     summ.flush()
                     if gallery_only:
-                        if not at_limit():  # a limit can cut a page's cards short; then it's redone next run
+                        if not at_limit() and not cut_short:  # a limit can cut a page's cards short; then it's redone
                             handled(src, page)
                         continue
                     todo = []
@@ -262,7 +267,8 @@ def fetch(args, f: Fetcher) -> int:
                                 continue
                         rejected[reason] = rejected.get(reason, 0) + 1
                         rej.write(json.dumps({"url": url, "reason": reason, "at": now()}) + "\n")
-                    if whole_page:  # every project on it written or rejected; a Stop above skips this
+                    cut_short = cut_short or not whole_page
+                    if not cut_short:  # every project on it written or rejected; a Stop above skips this
                         handled(src, page)
     except StopIteration:
         stop_reason = "deadline" if out_of_time() else "limit"
