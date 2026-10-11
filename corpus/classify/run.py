@@ -1,6 +1,6 @@
 """Classify the current corpus with Gemini, without modifying the database.
 
-python corpus/classify/run.py [--from-jsonl records.jsonl] [--labels DIR] [--provider gemini|agent --answers DIR]
+python corpus/classify/run.py [--from-jsonl records.jsonl] [--labels DIR] [--provider gemini|agent|jev --answers DIR]
 Environment: DATABASE_URL, GEMINI_API_KEY, GEMINI_MODEL (Gemini only). See README.md.
 """
 import argparse
@@ -358,6 +358,8 @@ def classify_batches(kind, items, call, model, cache_dir, batch_size=25, concurr
 
 def label(records, call, model, cache_dir=None, batch_size=25, concurrency=4, labels=None):
     """Classify the records and prize strings the label store doesn't already hold; returns per-record values."""
+    if hasattr(call, "label"):
+        return call.label(records, labels)
     labels = labels or Labels()
     distinct = sorted({text for row in records for _, text in prizes_for(row)})
     todo = [row for row in records if labels.project(row) is None]
@@ -443,7 +445,7 @@ def main(argv=None):
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--check", action="store_true", help="validate saved output against source rows; no Gemini calls")
     parser.add_argument("--labels", type=Path, help="label store directory: rows already labelled there aren't sent again")
-    parser.add_argument("--provider", choices=["gemini", "agent"], default="gemini")
+    parser.add_argument("--provider", choices=["gemini", "agent", "jev"], default="gemini")
     parser.add_argument("--answers", type=Path, help="agent provider: prompts/ written here, answers/ read from here")
     parser.add_argument("--agent-model", default="claude-sonnet-5-5")
     parser.add_argument("--labels-only", action="store_true", help="label --from-jsonl rows into --labels; no stars, no output file")
@@ -465,6 +467,9 @@ def main(argv=None):
         if not args.answers:
             raise ValueError("--provider agent needs --answers")
         client = AgentAnswers(args.answers, args.agent_model)
+    elif args.provider == "jev":
+        from jev import Jev
+        client = Jev(os.environ.get("OPENROUTER_API_KEY", ""), args.cache, args.concurrency)
     else:
         client = Gemini(os.environ.get("GEMINI_MODEL", ""), os.environ.get("GEMINI_API_KEY", ""))
     if args.labels_only:
@@ -474,7 +479,7 @@ def main(argv=None):
         _, _, failed_projects, failed_prizes, _ = label(records, client, client.model, None, args.batch_size, args.concurrency, labels)
         print(canonical({"records": len(records), "labelled": sum(1 for row in records if labels.project(row)),
             "pending_projects": len(failed_projects), "pending_prizes": len(failed_prizes), "answers_used": client.calls}))
-        return 0
+        return 1 if args.provider == "jev" and (failed_projects or failed_prizes) else 0
     stars = json.loads(args.stars.read_text(encoding="utf-8"))
     records = read_records(stars, args.from_jsonl)
     if args.check:
@@ -484,7 +489,7 @@ def main(argv=None):
     write_json(args.cache / "source.json", records)
     print(f"classify: loaded {len(records)} records, version {stars['corpus_version']}", flush=True)
     artifact, audit = build(records, stars, client, client.model, args.cache, args.batch_size, args.concurrency, labels)
-    if args.provider == "agent" and (audit["failed_project_ids"] or audit["failed_prize_texts"]):
+    if args.provider in ("agent", "jev") and (audit["failed_project_ids"] or audit["failed_prize_texts"]):
         # An unanswered batch would publish as insufficient_text: say so and withhold the file instead.
         print(f"classify: {len(audit['failed_project_ids'])} projects, {len(audit['failed_prize_texts'])} prizes still pending; file withheld")
         return 1
