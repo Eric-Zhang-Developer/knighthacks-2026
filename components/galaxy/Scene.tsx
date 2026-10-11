@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { useAppState } from "@/lib/store";
 import { placeIdea } from "./layouts";
 import { easeInOut, Morph, MORPH_GLSL } from "./morph";
-import { pickNearest, STYLE, styleFor } from "./stars";
+import { nearestNames, pickNearest, shortTitle, STYLE, styleFor } from "./stars";
 import { FOV, type Orbit, type Vec3 } from "./view";
 
 const PICK_RADIUS = 10; // CSS px
@@ -46,10 +46,14 @@ const starUniforms = () => ({
   uMorph: { value: 1 },
   uTime: { value: 0 },
   uTwinkle: { value: 1 },
+  uSharp: { value: 0 },
 });
 
-// The stars: a soft sprite per star with a white-hot core, a halo in its category colour, per-star brightness, a slow
-// twinkle and depth cueing. A prize winner's core sits inside a ring, so the mark is a shape, not colour alone.
+// The stars. Over the whole map (uSharp 0): a soft sprite per star with a white-hot core, a halo in its category
+// colour, per-star brightness, a slow twinkle and depth cueing. Zoomed in (uSharp 1): a solid disc a few pixels wide
+// with a lighter centre, every star equally bright, so a dense core reads as separate projects instead of one smear;
+// stars spread apart as the camera closes in rather than swelling. A prize winner's disc sits inside a thin ring of a
+// fixed width, so the mark is a shape, not colour alone.
 const starMaterial = () =>
   new THREE.ShaderMaterial({
     ...ADD,
@@ -62,9 +66,12 @@ const starMaterial = () =>
       attribute float ring;
       uniform float uTime;
       uniform float uTwinkle;
+      uniform float uSharp;
       varying vec3 vColor;
       varying float vAlpha;
       varying float vRing;
+      varying float vHalf; // half the sprite, device px
+      varying float vDisc; // the sharp disc's radius, device px
       void main() {
         vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
         float depth = -mv.z;
@@ -73,31 +80,47 @@ const starMaterial = () =>
         float s2 = fract(seed * 91.7);
         float bright = 0.4 + 0.6 * pow(s2, 2.2);
         float tw = 1.0 - uTwinkle * 0.5 * smoothstep(0.75, 1.0, sin(uTime * (0.5 + 1.8 * fract(seed * 7.31)) + seed * 60.0));
-        vAlpha = mix(bright * tw, 1.0, marked) * mix(1.3, 0.35, far);
+        float even = max(marked, ring); // marked stars and prize winners are always at full brightness
+        float soft = mix(bright * tw, 1.0, even) * mix(1.3, 0.35, far);
+        vAlpha = mix(soft, mix(0.9, 1.0, even) * mix(1.0, 0.45, far), uSharp);
         vColor = starColor;
         vRing = ring;
         float jitter = mix(0.7 + 0.7 * s2, 1.0, marked);
-        gl_PointSize = min(size * jitter * 2.6 * uPixelRatio * atten(depth) * mix(1.15, 0.75, far), 90.0 * uPixelRatio);
+        float softPx = min(size * jitter * 2.6 * uPixelRatio * atten(depth) * mix(1.15, 0.75, far), 90.0 * uPixelRatio);
+        vDisc = (size * 0.55 + 1.6) * uPixelRatio * mix(1.0, 0.75, far);
+        float sharpPx = 2.0 * (vDisc + (ring > 0.5 ? 4.0 : 1.5) * uPixelRatio);
+        gl_PointSize = mix(softPx, sharpPx, uSharp);
+        vHalf = gl_PointSize * 0.5;
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
+      uniform float uPixelRatio;
+      uniform float uSharp;
       varying vec3 vColor;
       varying float vAlpha;
       varying float vRing;
+      varying float vHalf;
+      varying float vDisc;
       void main() {
         float d = length(gl_PointCoord - 0.5) * 2.0;
         if (d > 1.0) discard;
+        float lum = max(vColor.r, max(vColor.g, vColor.b));
         float core = exp(-d * d * 30.0);
         float halo = exp(-d * d * 6.0) * 0.22;
         float band = vRing * (smoothstep(0.56, 0.62, d) - smoothstep(0.68, 0.74, d)) * 0.4;
-        float lum = max(vColor.r, max(vColor.g, vColor.b));
-        vec3 col = vColor * (core + halo + band) + vec3(core * 0.6 * lum);
-        gl_FragColor = vec4(col * vAlpha, 0.0);
+        vec3 soft = vColor * (core + halo + band) + vec3(core * 0.6 * lum);
+        // Sharp: measured in device pixels, so the edge and the ring stay one pixel crisp at any size.
+        float px = d * vHalf;
+        float disc = 1.0 - smoothstep(vDisc - 0.8, vDisc + 0.8, px);
+        float centre = exp(-px * px / (vDisc * vDisc) * 2.5);
+        float line = vRing * (1.0 - smoothstep(0.5 * uPixelRatio, 1.1 * uPixelRatio, abs(px - vDisc - 2.6 * uPixelRatio)));
+        vec3 sharp = vColor * (disc * 0.85 + line * 0.9) + vec3(disc * centre * 0.35 * lum);
+        gl_FragColor = vec4(mix(soft, sharp, uSharp) * vAlpha, 0.0);
       }`,
   });
 
 // The nebula: every star again, large, faint and additive under the points, so each cloud glows in its own hue and
-// dense regions glow brighter. It flies with the stars.
+// dense regions glow brighter. It flies with the stars, and fades out as the stars sharpen.
 const glowMaterial = () =>
   new THREE.ShaderMaterial({
     ...ADD,
@@ -107,13 +130,14 @@ const glowMaterial = () =>
       ${DEPTH_GLSL}
       attribute vec3 starColor;
       attribute float size;
+      uniform float uSharp;
       varying vec3 vColor;
       void main() {
         vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
         float depth = -mv.z;
-        vColor = starColor * mix(1.0, 0.35, farness(depth));
+        vColor = starColor * mix(1.0, 0.35, farness(depth)) * (1.0 - uSharp);
         // ponytail: one big quad per star; at ~55k stars this fill rate is the cost to watch (shrink the 32 first).
-        gl_PointSize = size > 0.0 ? min(32.0 * uPixelRatio * atten(depth), 160.0 * uPixelRatio) : 0.0;
+        gl_PointSize = size > 0.0 && uSharp < 0.99 ? min(32.0 * uPixelRatio * atten(depth), 160.0 * uPixelRatio) : 0.0;
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
@@ -157,8 +181,9 @@ const spriteMaterial = () =>
 
 // HDR: the scene renders into a half-float target, then one full-screen pass adds a glow from the target's blurred
 // mip levels (a bloom faked in the shader) and tone-maps by each pixel's brightest channel, so a dense cloud
-// saturates into its own hue instead of clipping to white.
-function Composite() {
+// saturates into its own hue instead of clipping to white. Zoomed in, the bloom and the bleach fade, so sharp stars
+// stay sharp.
+function Composite({ view }: { view: Orbit }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
@@ -173,7 +198,7 @@ function Composite() {
       depthBuffer: false,
     });
     const mat = new THREE.ShaderMaterial({
-      uniforms: { tScene: { value: rt.texture }, uExposure: { value: 0.95 }, uBloom: { value: 0.45 } },
+      uniforms: { tScene: { value: rt.texture }, uExposure: { value: 0.95 }, uBloom: { value: 0.45 }, uSharp: { value: 0 } },
       depthTest: false,
       depthWrite: false,
       vertexShader: /* glsl */ `
@@ -183,16 +208,17 @@ function Composite() {
         uniform sampler2D tScene;
         uniform float uExposure;
         uniform float uBloom;
+        uniform float uSharp;
         varying vec2 vUv;
         void main() {
           vec3 base = texture2D(tScene, vUv).rgb;
           vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.6;
-          vec3 c = (base + bloom * uBloom) * uExposure;
+          vec3 c = (base + bloom * uBloom * (1.0 - 0.85 * uSharp)) * uExposure;
           float l = max(max(c.r, c.g), c.b);
           float m = 1.0 - exp(-l);
           vec3 hue = c / max(l, 1e-4);
           // Hue kept as it brightens; only the very brightest cores bleach a little toward white.
-          vec3 col = mix(hue * m, vec3(m), smoothstep(2.0, 8.0, l) * 0.45);
+          vec3 col = mix(hue * m, vec3(m), smoothstep(2.0, 8.0, l) * 0.45 * (1.0 - uSharp));
           gl_FragColor = vec4(col, clamp(m, 0.0, 1.0)); // premultiplied: alpha 0 made a real GPU compositor drop every star
         }`,
     });
@@ -208,6 +234,7 @@ function Composite() {
   useEffect(() => () => (post.rt.dispose(), post.mat.dispose(), post.tri.dispose()), [post]);
   // Priority 1: this frame callback does the rendering instead of r3f's default render.
   useFrame(() => {
+    post.mat.uniforms.uSharp.value = view.sharp;
     gl.setRenderTarget(post.rt);
     gl.setClearColor(0x000000, 0);
     gl.clear();
@@ -293,6 +320,7 @@ function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: numb
       u.uMorph.value = morph.t;
       u.uTime.value = state.clock.elapsedTime;
       u.uTwinkle.value = view.reduced ? 0 : 1;
+      u.uSharp.value = view.sharp;
     }
   });
 
@@ -711,6 +739,70 @@ function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; laye
   return null;
 }
 
+// Zoomed in, the stars nearest the map's centre are named: a pool of buttons in `layer`, filled and placed straight
+// from here. Which stars are named updates a few times a second so the names don't flicker while the camera moves;
+// where they sit follows the stars every frame. None over the whole map, during a layout flight, or while a project
+// is selected (its panel names it).
+const NAME_REFRESH = 0.25; // s
+function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; layer: HTMLDivElement | null; clouds: HTMLDivElement | null; morph: Morph; view: Orbit }) {
+  const { ids, titles, visible, layer, clouds, morph, view } = props;
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  const state = useRef({ chosen: [] as number[], at: -1 });
+  useFrame(({ clock }) => {
+    if (!layer) return;
+    const now = clock.elapsedTime;
+    const show = view.sharp > 0.5 && morph.t >= 1 && !view.held;
+    const toScreen = (i: number) => {
+      v.set(morph.current[3 * i], morph.current[3 * i + 1], morph.current[3 * i + 2]).applyMatrix4(camera.matrixWorldInverse);
+      const depth = -v.z;
+      v.applyMatrix4(camera.projectionMatrix);
+      return { x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height, depth };
+    };
+    const onMap = (p: { x: number; y: number; depth: number }) => p.depth > 0.01 && p.x > 8 && p.y > 8 && p.x < size.width - 8 && p.y < size.height - 8;
+    if (!show) state.current.chosen = [];
+    else if (now - state.current.at >= NAME_REFRESH) {
+      state.current.at = now;
+      const screen = new Float32Array(titles.length * 3).fill(NaN);
+      for (let i = 0; i < titles.length; i++) {
+        if (visible[i] !== 1) continue;
+        const p = toScreen(i);
+        if (!onMap(p)) continue;
+        screen.set([p.x, p.y, Math.min(1, Math.max(0, (p.depth - view.dist) / 1.2 + 0.5))], 3 * i);
+      }
+      // The cloud names showing now are taken space.
+      const origin = layer.getBoundingClientRect();
+      const taken = [...(clouds?.querySelectorAll("button") ?? [])].flatMap((b) => {
+        if (getComputedStyle(b.parentElement!).visibility !== "visible") return [];
+        const r = b.getBoundingClientRect();
+        return [{ x0: r.left - origin.left, x1: r.right - origin.left, y0: r.top - origin.top, y1: r.bottom - origin.top }];
+      });
+      state.current.chosen = nearestNames(screen, titles, size.width / 2, size.height / 2, taken);
+    }
+    const els = layer.children;
+    for (let k = 0; k < els.length; k++) {
+      const el = els[k] as HTMLButtonElement;
+      const i = state.current.chosen[k];
+      const p = i === undefined ? null : toScreen(i);
+      if (i === undefined || !p || !onMap(p)) {
+        el.removeAttribute("data-on");
+        continue;
+      }
+      if (el.dataset.index !== String(i)) {
+        el.dataset.index = String(i);
+        el.dataset.id = ids[i];
+        el.textContent = shortTitle(titles[i]);
+        el.title = titles[i];
+        el.setAttribute("aria-label", `Select ${titles[i]}`);
+      }
+      el.setAttribute("data-on", "");
+      el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
+    }
+  });
+  return null;
+}
+
 export default function Scene(props: {
   ids: string[];
   positions: Float32Array;
@@ -726,8 +818,10 @@ export default function Scene(props: {
   idea?: Idea | null;
   regions?: Region[];
   labelLayer?: HTMLDivElement | null;
+  titles?: string[];
+  nameLayer?: HTMLDivElement | null;
 }) {
-  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer } = props;
+  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer } = props;
   const selectedId = useAppState((s) => s.selectedProjectId);
   const highlightedIds = useAppState((s) => s.highlightedIds);
   const ideaStars = useAppState((s) => s.ideaStars);
@@ -767,13 +861,14 @@ export default function Scene(props: {
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.005, far: 100, position: [0, 0, 2] }} aria-hidden>
       <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} />
-      <Composite />
+      <Composite view={view} />
       <Sky view={view} />
       <Stars positions={positions} morph={morph} styleAt={corpusStyle} view={view} />
       {ideaStars.length > 0 && <Ideas ideas={ideaStars} active={activeIdea} idea={idea ?? null} morph={morph} view={view} />}
       {idea && idea.lines && idea.neighbours.length > 0 && <Tentacles idea={idea} morph={morph} view={view} />}
       {ideaPoint && <Pulse at={ideaPoint} colour={IDEA_RGB} view={view} />}
       <Pulse at={selectedPoint} colour={SELECTED_RGB} view={view} />
+      {titles && <Names ids={ids} titles={titles} visible={visible} layer={nameLayer ?? null} clouds={labelLayer ?? null} morph={morph} view={view} />}
       {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} idea={idea ?? null} morph={morph} view={view} />}
     </Canvas>
   );

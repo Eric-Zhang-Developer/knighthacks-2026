@@ -123,6 +123,35 @@
 }
 .region small { font: 400 var(--text-xs)/1 var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
 
+/* Zoomed in, the nearest projects' names: small and dim beside their star, so they label without crowding it. */
+/* clip, not hidden: a hidden overflow can still be scrolled (focusing a name would shift every name off its star). */
+.names { position: absolute; inset: 0; pointer-events: none; overflow: clip; }
+.names > button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  margin: -0.6em 0 0 9px; /* beside the star, centred on it */
+  padding: 1px var(--space-1);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: rgb(4 6 11 / 0.5);
+  white-space: nowrap;
+  font: 400 var(--text-xs)/1.2 var(--font-mono);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-shadow: 0 0 6px var(--bg), 0 0 2px var(--bg);
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 200ms, visibility 0s linear 200ms; /* fade out, then stop taking clicks */
+}
+.names > button[data-on] { visibility: visible; opacity: 1; transition: opacity 200ms; }
+.names > button:hover { color: var(--paper); }
+.names > button:focus-visible { outline: 2px solid var(--idea); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .names > button, .names > button[data-on] { transition: none; } }
+
 /* By category / by meaning: a segmented control floating at the top of the map, glass over the sky. */
 .layouts {
   position: absolute;
