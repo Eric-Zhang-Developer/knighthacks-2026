@@ -26,7 +26,7 @@ export default function Home() {
     <div className={styles.shell}>
       <div className={styles.top}>
         <h1 className={styles.brand}>
-          <span className={styles.wordmark}>Uncharted</span>
+          <span className={styles.wordmark}>Golden Egg</span>
           <span className={styles.tagline}>Find your next idea.</span>
         </h1>
         <header className={styles.search} aria-label="Search">

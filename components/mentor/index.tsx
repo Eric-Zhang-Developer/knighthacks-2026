@@ -254,7 +254,7 @@ export default function Mentor() {
     <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNews={setNews} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
     {notesMount && createPortal(<section className={styles.panel} hidden={!open} aria-label="Brainstorm conversation" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>UNCHARTED · LIVE VOICE</span><h2>{activeAudio ? voiceState === "Connecting" ? "Connecting your call…" : "We’re thinking together." : "Let’s think it through."}</h2></div>
+        <div><span className={styles.eyebrow}>GOLDEN EGG · LIVE VOICE</span><h2>{activeAudio ? voiceState === "Connecting" ? "Connecting your call…" : "We’re thinking together." : "Let’s think it through."}</h2></div>
         <button ref={minimize} type="button" className={styles.close} aria-label="Minimize conversation" onClick={close}>×</button>
       </header>
       <div className={styles.scroll} ref={log}>
@@ -262,7 +262,7 @@ export default function Mentor() {
         <p className={styles.fine}>Hands-free controls: “show the map”, “show my ideas”, “save idea two”, or “end the call”. Saves ask for a separate confirmation.</p>
         {actionNotice && <p role="status" className={styles.actionNotice}>{actionNotice}</p>}
         <details className={styles.transcript} open={typing}><summary>Conversation transcript{messages.length > 0 ? ` (${messages.length})` : ""}</summary><div role="log" aria-label="Conversation transcript" aria-live="polite">
-          {messages.map((item, index) => <div key={index} className={item.role === "user" ? styles.user : styles.reply}><span>{item.role === "user" ? "You" : "Uncharted"}</span><p>{item.text}</p></div>)}
+          {messages.map((item, index) => <div key={index} className={item.role === "user" ? styles.user : styles.reply}><span>{item.role === "user" ? "You" : "Golden Egg"}</span><p>{item.text}</p></div>)}
         </div></details>
         {ideasMount && candidates.length > 0 && createPortal(<section aria-label="Candidate ideas" className={styles.candidates}><h3>Your possibilities</h3><p className={styles.fine}>Compare directions. Only the idea you proceed with is saved. Drafts stay in this tab.</p><button type="button" disabled={busy || voiceState === "Connecting"} onClick={anotherDirection}>Explore another direction</button>
           {!open && actionNotice && <p role="status" className={styles.actionNotice}>{actionNotice}</p>}
@@ -282,7 +282,7 @@ export default function Mentor() {
       </div>
       <button type="button" className={styles.typeToggle} aria-expanded={typing} onClick={() => setTyping(!typing)}>{typing ? "Hide typing" : "Prefer to type?"}</button>
       {typing && <form className={styles.compose} onSubmit={(event) => { event.preventDefault(); void send(); }}>
-        <textarea ref={textarea} aria-label="Message Uncharted" placeholder="What are you thinking about?" maxLength={8000} rows={2} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
+        <textarea ref={textarea} aria-label="Message Golden Egg" placeholder="What are you thinking about?" maxLength={8000} rows={2} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send message">↑</button>
       </form>}
       <div className={styles.status} role="status">{voiceState}{activeAudio && <button type="button" onClick={() => live.current?.end()}>End conversation</button>}</div>

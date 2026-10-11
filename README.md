@@ -1,6 +1,6 @@
 # knighthacks-2026
 
-Uncharted: a voice-guided galaxy of hackathon projects that helps teammates turn an idea into an evidence-backed
+Golden Egg: a voice-guided galaxy of hackathon projects that helps teammates turn an idea into an evidence-backed
 decision about what to build. Built at Knight Hacks IX.
 
 ## Where the plan lives

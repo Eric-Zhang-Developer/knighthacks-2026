@@ -59,7 +59,7 @@ test("the chosen version's event tracks: labelled claims, no scores, and a proof
   await track(page, "best-ai-hack").getByRole("textbox", { name: "Proof for Best AI Hack" }).fill(proof);
   await track(page, "best-ai-hack").getByRole("button", { name: "Save proof" }).click();
   await expect(track(page, "best-ai-hack")).toHaveAttribute("data-proof", "attached");
-  await expect(track(page, "best-ai-hack")).toContainText("Your proof (yours, not checked by Uncharted)");
+  await expect(track(page, "best-ai-hack")).toContainText("Your proof (yours, not checked by Golden Egg)");
   await expect(track(page, "best-ai-hack").getByRole("link", { name: proof })).toHaveAttribute("href", proof);
   await expect(overlay(page).locator('[data-proof="attached"]')).toHaveCount(1);
   await overlay(page).scrollIntoViewIfNeeded();

@@ -70,7 +70,7 @@ function Proof({
       {track.proof ? (
         <p>
           <span className={styles.meta}>
-            Your proof (yours, not checked by Uncharted):{" "}
+            Your proof (yours, not checked by Golden Egg):{" "}
           </span>
           {/^https?:\/\/\S+$/.test(track.proof) ? (
             <a href={track.proof} target="_blank" rel="noopener noreferrer">
