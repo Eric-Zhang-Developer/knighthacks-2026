@@ -116,3 +116,27 @@ def test_the_command_line_flag(tmp_path):
                            "--include-summary-only"], capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     assert '"summary_only_written": 23' in done.stdout and len(rows(out)) == 24
+
+
+def test_event_metadata_is_the_newest_cards_whatever_the_input_order(tmp_path):
+    url = next(c["url"] for c in cards(KH) if c["url"] != EMERGENT)
+    old = cards(KH, only={url})
+    new = cards({**KH, "dates": "Oct 24 - 27, 2025"}, at="2026-10-10T21:00:00+00:00", only={url})
+    outs = []
+    for order in ([old, new], [new, old]):
+        out = tmp_path / f"m{len(outs)}.jsonl"
+        merge([write(tmp_path / "p.jsonl", [full_record()])],
+              [write(tmp_path / f"s{len(outs)}{i}.jsonl", part) for i, part in enumerate(order)], out, True)
+        outs.append(out.read_bytes())
+    assert outs[0] == outs[1]
+    assert rows(tmp_path / "m0.jsonl")[url]["events"][0]["dates"] == "Oct 24 - 27, 2025"
+
+
+def test_every_card_is_validated_not_just_the_newest(tmp_path):
+    import pytest
+    url = next(c["url"] for c in cards(KH) if c["url"] != EMERGENT)
+    bad = cards(KH, only={url})[0] | {"title": "", "content_hash": "0" * 64}
+    good = cards(OTHER, at="2026-10-10T21:00:00+00:00", only={url})
+    with pytest.raises(ValueError, match="title"):
+        merge([write(tmp_path / "p.jsonl", [full_record()])], [write(tmp_path / "s.jsonl", [bad, *good])],
+              tmp_path / "m.jsonl", True)

@@ -73,12 +73,15 @@ def unique_observations(items):
 
 def summary_only_record(url, cards):
     """One record from every gallery card of a project we have no page for. The newest card supplies the text."""
-    newest = max(cards, key=lambda c: (timestamp(c["fetched_at"]), json.dumps(c, sort_keys=True)))
-    if not newest.get("title"):
-        raise ValueError("summary card requires a title")
-    text = f"{newest['title']}\n{newest.get('tagline') or ''}"
-    if newest.get("content_hash") != hashlib.sha256(text.encode()).hexdigest():
-        raise ValueError("summary content_hash does not match its text")
+    cards = sorted(cards, key=lambda c: (timestamp(c["fetched_at"]), json.dumps(c, sort_keys=True)))
+    for card in cards:  # every card, not just the newest: each one contributes its event and badge
+        if not card.get("title"):
+            raise ValueError("summary card requires a title")
+        text = f"{card['title']}\n{card.get('tagline') or ''}"
+        if card.get("content_hash") != hashlib.sha256(text.encode()).hexdigest():
+            raise ValueError("summary content_hash does not match its text")
+    newest = cards[-1]
+    # Oldest first, so union_events lets the newest card's name and dates win whatever the input order.
     events = [{**{key: c["event"].get(key) for key in ("name", "url", "dates")}, "prizes": []}
               | ({"winner": True} if c["event"].get("winner") else {}) for c in cards]
     return {"id": newest["id"], "url": url, "title": newest["title"], "tagline": newest.get("tagline"),
