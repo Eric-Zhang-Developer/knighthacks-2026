@@ -14,7 +14,9 @@ const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64");
 const schema = z.object({ message: z.string() });
 const ok = { legibility: "full", transcript: "Build an accessible budgeting tool. Prize: $500.", uncertain: [] };
 const claudeSays = (o: unknown) => claude.mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(o) }] });
-const status = (n: number) => Object.assign(new Error("provider body with image bytes " + b64(PNG)), { status: n });
+const status = (n: number, message = "model does not support image input; provider body " + b64(PNG)) => Object.assign(new Error(message), { status: n });
+// The 400 a key that isn't scoped to a workspace gets (seen live): not about images.
+const WORKSPACE_400 = "This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -93,6 +95,10 @@ test("other provider failures stay PROVIDER_ERROR, and text-only 400s are not im
   claude.mockRejectedValue(status(400));
   gemini.mockRejectedValue(status(400));
   await expect(generate({ prompt: "text only", schema })).rejects.toMatchObject({ code: "PROVIDER_ERROR" });
+  // A configuration 400 on an image request is not a capability failure.
+  claude.mockRejectedValue(status(400, WORKSPACE_400));
+  gemini.mockRejectedValue(status(400, "API key not valid. Please pass a valid API key."));
+  await expect(transcribeImage({ mediaType: "image/png", data: PNG })).rejects.toMatchObject({ code: "PROVIDER_ERROR" });
 });
 
 test("an unreadable image is an actionable failure; a partial read comes back marked partial with its spans", async () => {

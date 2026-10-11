@@ -46,9 +46,14 @@ export function geminiKeys(): string[] {
 }
 
 /** Configured providers, preferred first: Claude unless AI_PROVIDER=gemini; the other is the fallback. */
-// With an image, a 400 means this model can't take it: a capability failure, never a quiet text-only answer.
-const failure = (image: AiImage | undefined, error: unknown) =>
-  new AiError(image && (error as { status?: number } | null)?.status === 400 ? "IMAGE_UNSUPPORTED" : "PROVIDER_ERROR");
+// A 400 that names images (or input modality / media type) on an image request means this model can't take it: a
+// capability failure, never a quiet text-only answer. Any other 400 (a missing workspace header, a bad key) is an
+// ordinary provider error. The message is only tested, never kept.
+const failure = (image: AiImage | undefined, error: unknown) => {
+  const e = error as { status?: number; message?: unknown } | null;
+  const aboutImages = e?.status === 400 && /image|modalit|media.?type|mime/i.test(String(e.message ?? ""));
+  return new AiError(image && aboutImages ? "IMAGE_UNSUPPORTED" : "PROVIDER_ERROR");
+};
 
 function providers(text: string, image: AiImage | undefined, schema: z.ZodType, responseJsonSchema: unknown): Call[] {
   const base64 = image && Buffer.from(image.data).toString("base64");
