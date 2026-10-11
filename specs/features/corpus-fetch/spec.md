@@ -21,9 +21,11 @@ assignee: ""
   `content_hash`. A field the page doesn't have stays null; never fill one in.
 - Reject a record with no URL, title or description; count rejections by reason.
 - One project in several events is one record with several `events`.
-- At most 2 requests per second (`--rps`; raised from 1 on 2026-10-10, person's call: Devpost publishes no limit and
-  robots.txt sets no crawl delay). The first 429 waits `Retry-After` (else 60 s, at most 300 s) and drops to 1 per
-  second for the rest of the run; a second 429 or any 403 stops the run. Stop a source on a repeated page. One retry
+- At most `--rps` requests per second: default 2, ceiling 5 (raised from 1, then 2, on 2026-10-10, person's call:
+  Devpost publishes no limit and robots.txt sets no crawl delay). `--workers` (1–5, default 1) keeps that many project
+  pages in flight, because one page takes ~1 s and a single request in flight caps the rate at ~1/s; pacing and the
+  backoff are shared by every worker, and records are written in gallery order. The first 429 waits `Retry-After` (else 60 s, at most 300 s) and drops to 1 per
+  second for the rest of the run; a second 429 (one sent after the backoff began) or any 403 stops the run. Stop a source on a repeated page. One retry
   per request.
 - Every gallery page's cards go to `corpus/data/summaries.jsonl` at no extra request: one line per project per event
   with `id`, `url`, `title`, `tagline`, `event` (name, URL, dates, `winner` badge), `detail: "summary"`, `source`,

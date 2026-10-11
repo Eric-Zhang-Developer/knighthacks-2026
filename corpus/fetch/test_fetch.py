@@ -1,6 +1,8 @@
 """Parser, dedupe and rejection tests against real Devpost pages saved in testdata/ (no network)."""
 
 import json
+import threading
+import time
 import sys
 from pathlib import Path
 
@@ -199,7 +201,7 @@ def test_second_429_or_any_403_stops_the_run():
 
 def test_rps_above_the_ceiling_is_refused():
     with pytest.raises(SystemExit):
-        run.main(["fetch", "--rps", "3"])
+        run.main(["fetch", "--rps", "6"])
 
 
 def test_release_still_parses_the_stop_line(tmp_path, monkeypatch, capsys):
@@ -257,3 +259,39 @@ def test_no_request_after_the_deadline_even_when_pacing_crosses_it():
     f.deadline = datetime.now(timezone.utc) - timedelta(seconds=1)
     with pytest.raises(run.Stop, match="deadline"):
         f.get(URL)
+
+
+def test_workers_overlap_project_pages_and_write_in_page_order(tmp_path, monkeypatch):
+    for name, path in (("DATA", tmp_path), ("OUT", tmp_path / "projects.jsonl"), ("REJECTED", tmp_path / "rejected.jsonl"),
+                       ("SUMMARIES", tmp_path / "summaries.jsonl")):
+        monkeypatch.setattr(run, name, path)
+    sources = tmp_path / "sources.jsonl"
+    sources.write_text(json.dumps({"name": "a", "url": "https://a.devpost.com", "dates": None,
+                                   "gallery": "https://a.devpost.com/project-gallery"}) + "\n")
+    monkeypatch.setattr(run, "SOURCES", sources)
+    urls = [f"https://devpost.com/software/p{i}" for i in range(5)]
+    page = "".join(f'<a href="{u}">x</a>' for u in urls)
+    lock, state = threading.Lock(), {"now": 0, "max": 0}
+
+    class Fake:
+        def get(self, url):
+            if "/software/" not in url:
+                return page if url.endswith("page=1") else ""
+            with lock:
+                state["now"] += 1
+                state["max"] = max(state["max"], state["now"])
+            time.sleep(0.05 if url != urls[0] else 0.15)  # the first page answers last
+            with lock:
+                state["now"] -= 1
+            return PROJECT
+
+    run.fetch(type("A", (), {"limit": 0, "deadline": None, "workers": 5}), Fake())
+    assert state["max"] > 1
+    assert [json.loads(line)["url"] for line in (tmp_path / "projects.jsonl").read_text().splitlines()] == urls
+
+
+def test_a_429_already_in_flight_when_the_backoff_began_is_not_a_second_429():
+    c = Clock()
+    f = run.Fetcher(sleep=c.sleep, clock=c, opener=opener([429, 200]))
+    f.backed_off, f.backoff_started = True, c.t + 1000  # another worker's 429 started the backoff after we sent
+    assert f.get(URL) == "ok"
