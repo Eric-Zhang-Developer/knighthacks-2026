@@ -359,7 +359,9 @@ export default function Galaxy() {
       </div>
       <Readout
         status={scanStatus}
-        active={Boolean(activeIdea && neighbors && neighbors.length > 0)}
+        // Only once this idea's own scan has started: the frame between a new idea arriving and its scan starting showed
+        // the previous scan's "done" over the new neighbours (#458).
+        active={Boolean(activeIdea && neighbors && neighbors.length > 0 && scanStatus.key === activeIdea)}
         rows={scanRows}
         searched={scan.state === "ready" ? scan.searched : stars.length}
         sourceUpdated={scan.state === "ready" && scan.neighbors.some((neighbor) => neighbor.corpusVersion !== scan.corpusVersion)}
