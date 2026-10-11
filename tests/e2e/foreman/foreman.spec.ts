@@ -93,11 +93,12 @@ test("the replay scrubs the graph back to the first PR and returns to the snapsh
   await expect(page.locator('svg a[data-state="done"]')).toHaveCount(done);
 });
 
-test("the tour leads the page; space plays it with chapters and flashes and ends on the snapshot's numbers", async ({ page }) => {
+test("the story leads the page, the tour follows it; space plays it with chapters and flashes and ends on the snapshot's numbers", async ({ page }) => {
   test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no replay");
   test.setTimeout(60_000);
   await page.goto("/foreman");
-  await expect(page.locator("section").first().getByRole("heading")).toHaveText(/watch it get built/i);
+  await expect(page.locator("section").first().getByRole("heading")).toHaveText(/how golden egg was built/i);
+  await expect(page.locator("section").nth(1).getByRole("heading")).toHaveText(/watch it get built/i);
   // At rest the counters are the snapshot's; the play must end on the same numbers.
   const counters = page.getByTestId("tour-counters");
   const atRest = await counters.innerText();
@@ -146,10 +147,10 @@ test("demo keys: a number jumps to its section, space starts the replay", async 
   // The handler attaches at hydration, which can land after goto resolves: retry the first press until it does.
   await expect(async () => {
     await page.keyboard.press("5");
-    await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport({ timeout: 1000 });
+    await expect(page.getByRole("heading", { name: /needs a person/i })).toBeInViewport({ timeout: 1000 });
   }).toPass();
   await page.keyboard.press("3");
-  await expect(page.getByRole("heading", { name: /needs a person/i })).toBeInViewport();
+  await expect(page.getByRole("heading", { name: /the crew/i })).toBeInViewport();
   await page.keyboard.press(" ");
   await expect(page.getByRole("button", { name: /pause/i })).toBeVisible();
   await expect(page.getByTestId("replay-info")).not.toContainText("SNAPSHOT");
@@ -157,7 +158,7 @@ test("demo keys: a number jumps to its section, space starts the replay", async 
   await expect(page.getByRole("button", { name: /resume/i })).toBeVisible();
 });
 
-test("story mode: → steps five beats in order, beat 2 opens the proof card, ← goes back, Escape leaves", async ({ page }) => {
+test("story mode: → steps five beats in order, beat 3 opens the proof card, ← goes back, Escape leaves", async ({ page }) => {
   test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no story");
   await page.emulateMedia({ reducedMotion: "reduce" }); // instant scrolls, as in the demo-keys test
   await page.goto("/foreman");
@@ -170,14 +171,14 @@ test("story mode: → steps five beats in order, beat 2 opens the proof card, �
     await expect(story).toBeVisible({ timeout: 1000 });
   }).toPass();
 
-  const order = ["graph", "graph", "how", "crew", "ask"];
+  const order = ["how", "graph", "graph", "crew", "ask"];
   let proof = "";
   for (const [i, id] of order.entries()) {
     if (i > 0) await page.keyboard.press(i % 2 ? "ArrowRight" : "PageDown"); // a clicker sends PageDown
     await expect(story).toContainText(`${i + 1} / 5`);
     await expect(outlined).toHaveCount(1);
     await expect(outlined).toHaveAttribute("aria-labelledby", id);
-    if (i === 1) {
+    if (i === 2) {
       // The proof card: the feature the caption names, open and on screen.
       proof = /(\S+):/.exec(await story.innerText())![1];
       await expect(card).toHaveAttribute("aria-label", `Feature ${proof}`);
@@ -189,11 +190,11 @@ test("story mode: → steps five beats in order, beat 2 opens the proof card, �
   await page.keyboard.press("ArrowRight"); // past the last beat: stays there
   await expect(story).toContainText("5 / 5");
 
-  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowLeft");
-  await expect(story).toContainText("2 / 5");
+  for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowLeft");
+  await expect(story).toContainText("3 / 5");
   await expect(card).toHaveAttribute("aria-label", `Feature ${proof}`);
   await page.keyboard.press("PageUp");
-  await expect(story).toContainText("1 / 5");
+  await expect(story).toContainText("2 / 5");
   await expect(card).toHaveCount(0);
 
   await page.keyboard.press("Escape");

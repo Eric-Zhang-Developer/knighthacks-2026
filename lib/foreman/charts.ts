@@ -1,4 +1,4 @@
-import { pace, type Board, type PR } from "./board";
+import { pace, type Board, type Feature, type PR } from "./board";
 import { parseTitle, workerOf } from "./parse";
 import { clock } from "./time";
 
@@ -145,6 +145,21 @@ export function atWork(crew: Timeline, t: number): number {
 }
 
 // Story mode (spec § Story mode): the presenter's beats after the tour. Every number comes from the snapshot.
+/**
+ * The one feature the page follows: the done feature most others depend on directly (ties: the first in graph order),
+ * with a merged feat PR so its card and the story thread can link the PR that built it. Story mode opens its card,
+ * and the story section traces it through the loop, so both tell the same story.
+ */
+export function proofFeature(features: Feature[]): { slug: string; n: number } | null {
+  const dependents = (slug: string) => features.filter((x) => x.deps.includes(slug)).length;
+  return features
+    .filter((f) => f.state === "done" && f.builtBy)
+    .reduce<{ slug: string; n: number } | null>((best, f) => {
+      const n = dependents(f.slug);
+      return !best || n > best.n ? { slug: f.slug, n } : best;
+    }, null);
+}
+
 export type Beat = { section: string; caption: string; open?: string };
 export function beats(board: Board, crew: Timeline | null): Beat[] {
   if (!board.prsKnown || !crew) return [];
@@ -152,17 +167,14 @@ export function beats(board: Board, crew: Timeline | null): Beat[] {
   const scheduled = features.filter((f) => f.milestone);
   const built = scheduled.filter((f) => f.state === "done").length;
   const since = stats.firstPrAt ? ` since ${clock(Date.parse(stats.firstPrAt))}` : "";
-  const dependents = (slug: string) => features.filter((x) => x.deps.includes(slug)).length;
-  // The proof click: the done feature most others waited on. reduce keeps the first on ties (graph order).
-  const proof = features
-    .filter((f) => f.state === "done" && f.builtBy) // the card links the PR that built it
-    .reduce<{ slug: string; n: number } | null>((best, f) => {
-      const n = dependents(f.slug);
-      return !best || n > best.n ? { slug: f.slug, n } : best;
-    }, null);
+  const proof = proofFeature(features);
   const asks = board.asks.filter((a) => a.kind !== "review").length;
   const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
   return [
+    {
+      section: "how",
+      caption: `The loop every agent runs, from AGENTS.md: ${n(stats.byKind.feature ?? 0, "feature PR")} merged through it${proof ? `, followed here for ${proof.slug}` : ""}. CI enforces the rules; plans wait for a person.`,
+    },
     {
       section: "graph",
       caption: `${built}/${scheduled.length} features built, ${n(stats.merged, "PR")} merged, by ${n(stats.crew, "agent worker")}${since}. Space replays it.`,
@@ -176,10 +188,6 @@ export function beats(board: Board, crew: Timeline | null): Beat[] {
           },
         ]
       : []),
-    {
-      section: "how",
-      caption: `The loop every agent runs, from AGENTS.md: ${n(stats.byKind.feature ?? 0, "feature PR")} merged through it. CI enforces the rules; plans wait for a person.`,
-    },
     { section: "crew", caption: `One row per agent worker, every PR on it: up to ${crew.peak.n} PRs open at once.` },
     { section: "ask", caption: `${n(asks, "thing")} the agents can't clear themselves: this is where people come in.` },
   ];

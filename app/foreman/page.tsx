@@ -39,13 +39,13 @@ const ASK_LABEL: Record<Ask["kind"], string> = {
   review: "review",
 };
 const KIND_COLOR: Record<string, string> = {
-  feature: "#8fef9a",
-  fix: "#ffb547",
-  plan: "#f4ecdc",
+  feature: "#7ddc9c",
+  fix: "#d6b37a",
+  plan: "#f5f1e6",
   contract: "#9ab8ff",
-  docs: "#6f6656",
-  revert: "#e2674a",
-  other: "#4a4338",
+  docs: "#5f5f68",
+  revert: "#ff9a5c",
+  other: "#3b3b43",
 };
 
 // Times baked into static HTML are absolute: "N min ago" would be wrong a minute after the build.
@@ -137,6 +137,13 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
       </p>
       {board.prsKnown && <Since replay={board.replay} features={board.features} now={now} />}
 
+      <section className={styles.section} aria-labelledby="how">
+        <h2 id="how" className={`${styles.h2} ${styles.stencil}`}>
+          How Golden Egg was built <small>the loop every agent runs, from AGENTS.md · one real feature traced through it</small>
+        </h2>
+        <Pipeline board={board} />
+      </section>
+
       <section className={styles.section} aria-labelledby="graph">
         <h2 id="graph" className={`${styles.h2} ${styles.stencil}`}>
           Watch it get built{" "}
@@ -146,6 +153,44 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
           <SitePlan features={board.features} replay={board.replay} repo={board.repo} start={board.start} now={now} crew={crew} chapters={chapters(board, crew)} />
         </div>
       </section>
+
+      <section className={styles.section} aria-labelledby="crew">
+        <h2 id="crew" className={`${styles.h2} ${styles.stencil}`}>
+          The crew{" "}
+          <small>
+            {crew ? `every PR on its worker's row · up to ${crew.peak.n} open at once · ` : ""}then what each has open at the snapshot · dot = CI
+          </small>
+        </h2>
+        {!board.prsKnown && <NeedsPrs what="The crew" />}
+        {crew && (
+          <div className={styles.panel} style={{ marginBottom: 14 }}>
+            <CrewTimeline data={crew} />
+          </div>
+        )}
+        <div className={styles.crew}>
+          {board.lanes.map((l) => (
+            <article key={l.worker} className={`${styles.panel} ${styles.lane}`} aria-label={`Worker ${l.worker}`}>
+              <div className={styles.laneHead}>
+                <span className={`${styles.laneName} ${styles.stencil}`}>{l.worker}</span>
+                <span className={styles.laneMerged}>{l.merged} merged</span>
+              </div>
+              {l.note && <div className={styles.laneNote}>{l.note}</div>}
+              {l.prs.map((p) => (
+                <a key={p.number} className={styles.lanePr} href={p.url} target="_blank" rel="noreferrer">
+                  <span className={styles.ci} data-ci={p.ci ?? "none"} title={`CI: ${p.ci ?? "none"}`} />
+                  <span>
+                    #{p.number} {p.title}
+                    {p.draft ? " · draft" : ""}
+                  </span>
+                  <span className={styles.prAge} title={`last push ${at(p.updatedAt)}`}>{hhmm(p.updatedAt)}</span>
+                </a>
+              ))}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <p className={styles.teamHead}>For the team · where the build stands and what needs a person</p>
 
       <section className={styles.section} aria-labelledby="ms">
         <h2 id="ms" className={`${styles.h2} ${styles.stencil}`}>
@@ -243,49 +288,6 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
               </div>
             )}
           </div>
-        </div>
-      </section>
-
-      <section className={styles.section} aria-labelledby="how">
-        <h2 id="how" className={`${styles.h2} ${styles.stencil}`}>
-          How it gets built <small>the loop every agent runs, from AGENTS.md · numbers at the snapshot</small>
-        </h2>
-        <Pipeline board={board} />
-      </section>
-
-      <section className={styles.section} aria-labelledby="crew">
-        <h2 id="crew" className={`${styles.h2} ${styles.stencil}`}>
-          The crew{" "}
-          <small>
-            {crew ? `every PR on its worker's row · up to ${crew.peak.n} open at once · ` : ""}then what each has open at the snapshot · dot = CI
-          </small>
-        </h2>
-        {!board.prsKnown && <NeedsPrs what="The crew" />}
-        {crew && (
-          <div className={styles.panel} style={{ marginBottom: 14 }}>
-            <CrewTimeline data={crew} />
-          </div>
-        )}
-        <div className={styles.crew}>
-          {board.lanes.map((l) => (
-            <article key={l.worker} className={`${styles.panel} ${styles.lane}`} aria-label={`Worker ${l.worker}`}>
-              <div className={styles.laneHead}>
-                <span className={`${styles.laneName} ${styles.stencil}`}>{l.worker}</span>
-                <span className={styles.laneMerged}>{l.merged} merged</span>
-              </div>
-              {l.note && <div className={styles.laneNote}>{l.note}</div>}
-              {l.prs.map((p) => (
-                <a key={p.number} className={styles.lanePr} href={p.url} target="_blank" rel="noreferrer">
-                  <span className={styles.ci} data-ci={p.ci ?? "none"} title={`CI: ${p.ci ?? "none"}`} />
-                  <span>
-                    #{p.number} {p.title}
-                    {p.draft ? " · draft" : ""}
-                  </span>
-                  <span className={styles.prAge} title={`last push ${at(p.updatedAt)}`}>{hhmm(p.updatedAt)}</span>
-                </a>
-              ))}
-            </article>
-          ))}
         </div>
       </section>
     </>

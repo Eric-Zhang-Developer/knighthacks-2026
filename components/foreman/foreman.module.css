@@ -934,10 +934,22 @@
   }
 }
 
+/* The divider between the judges' story and the team's working sections. */
+.teamHead {
+  margin-top: 48px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
 /* ---- pipeline ---- */
 .pipeline {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
   counter-reset: step;
 }
@@ -945,6 +957,11 @@
 @media (max-width: 1000px) {
   .pipeline {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  /* Wrapped rows: an arrow or a connector off the row's end would point at nothing. */
+  .step::after,
+  .step .thread::after {
+    content: none !important;
   }
 }
 
@@ -955,14 +972,65 @@
   flex-direction: column;
 }
 
-/* The arrow into the next step. */
-.step:not(:nth-child(5))::after {
-  content: "▶";
+/* The arrow into the next step: the last step is followed only by the guardrails line. */
+.step:not(:nth-last-child(2))::after {
+  content: "→";
   position: absolute;
-  right: -12px;
-  top: 22px;
-  font-size: 10px;
+  right: -13px;
+  top: 16px;
+  font-size: 16px;
+  line-height: 1;
   color: var(--amber);
+}
+
+/* The thread: one real feature through every step, in the observatory's red, the same at the foot of each step so
+   the six read as one line. */
+.threadHead {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.threadHead b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.threadHead i {
+  width: 28px;
+  border-top: 2px solid var(--accent);
+}
+
+.thread {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  margin: 14px -16px -16px;
+  padding: 10px 16px 12px;
+  border-top: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.thread a,
+.thread b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* The thread runs on through the gap between steps. */
+.step:not(:nth-last-child(2)) .thread::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -15px;
+  width: 15px;
+  border-top: 2px solid var(--accent);
 }
 
 .stepNo {

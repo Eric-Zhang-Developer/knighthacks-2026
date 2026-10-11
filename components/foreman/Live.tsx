@@ -18,7 +18,7 @@ function useNow(initial: number) {
 
 // Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay, and → / ← (or a
 // clicker's PageDown / PageUp) step through story mode's beats; Escape leaves it (spec § Story mode).
-const SECTIONS = ["graph", "ms", "ask", "how", "crew"]; // pitch order: the tour first (spec § The tour)
+const SECTIONS = ["how", "graph", "crew", "ms", "ask"]; // page order: the story, its evidence, then the team (spec § The story)
 const sectionOf = (id: string) => document.getElementById(id)?.closest("section");
 const jump = (id: string) =>
   sectionOf(id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
