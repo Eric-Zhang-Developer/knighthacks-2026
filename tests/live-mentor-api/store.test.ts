@@ -54,7 +54,7 @@ test("reservation winner runs once and concurrent identical pending redelivery d
   const query = queryAt();
   expect(query.sql).toContain("update mentor_sessions s");
   expect(query.sql).toContain("then s.calls else s.calls ||");
-  expect(query.sql).toContain("s.ended_at is null and s.expires_at > now()");
+  expect(query.sql).toContain("s.ended_at is null and s.expires_at > clock_timestamp()");
   expect(query.sql).toContain("jsonb_object_keys(s.calls)) < 40");
   expect(query.sql).toContain(") < 8");
 });
@@ -81,7 +81,7 @@ test("completion atomically publishes only matching active pending calls and rec
   execute.mockResolvedValue({ rows: [{ id: call.sessionId }] });
   await completeTool(identity, call, { sourceIds: ["1".repeat(40), "1".repeat(40), "invented"], projects: [] });
   const query = queryAt();
-  expect(query.sql).toContain("s.ended_at is null and s.expires_at > now()");
+  expect(query.sql).toContain("s.ended_at is null and s.expires_at > clock_timestamp()");
   expect(query.sql).toContain("->>'digest' ="); expect(query.sql).toContain("->>'status' = 'pending'");
   expect(query.params).toContain(digest); expect(query.params).toContain(JSON.stringify(["1".repeat(40)]));
   expect(query.sql).not.toMatch(/insert into ideas|idea_versions|snapshots/);
