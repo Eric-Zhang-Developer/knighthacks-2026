@@ -13,6 +13,8 @@ async function openEveryPanel(page: Page) {
   await similar.getByRole("button").first().click();
   await expect(page.getByRole("region", { name: "Project" }).getByRole("heading")).toHaveText(record.title);
   await page.getByText("What am I looking at?").click();
+  // The search panel folds away on a pick or an outside click (#457); a click on the box brings it back.
+  await page.getByRole("searchbox", { name: "Search projects" }).click();
   for (const p of PANELS) await expect(page.locator(`[data-panel="${p}"]`)).toBeVisible();
 }
 
