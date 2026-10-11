@@ -1,0 +1,39 @@
+.host { display: grid; justify-items: center; gap: 7px; font-family: var(--font-sans), system-ui, sans-serif; }
+.bubble { width: 64px; height: 64px; display: grid; place-items: center; color: #fff; border: 1px solid #b9ceef99; border-radius: 50%; background: linear-gradient(140deg, #546b8d, #131d31 75%); box-shadow: 0 0 0 7px #a5cfff0a, 0 10px 35px #0008; cursor: pointer; }
+.bubble:hover { border-color: #fff; background: #314761; }
+.caption { color: #d8e0ed; font-size: 11px; letter-spacing: .03em; white-space: nowrap; }
+.panel { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 24px)); max-height: min(700px, calc(100dvh - 150px)); display: flex; flex-direction: column; background: #0c1018f5; color: #edf1f8; border: 1px solid #b9c8e43b; border-radius: 26px; box-shadow: 0 28px 100px #000c; backdrop-filter: blur(24px); overflow: hidden; }
+.panel[hidden] { display: none; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 22px 22px 16px; border-bottom: 1px solid #ffffff12; }
+.eyebrow { font-size: 10px; letter-spacing: .18em; color: #b1c2da; }
+.header h2 { font-size: 21px; font-weight: 500; margin-top: 6px; }
+.panel button { min-height: 44px; padding: 10px 16px; border: 1px solid #657894; border-radius: 24px; color: #edf3ff; background: #202d42; font-size: 13px; cursor: pointer; }
+.panel button:disabled { opacity: .5; cursor: default; }
+.panel .close { border: 0; background: transparent; font-size: 25px; padding: 8px 12px; }
+.scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 18px 22px; }
+.intro { color: #c4cedd; line-height: 1.65; font-size: 14px; }
+.audio { margin: 16px 0 22px; }
+.audio > p { color: #b1bdce; font-size: 12px; margin-top: 10px; }
+.user, .reply { padding: 14px 16px; margin: 12px 0; border-radius: 18px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.user { background: #263953; margin-left: 24px; }
+.reply { background: #171e29; margin-right: 15px; }
+.user span, .reply span { display: block; font-size: 10px; color: #b9c9df; margin-bottom: 5px; }
+.proposal, .sources { margin: 18px 0; padding: 16px; border: 1px solid #40516a; border-radius: 18px; background: #101b2a; font-size: 13px; line-height: 1.6; }
+.proposal h3, .sources h3 { font-size: 17px; margin: 6px 0; }
+.proposal summary { cursor: pointer; padding: 12px 0; color: #c6d7f0; }
+.proposal label { display: grid; gap: 4px; margin-bottom: 10px; }
+.proposal textarea { width: 100%; color: #fff; background: #060b12; border: 1px solid #62728a; border-radius: 8px; padding: 8px; }
+.fine { color: #b5c2d5; font-size: 11px; margin-top: 10px; }
+.sources article { margin: 10px 0; }
+.sources article p { max-height: 100px; overflow: auto; }
+.error { padding: 14px; background: #342326; color: #ffe0dc; border-radius: 12px; font-size: 13px; }
+.next { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; }
+.compose { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #ffffff1c; flex: none; align-items: center; }
+.compose textarea { flex: 1; min-width: 0; resize: vertical; max-height: 120px; background: #080c13; color: #fff; border: 1px solid #54647b; border-radius: 16px; padding: 12px; font-size: 16px; }
+.compose textarea::placeholder { color: #a8b5ca; }
+.compose button { border-radius: 50%; width: 44px; padding: 0; font-size: 23px; }
+.status { color: #aab8cc; font-size: 11px; padding: 0 18px 12px; display: flex; align-items: center; justify-content: space-between; }
+.end { color: #fff; background: #25334a; border: 1px solid #a2b2c9; border-radius: 20px; padding: 10px; }
+@media (max-width: 720px) { .panel { max-height: calc(100dvh - 235px); bottom: 100px; } .header { padding: 16px; } .scroll { padding: 14px 16px; } .header h2 { font-size: 19px; } }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .panel { backdrop-filter: none; background: #0c1018; border-color: #b9c8e4; } }
+@media (prefers-reduced-motion: reduce) { .host *, .host *::after { transition: none !important; animation: none !important; } }

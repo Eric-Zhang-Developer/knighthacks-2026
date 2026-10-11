@@ -1,7 +1,7 @@
 ---
 name: A natural spoken mentor connected to the idea and evidence panels
 depends_on: [live-mentor-api, voice, idea-create-ui, idea-interview-ui, neighbor-evidence-ui, design-refresh]
-owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
+owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, components/search/index.tsx, components/search/search.module.css, components/workspace/index.tsx, components/workspace/workspace.module.css, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
 assignee: "codex-conversation-ui"
 ---
 

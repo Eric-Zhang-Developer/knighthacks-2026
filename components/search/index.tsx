@@ -100,16 +100,18 @@ export default function Search() {
           type="search"
           className={styles.input}
           aria-label="Search projects"
-          placeholder="Search projects by meaning or title"
+          placeholder="Search ideas and projects"
           maxLength={500}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Escape" && setQ("")}
         />
         {stars.length > 0 && (
-          <>
+          <details className={styles.filterMenu}>
+            <summary>Filters{filters.event || filters.year || classFilter.key || classFilter.prize ? " · active" : ""}</summary>
+            <div className={styles.filterSheet}>
             <label className={styles.filter}>
-              <span className={styles.hidden}>Event</span>
+              <span>Event</span>
               <select
                 value={filters.event}
                 onChange={(e) => {
@@ -124,7 +126,7 @@ export default function Search() {
               </select>
             </label>
             <label className={styles.filter}>
-              <span className={styles.hidden}>Created year</span>
+              <span>Created year</span>
               <select value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })}>
                 <option value="">Any year</option>
                 {options.years.map((y) => (
@@ -135,7 +137,7 @@ export default function Search() {
             {classData && (
               <>
                 <label className={styles.filter}>
-                  <span className={styles.hidden}>Category</span>
+                  <span>Category</span>
                   <select value={classFilter.key ?? ""} onChange={(e) => setClassFilter({ key: e.target.value || null })}>
                     <option value="">All categories</option>
                     {classData.domains.map((d) => (
@@ -146,7 +148,7 @@ export default function Search() {
                   </select>
                 </label>
                 <label className={styles.filter}>
-                  <span className={styles.hidden}>Prize</span>
+                  <span>Prize</span>
                   <select value={classFilter.prize} onChange={(e) => setClassFilter({ prize: e.target.value as PrizeFilter })}>
                     <option value="">Any project</option>
                     <option value="win">Any prize winner</option>
@@ -158,7 +160,9 @@ export default function Search() {
                 </label>
               </>
             )}
-          </>
+              <button type="button" onClick={() => { setFilters({ event: "", year: "" }); setClassFilter({ event: null, key: null, prize: "" }); }}>Clear filters</button>
+            </div>
+          </details>
         )}
       </div>
       {view.state !== "idle" && (

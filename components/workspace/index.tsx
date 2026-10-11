@@ -47,7 +47,9 @@ function HomeWorkspace() {
     );
   }
   return (
-    <section className={styles.workspace} aria-label="Workspace">
+    <details className={styles.workspace} aria-label="Workspace">
+      <summary className={styles.menu}>Team</summary>
+      <div className={styles.menuContent}>
       <div className={styles.identity}>
         <span>
           Workspace{" "}
@@ -75,7 +77,8 @@ function HomeWorkspace() {
           </button>
         </div>
       )}
-    </section>
+      </div>
+    </details>
   );
 }
 

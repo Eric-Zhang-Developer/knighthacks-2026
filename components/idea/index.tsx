@@ -42,6 +42,11 @@ export default function Idea() {
   const draft = useAppState((s) => s.ideaDraft); // voice appends here too
   const [view, setView] = useState<View>({ step: "write" });
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const receive = (event: Event) => { setView({ step: "saved", version: (event as CustomEvent<Version>).detail }); setError(null); };
+    window.addEventListener("mentor:saved", receive);
+    return () => window.removeEventListener("mentor:saved", receive);
+  }, []);
   // One key per preview, so retrying a save can't create a second idea.
   const saveKey = useRef<string | null>(null);
   // The interview: what has been answered so far, and which round of questions is showing.
@@ -158,7 +163,7 @@ export default function Idea() {
         <ProblemEvidence key={v.versionId} versionId={v.versionId} />
         <ResearchSection key={`research-${v.versionId}`} versionId={v.versionId} />
         {error && <PanelState kind="failed" message={error} />}
-        <button type="button" className={styles.secondary} onClick={() => setView({ step: "write" })}>
+        <button type="button" className={styles.secondary} onClick={() => { setView({ step: "write" }); window.dispatchEvent(new Event("mentor:open")); }}>
           New idea
         </button>
       </section>
@@ -195,7 +200,7 @@ export default function Idea() {
             save(form);
           }}
         >
-          {FIELDS.map(({ name, label, long }) => (
+          <details><summary>Edit details (optional)</summary>{FIELDS.map(({ name, label, long }) => (
             <label key={name} className={styles.field}>
               <span>{label}</span>
               {long ? (
@@ -204,7 +209,7 @@ export default function Idea() {
                 <input value={form[name]} disabled={busy} onChange={(e) => set(name, e.target.value)} />
               )}
             </label>
-          ))}
+          ))}</details>
           {error && <PanelState kind="failed" message={error} />}
           <div className={styles.actions}>
             <button type="submit" className={styles.primary} disabled={busy}>
@@ -221,7 +226,10 @@ export default function Idea() {
 
   return (
     <section className={`ui-panel ${styles.idea}`} aria-label="Your idea">
-      <h2 className="ui-heading">Your idea</h2>
+      <h2 className="ui-heading">Start with a conversation</h2>
+      <p>Explore a problem, question an assumption, or find a direction. Nothing is saved without your confirmation.</p>
+      <button type="button" onClick={() => window.dispatchEvent(new Event("mentor:open"))}>Brainstorm together</button>
+      <details><summary>Write a standalone draft</summary>
       <form
         className={styles.form}
         onSubmit={(e) => {
@@ -233,7 +241,7 @@ export default function Idea() {
           aria-label="Describe your idea"
           rows={4}
           maxLength={8000}
-          placeholder="Type or hold to talk: what would you build, for whom, and why?"
+          placeholder="What would you build, for whom, and why?"
           value={draft}
           onChange={(e) => setState({ ideaDraft: e.target.value })}
         />
@@ -246,7 +254,7 @@ export default function Idea() {
             </button>
           </div>
         )}
-      </form>
+      </form></details>
     </section>
   );
 }

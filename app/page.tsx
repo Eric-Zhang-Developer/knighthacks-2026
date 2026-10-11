@@ -3,7 +3,6 @@ import Challenge from "@/components/challenge";
 import Compare from "@/components/compare";
 import Drawer from "@/components/drawer";
 import Evidence from "@/components/evidence";
-import Explainer from "@/components/explainer";
 import Galaxy from "@/components/galaxy";
 import Idea from "@/components/idea";
 import PlanStep from "@/components/plan";
@@ -13,10 +12,9 @@ import Search from "@/components/search";
 import Share from "@/components/share";
 import Nav from "@/components/shell";
 import Sheet from "@/components/shell/Sheet";
-import Starters from "@/components/shell/Starters";
 import Steps from "@/components/shell/Steps";
 import Snapshot from "@/components/snapshot";
-import Voice from "@/components/voice";
+import Mentor from "@/components/mentor";
 import Votes from "@/components/votes";
 import styles from "./page.module.css";
 
@@ -29,7 +27,7 @@ export default function Home() {
       <div className={styles.top}>
         <p className={styles.brand}>
           <span className={styles.wordmark}>Uncharted</span>
-          <span className={styles.tagline}>Brainstorm among real hackathon projects</span>
+          <span className={styles.tagline}>Find your next idea.</span>
         </p>
         <header className={styles.search} aria-label="Search">
           <Search />
@@ -37,18 +35,16 @@ export default function Home() {
       </div>
       <main className={styles.map} aria-label="Galaxy">
         {/* The galaxy renders its history, legend and project list into the rail. */}
-        <div className={styles.rail}>
+        <details className={styles.rail}>
+          <summary>Browse the map</summary>
           <div id="discovery-rail" className={styles.railControls} />
-          <div className={styles.explain}>
-            <Explainer />
-          </div>
-        </div>
+        </details>
         <div className={styles.chart}>
           <Galaxy />
         </div>
       </main>
       <footer className={styles.composer} aria-label="Voice">
-        <Voice />
+        <Mentor />
       </footer>
       <aside className={styles.side} aria-label="Idea and evidence">
         <Steps />
@@ -60,7 +56,6 @@ export default function Home() {
         <div className={styles.ideaPath}>
           <div id="step-idea">
             <Idea />
-            <Starters />
           </div>
           <div id="step-explore">
             <Evidence />
