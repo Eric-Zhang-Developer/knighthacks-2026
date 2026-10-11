@@ -98,15 +98,39 @@ const NAME_CHARS = 28;
 export const shortTitle = (t: string) => (t.length > NAME_CHARS ? `${t.slice(0, NAME_CHARS - 1).trimEnd()}…` : t);
 const NAME_PX_PER_CHAR = 6.6; // the label's mono text, measured at --text-xs
 type Box = { x0: number; x1: number; y0: number; y1: number };
-export function nearestNames(screen: Float32Array, titles: readonly string[], cx: number, cy: number, taken: Box[] = [], max = NAME_MAX): number[] {
+// A name has to point at one dot: a star with another drawn within this many pixels of it isn't named, so over a dense
+// field nothing is, and as the camera closes in names arrive first on the stars that stand apart.
+export const NAME_ISOLATION = 16; // CSS px
+export function nearestNames(screen: Float32Array, titles: readonly string[], cx: number, cy: number, taken: Box[] = [], max = NAME_MAX, isolation = NAME_ISOLATION): number[] {
   const order: number[] = [];
   for (let i = 0; i < titles.length; i++) if (screen[3 * i + 2] < 0.6) order.push(i); // NaN fails too
+  // Every drawn star (either side) in a grid of `isolation`-sized cells, so a neighbour check looks at 9 cells.
+  const grid = new Map<number, number[]>();
+  const cell = (x: number, y: number) => Math.floor(x / isolation) * 100003 + Math.floor(y / isolation);
+  for (let i = 0; i < titles.length; i++) {
+    const [x, y] = [screen[3 * i], screen[3 * i + 1]];
+    if (Number.isNaN(x)) continue;
+    const k = cell(x, y);
+    const bucket = grid.get(k);
+    if (bucket) bucket.push(i);
+    else grid.set(k, [i]);
+  }
+  const alone = (i: number) => {
+    const [x, y] = [screen[3 * i], screen[3 * i + 1]];
+    const [gx, gy] = [Math.floor(x / isolation), Math.floor(y / isolation)];
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const j of grid.get((gx + dx) * 100003 + gy + dy) ?? [])
+          if (j !== i && (screen[3 * j] - x) ** 2 + (screen[3 * j + 1] - y) ** 2 < isolation * isolation) return false;
+    return true;
+  };
   const d = (i: number) => (screen[3 * i] - cx) ** 2 + (screen[3 * i + 1] - cy) ** 2;
   order.sort((a, b) => d(a) - d(b));
   const placed = [...taken];
   const out: number[] = [];
   for (const i of order) {
     if (out.length >= max) break;
+    if (!alone(i)) continue;
     const [x, y] = [screen[3 * i], screen[3 * i + 1]];
     const box = { x0: x - 4, x1: x + 14 + shortTitle(titles[i]).length * NAME_PX_PER_CHAR, y0: y - 10, y1: y + 10 };
     if (placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) continue;

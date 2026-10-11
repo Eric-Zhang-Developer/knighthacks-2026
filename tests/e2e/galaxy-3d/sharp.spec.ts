@@ -10,8 +10,8 @@ const frame = (page: Page) => page.evaluate(() => new Promise((r) => requestAnim
 async function ready(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?layout=clouds");
-  await expect(galaxy(page)).toHaveAttribute("data-classes", "ready");
-  await expect.poll(() => page.locator("canvas").evaluate((c) => "starScreen" in c)).toBe(true);
+  await expect(galaxy(page)).toHaveAttribute("data-classes", "ready", { timeout: 60_000 }); // 57k categories to parse
+  await expect.poll(() => page.locator("canvas").evaluate((c) => "starScreen" in c), { timeout: 30_000 }).toBe(true);
 }
 
 // Into the middle of the densest cloud, about 5.8x the whole-map view.
@@ -57,6 +57,7 @@ async function sharpness(page: Page) {
 }
 
 test("zoomed into a cloud, its core is separate points, not one smear", async ({ page }, info) => {
+  test.slow(); // software GL at 57k stars
   await ready(page);
   await zoomIntoCloud(page);
   const s = await sharpness(page);
@@ -68,11 +69,31 @@ test("zoomed into a cloud, its core is separate points, not one smear", async ({
   expect(s.peaks).toBeGreaterThanOrEqual(BASELINE.peaks);
 });
 
+// Each shown name's star has no other star drawn within 16px of it (NAME_ISOLATION), so the name points at one dot.
+async function expectIsolated(page: Page) {
+  const indices = (await names(page).filter({ visible: true }).evaluateAll((els) => els.map((e) => Number((e as HTMLElement).dataset.index))));
+  const gaps = await page.locator("canvas").evaluate((c, indices) => {
+    const all = (c as unknown as { starScreen(i: number[]): { x: number; y: number }[] }).starScreen;
+    const n = (c as unknown as { starPositions: ArrayLike<number> }).starPositions.length / 3;
+    const pts = all(Array.from({ length: n }, (_, i) => i));
+    return indices.map((i) => Math.min(...pts.map((p, j) => (j === i ? Infinity : Math.hypot(p.x - pts[i].x, p.y - pts[i].y)))));
+  }, indices);
+  for (const g of gaps) expect(g).toBeGreaterThanOrEqual(15.5);
+}
+
 test("the whole map names no projects; zoomed in, the nearest ones are named and a name selects its project", async ({ page }) => {
+  test.slow(); // software GL at 57k stars
   await ready(page);
   await frame(page);
   await expect(names(page).filter({ visible: true })).toHaveCount(0);
+  // In the cloud's core (about 5.8x) stars still crowd each other: any name shown is on a star standing apart.
   await zoomIntoCloud(page);
+  await expectIsolated(page);
+  // Close in (about 37x), stars separate and the nearest ones that stand apart are named.
+  for (let k = 0; k < 4; k++) await page.keyboard.press("+");
+  await page.waitForTimeout(600);
+  await frame(page);
+  await expectIsolated(page);
   const shown = names(page).filter({ visible: true });
   const count = await shown.count();
   expect(count).toBeGreaterThanOrEqual(1);

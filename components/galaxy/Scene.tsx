@@ -854,11 +854,12 @@ function Labels(props: { regions: Region[]; layer: HTMLDivElement | null; tags?:
   return null;
 }
 
-// Zoomed in, the stars nearest the map's centre are named: a pool of buttons in `layer`, filled and placed straight
-// from here. Which stars are named updates a few times a second so the names don't flicker while the camera moves;
-// where they sit follows the stars every frame. None over the whole map, during a layout flight, or while a project
-// is selected (its panel names it).
+// Zoomed well in, the stars nearest the map's centre that stand apart are named (`nearestNames`): a pool of buttons in
+// `layer`, filled and placed straight from here. Which stars are named updates a few times a second so the names
+// don't flicker while the camera moves; where they sit follows the stars every frame. None below NAME_ZOOM, during a
+// layout flight, or while a project is selected (its panel names it).
 const NAME_REFRESH = 0.25; // s
+const NAME_ZOOM = 4; // never named closer out than this (zoom over the whole-map view); past it, only stars standing apart
 function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; layer: HTMLDivElement | null; clouds: HTMLDivElement | null; tags?: HTMLDivElement | null; morph: Morph; view: Orbit }) {
   const { ids, titles, visible, layer, clouds, tags, morph, view } = props;
   const camera = useThree((s) => s.camera);
@@ -868,7 +869,7 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
   useFrame(({ clock }) => {
     if (!layer) return;
     const now = clock.elapsedTime;
-    const show = view.sharp > 0.5 && morph.t >= 1 && !view.held;
+    const show = view.zoomOverFit >= NAME_ZOOM && morph.t >= 1 && !view.held;
     const toScreen = (i: number) => {
       v.set(morph.current[3 * i], morph.current[3 * i + 1], morph.current[3 * i + 2]).applyMatrix4(camera.matrixWorldInverse);
       const depth = -v.z;

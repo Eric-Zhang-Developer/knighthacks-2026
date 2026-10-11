@@ -41,9 +41,11 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    (person, 2026-10-11, of flat discs: "these dont look like stars"), keeping its own brightness, with four faint
    spikes on the brightest, and the cloud glow, bloom and white bleach fade out, so a dense core
    reads as separate projects; stars spread apart as the camera closes in rather than swelling. A prize winner is a
-   star inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
-   named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a cloud's
-   name, each a button that selects its project; none while a project is selected or the stars are flying.
+   star inside a thin ring of a fixed width, at full brightness. From 4x in, the stars nearest the map's centre that
+   stand apart (no other star drawn within 16px; person, 2026-10-11, at 57k stars: names "coming out way too early")
+   are named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a
+   cloud's name, each a button that selects its project; none while a project is selected or the stars are flying.
+   The camera zooms in to 50x (was about 17x), so a dense core can separate into single stars.
 5. Idea focus: dotted arcs from the active idea (placed among its neighbours in the current layout) to each
    neighbour, with a pulsing ring at the idea; other stars dim. Selecting a project flies the camera to it and
    rings it; clearing the selection eases back to the whole view.
@@ -81,9 +83,11 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 7. Zoomed into a cloud, stars are separate points (`sharp.spec.ts`, into Productivity & work at about 5.8x): in a
    240px box at the map's centre, the share blown out (brightest channel above half) is at most a third of before the
    change (49.4% on cd9b1b7) and the bright local peaks are no fewer (398). Over the whole map no project is named;
-   zoomed in, 1 to 10 are, each a real title from `stars.json`, and clicking one selects that project. Unit
+   in the cloud's core any name shown is on a star with no other within 16px; closer in (about 37x), 1 to 10 are,
+   each a real title from `stars.json` on such a star, and clicking one selects that project. Unit
    (`tests/galaxy-3d/sharp.test.ts`): sharpness is 0 at the fit view, 1 at the closest zoom, never falling as you zoom
-   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name.
+   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name,
+   and names none with another star drawn within 16px (a dense field has none; a lone star beside it is named).
 
 ## Defaults
 "By category" is the default because it reads at a glance; "By meaning" is one tap away. Undo: set the default

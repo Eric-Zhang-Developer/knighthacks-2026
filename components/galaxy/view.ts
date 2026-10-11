@@ -86,7 +86,7 @@ export class Orbit {
   }
 
   get minDist() {
-    return this.fitDist * 0.06;
+    return this.fitDist * 0.02; // 50x: at 57k stars a dense core only separates into single stars this close
   }
   get maxDist() {
     return this.fitDist * 2.4;
