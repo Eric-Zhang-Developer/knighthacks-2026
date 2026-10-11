@@ -52,7 +52,8 @@ export class Orbit {
   dragging = false;
   held = false; // a project is selected: panning does nothing, so it stays centred (turning still circles it)
   fitDist = 2;
-  private radius = 0.55; // the galaxy's radius for framing (positions sit inside a unit cube centred on 0)
+  private radius = 0.55; // the galaxy's radius for framing, around `centre`
+  centre: Vec3 = [0, 0, 0]; // where the whole galaxy is framed: the layout's median star, not 0 (#465)
   private aspect = { width: 1, height: 1 };
   private placed = false;
   private goal: Goal | null = null;
@@ -75,14 +76,15 @@ export class Orbit {
     this.placed = true;
   }
 
-  // A new layout's size. A camera framing the whole galaxy eases to frame the new one; a closer look stays put.
-  setRadius(r: number) {
-    const framing = !this.goal && Math.abs(Math.log(this.zoomOverFit)) < 0.25 && Math.hypot(...this.target) < 0.05;
+  // A new layout's size and centre. A camera framing the whole galaxy eases to frame the new one; a closer look stays put.
+  setRadius(r: number, centre: Vec3 = [0, 0, 0]) {
+    const framing = !this.goal && Math.abs(Math.log(this.zoomOverFit)) < 0.25 && Math.hypot(...this.target.map((v, k) => v - this.centre[k])) < 0.05;
     const dist = this.dist;
     this.radius = r;
+    this.centre = centre;
     this.setAspect(this.aspect.width, this.aspect.height);
     this.dist = dist;
-    if (framing) this.animateTo({ dist: this.fitDist, target: [0, 0, 0] });
+    if (framing) this.animateTo({ dist: this.fitDist, target: [...centre] });
   }
 
   get minDist() {
@@ -202,7 +204,7 @@ export class Orbit {
     this.animateTo({ dist: (this.goal?.dist ?? this.dist) / factor });
   }
   fit() {
-    this.animateTo({ dist: this.fitDist, target: [0, 0, 0] });
+    this.animateTo({ dist: this.fitDist, target: [...this.centre] });
   }
   flyTo(p: Vec3) {
     this.animateTo({ target: p, dist: Math.min(this.dist, this.fitDist * 0.32) });

@@ -369,9 +369,14 @@ function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: numb
     set("aFrom", morph.from);
     set("seed", morph.seed);
     dom.starPositions = morph.to;
-    // Frame the layout by where 97% of its stars are, so a stray outlier doesn't shrink the picture.
-    const r = Float32Array.from({ length: n }, (_, i) => Math.hypot(positions[3 * i], positions[3 * i + 1], positions[3 * i + 2])).sort();
-    if (n) view.setRadius(Math.max(0.2, r[Math.floor(n * 0.97)] * 1.05));
+    // Frame the layout around its median star (the 76k release's real positions sit low: median y -0.28, so a camera
+    // on 0 put "By meaning" at the bottom of the screen, #465), sized by where 97% of its stars are, so a stray outlier
+    // doesn't shrink the picture.
+    if (n) {
+      const c = [0, 1, 2].map((k) => Float32Array.from({ length: n }, (_, i) => positions[3 * i + k]).sort()[n >> 1]) as Vec3;
+      const r = Float32Array.from({ length: n }, (_, i) => Math.hypot(positions[3 * i] - c[0], positions[3 * i + 1] - c[1], positions[3 * i + 2] - c[2])).sort();
+      view.setRadius(Math.max(0.2, r[Math.floor(n * 0.97)] * 1.05), c);
+    }
   }, [positions, morph, geometry, dom, n, view]);
 
   useEffect(() => {
@@ -942,7 +947,7 @@ function ScanDriver({ director, live, idea, morph, view }: { director: Director;
     }
     if (director.introCamera === "start") {
       view.interrupt();
-      view.target = [0, 0, 0];
+      view.target = [...view.centre];
       view.dist = view.fitDist * 0.55;
     } else if (director.introCamera === "end") view.fit();
     director.introCamera = null;
