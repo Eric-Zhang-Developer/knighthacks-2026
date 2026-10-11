@@ -1,5 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// The project list shows clouds over the whole map when there are too many stars to list (specs/decisions/
+// galaxy-project-list.md): pick the first cloud, then the projects nearest the view are listed.
+async function listProjects(page: Page) {
+  const list = page.locator("[data-list-mode]");
+  if ((await list.getAttribute("data-list-mode")) === "clouds") await list.getByRole("list", { name: "Clouds" }).getByRole("button").first().click();
+  const rows = list.getByRole("list", { name: "Projects" }).getByRole("button");
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  return rows;
+}
+
 // Layout checks for the shell (specs/features/experience-shell, Validation 1-4). Screenshots are evidence only.
 // Gemini is stubbed for the saved idea (AI_STUB_DIR); traces would hold the session cookie.
 test.use({ trace: "off" });
@@ -80,7 +90,7 @@ test("phone: one destination per screen (five with Plan), 44px navigation, and B
   // Open a project from Explore's list; Back closes it and Explore stays.
   await nav.getByRole("link", { name: "Explore" }).click();
   await page.locator("summary", { hasText: /^Projects \(/ }).click();
-  await page.getByRole("list", { name: "Projects" }).getByRole("button").first().click();
+  await (await listProjects(page)).first().click();
   const project = page.getByRole("region", { name: "Project" });
   await expect(project).toBeVisible();
   await page.screenshot({ path: info.outputPath("phone-project.png") });

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { FOV, Orbit, type Vec3 } from "@/components/galaxy/view";
+import { crowding, dragTurns, FOV, Orbit, TUNED_STARS, type Vec3 } from "@/components/galaxy/view";
 
 // The camera moves like a map (specs/features/galaxy-3d): what's under the pointer stays under it while you drag or
 // zoom. Checked by projecting through a real three.js camera placed where the orbit says.
@@ -90,5 +90,30 @@ describe("orbit camera", () => {
     expect(v.yaw).toBe(yaw);
     for (let i = 0; i < 30; i++) v.step(0.1);
     expect(v.yaw).not.toBe(yaw);
+  });
+});
+
+describe("which drags turn", () => {
+  const press = (button: number, mods: Partial<{ altKey: boolean; ctrlKey: boolean; metaKey: boolean }> = {}) => ({
+    button, altKey: false, ctrlKey: false, metaKey: false, ...mods });
+  it("a right-drag turns and a plain left-drag moves across the map (person, 2026-10-11)", () => {
+    expect(dragTurns(press(2), false)).toBe(true);
+    expect(dragTurns(press(0), false)).toBe(false);
+  });
+  it("option, ctrl and cmd still turn a left-drag", () => {
+    for (const mod of ["altKey", "ctrlKey", "metaKey"] as const) expect(dragTurns(press(0, { [mod]: true }), false)).toBe(true);
+  });
+  it("with a project held, left- and right-drags both circle it", () => {
+    expect(dragTurns(press(0), true)).toBe(true);
+    expect(dragTurns(press(2), true)).toBe(true);
+  });
+});
+
+describe("zoomed-out dimming for a big corpus", () => {
+  it("leaves the tuned corpus alone, dims about half at 57k, and dims more as the corpus grows", () => {
+    expect(crowding(TUNED_STARS)).toBe(1);
+    expect(crowding(1000)).toBe(1);
+    expect(crowding(57301)).toBeCloseTo(0.51, 2);
+    expect(crowding(100_000)).toBeLessThan(crowding(57301));
   });
 });

@@ -1,10 +1,8 @@
 ## What shipped
-Push-to-talk voice bar: hold (pointer, Space or Enter) to speak, see the partial transcript live, release to commit the utterance into `ideaDraft`. `POST /api/voice/token` mints a single-use ElevenLabs `realtime_scribe` token; the key stays on the server. A denied mic or a provider failure shows a notice and leaves `ideaDraft` untouched; the End voice session control is always visible.
+Push-to-talk commits released speech to `ideaDraft`; mic denial/provider failure leaves it unchanged. Token minting requires a same-origin workspace session. Per the explicit demo override, repeated authorized requests no longer encounter an app-imposed issuance quota; provider and platform controls still apply.
 ## Where it lives
-`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/` (`token.ts`, `draft.ts`), `tests/voice/`, `tests/e2e/voice/`
+`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/`, `tests/voice/`, `tests/e2e/voice/`. The existing `voice_token_limits` table is retained but unused; removing it would be a separate destructive schema operation.
 ## How to check it
-verify: `node scripts/verify.mjs voice /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/voice/20261010T104020Z` pass at f4f4e18 (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/voice/20261010T104020Z)
+Current override check: 6 focused voice tests pass, including 25 repeated authorized token requests and anonymous 401 without a provider call; typecheck, focused lint and CI pass. The earlier `verify.mjs voice` receipt at 23aafd0 predates the override: its authentication and key-isolation results remain relevant, while its quota concurrency assertion is historical and no longer current behavior.
 ## Gaps
-- Validation 1 (hold to talk, speak, text lands in `ideaDraft`) not run live: no `ELEVENLABS_API_KEY` yet (#11). The e2e test for the token's 200 path skips without the key; the unit test covers it with a mocked SDK.
-- The token route has no rate limit: anyone who can reach the app can mint tokens on our ElevenLabs quota.
-- Nothing shows `ideaDraft` until idea-create ships; the bar echoes the last added utterance meanwhile.
+Live human microphone transcription (Validation 1) remains untested. The no-key browser case previously skipped because a live key was configured; unit tests cover 503. The unused limiter table remains in production because removing it would be destructive; token issuance no longer reads or writes it.

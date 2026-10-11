@@ -17,13 +17,13 @@ describe("sharpness", () => {
 });
 
 describe("nearestNames", () => {
-  // A grid of stars 10px apart around the centre: far more than fit, all crowding each other.
+  // A grid of stars 20px apart around the centre (each stands apart from the next): far more names than fit.
   const titles: string[] = [];
   const screen: number[] = [];
   for (let y = -10; y <= 10; y++)
     for (let x = -10; x <= 10; x++) {
       titles.push(`Project ${titles.length} with a fairly long name that gets cut`);
-      screen.push(400 + x * 10, 300 + y * 10, x < 0 ? 0.2 : 0.8); // right half is the far side
+      screen.push(400 + x * 20, 300 + y * 20, x < 0 ? 0.2 : 0.8); // right half is the far side
     }
   const picked = nearestNames(Float32Array.from(screen), titles, 400, 300);
   const box = (i: number) => ({ x0: screen[3 * i] - 4, x1: screen[3 * i] + 14 + shortTitle(titles[i]).length * 6.6, y0: screen[3 * i + 1] - 10, y1: screen[3 * i + 1] + 10 });
@@ -44,6 +44,20 @@ describe("nearestNames", () => {
     const s = Float32Array.from([400, 300, 0, NaN, NaN, NaN, 400, 360, 0]);
     expect(nearestNames(s, ["a", "b", "c"], 400, 300)).toEqual([0, 2]);
     expect(nearestNames(s, ["a", "b", "c"], 400, 300, [{ x0: 380, x1: 460, y0: 290, y1: 310 }])).toEqual([2]);
+  });
+
+  it("names no star with another drawn within 16px, so a dense field has no names", () => {
+    const dense: number[] = [];
+    const t: string[] = [];
+    for (let k = 0; k < 400; k++) {
+      dense.push(300 + (k % 20) * 10, 200 + Math.floor(k / 20) * 10, 0); // 10px apart
+      t.push(`p${k}`);
+    }
+    expect(nearestNames(Float32Array.from(dense), t, 400, 300)).toEqual([]);
+    // One star off on its own beside the field is the only one named, even though it's farther from the middle.
+    expect(nearestNames(Float32Array.from([...dense, 560, 300, 0]), [...t, "lone"], 400, 300)).toEqual([400]);
+    // A far-side star crowding a near one still counts: on screen they overlap.
+    expect(nearestNames(Float32Array.from([400, 300, 0, 405, 302, 0.9]), ["near", "behind"], 400, 300)).toEqual([]);
   });
 
   it("cuts long titles to 28 characters", () => {

@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import { projects } from "@/db/schema/corpus";
 
 export type Filters = { event?: string; year?: number };
-export type Hit = { id: string; title: string; tagline: string | null; event: string | null; year: number | null };
+// summaryOnly: the project has no description on record, only its gallery card. Optional so Hits built from stars.json
+// (components/search/filters.ts) still type-check; the server always sets it.
+export type Hit = { id: string; title: string; tagline: string | null; event: string | null; year: number | null; summaryOnly?: boolean };
 export type Neighbor = Hit & { similarity: number };
 
 const columns = {
@@ -13,6 +15,7 @@ const columns = {
   tagline: projects.tagline,
   event: sql<string | null>`${projects.events}->0->>'name'`,
   year: sql<number | null>`case when left(${projects.date}, 4) ~ '^[0-9]{4}$' then left(${projects.date}, 4)::int end`,
+  summaryOnly: sql<boolean>`btrim(${projects.description}) = ''`,
 };
 
 function where({ event, year }: Filters): SQL | undefined {

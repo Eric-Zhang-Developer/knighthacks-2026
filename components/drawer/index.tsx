@@ -24,6 +24,12 @@ const EXCERPT = 400;
 const excerpt = (s: string) => (s.length > EXCERPT ? `${s.slice(0, EXCERPT).trimEnd()}…` : s);
 const Unknown = ({ what }: { what: string }) => <span className={styles.unknown}>{what} unknown</span>;
 
+// A project with no description is only its Devpost gallery card; say so, so its tagline isn't read as a write-up.
+export function Description({ text }: { text: string }) {
+  if (text.trim()) return <p className={styles.excerpt}>{excerpt(text)}</p>;
+  return <span className={styles.unknown}>Gallery card only: Devpost lists a title and tagline; no description on record</span>;
+}
+
 // Opens in the right column whenever a project is selected (galaxy click, list or search).
 export default function Drawer() {
   const id = useAppState((s) => s.selectedProjectId);
@@ -83,7 +89,7 @@ export default function Drawer() {
         <dd>{p.technologies.length ? p.technologies.join(", ") : <Unknown what="technologies" />}</dd>
         <Classified id={p.id} />
       </dl>
-      {p.description ? <p className={styles.excerpt}>{excerpt(p.description)}</p> : <Unknown what="description" />}
+      <Description text={p.description} />
       <a className={styles.source} href={p.url} target="_blank" rel="noopener noreferrer">
         Source: {p.url}
       </a>

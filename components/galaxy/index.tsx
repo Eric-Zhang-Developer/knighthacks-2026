@@ -1,16 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Legend from "@/components/classes";
 import History from "@/components/history";
+import Readout, { type ScanRow, type Survey } from "@/components/scan";
+import { Director, type Status } from "@/components/scan/director";
 import { initWorkspace } from "@/components/workspace/api";
-import { colourOf, compactRegions, keyOf, loadClasses, matches, setFocus, useClasses, wins, type ClassesFile } from "@/lib/classes";
+import { colourOf, compactRegions, keyOf, loadClasses, matches, MIXED, setFocus, UNCLEAR, useClasses, wins, type ClassesFile } from "@/lib/classes";
 import { setState, useAppState } from "@/lib/store";
 import { layoutOf, type LayoutName } from "./layouts";
 import type { Hover, Idea } from "./Scene";
-import { createdLabel, loadStars, NAME_MAX, revealMask, yearsOf, type Star, type StarsFile } from "./stars";
+import { createdLabel, loadStars, NAME_MAX, revealMask, shortTitle, yearsOf, type Star, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
 import { Orbit } from "./view";
 
@@ -34,6 +36,19 @@ export default function Galaxy() {
   const [nameLayer, setNameLayer] = useState<HTMLDivElement | null>(null);
   // The 3D camera, shared by the scene (input, drift) and the map buttons and keys.
   const view = useMemo(() => new Orbit(), []);
+  // The idea scan and the intro (specs/features/idea-scan): one clock for the scene and the readout.
+  const director = useMemo(() => new Director(), []);
+  const [scanStatus, setScanStatus] = useState<Status>(director.status);
+  useEffect(() => director.subscribe(setScanStatus), [director]);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => (director.reduced = mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [director]);
+  const [tagLayer, setTagLayer] = useState<HTMLDivElement | null>(null);
+  const [scan, setScan] = useState<ScanLoad>({ state: "loading" });
   // Which layout the stars sit in, from ?layout= (default clouds); switching flies every star across.
   const [layout, setLayout] = useState<LayoutName>("clouds");
   useEffect(() => {
@@ -41,10 +56,18 @@ export default function Galaxy() {
   }, []);
   const switchLayout = useCallback((to: LayoutName) => {
     setLayout(to);
-    const url = new URL(location.href);
-    url.searchParams.set("layout", to);
-    window.history.replaceState(window.history.state, "", url);
+    setParam("layout", to);
   }, []);
+  // Plain stars (?colors=off): category colour off, so "By meaning" reads as one field; the idea's neighbours keep
+  // theirs, so a scan lights its matches in colour against it.
+  const [plain, setPlain] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("colors") === "off") setPlain(true);
+  }, []);
+  const togglePlain = () => {
+    setParam("colors", plain ? null : "off");
+    setPlain(!plain);
+  };
   // The page's discovery rail (experience-shell), if there is one; without it the controls float over the map.
   const [rail, setRail] = useState<HTMLElement | null>(null);
   useEffect(() => setRail(document.getElementById("discovery-rail")), []);
@@ -60,7 +83,10 @@ export default function Galaxy() {
     let live = true;
     setNeighbors(null);
     setFocus(true); // a new idea is focused again
+    setScan({ state: "loading" });
     if (activeIdea) neighborsOf(activeIdea).then((n) => live && setNeighbors(n));
+    // The neighbours' real similarity, for the scan's tags; the scan itself never waits for it.
+    if (activeIdea) scanOf(activeIdea).then((r) => live && setScan(r));
     return () => {
       live = false;
     };
@@ -76,11 +102,23 @@ export default function Galaxy() {
   // The map, list and legend all use this one mask, so their counts agree under any filter.
   const visible = useMemo(() => Uint8Array.from(revealed, (v, i) => (v && matches(data, ids[i], filter) ? 1 : 0)), [revealed, data, ids, filter]);
   const events = useMemo(() => new Set(stars.flatMap((s) => (s.event ? [s.event] : []))).size, [stars]);
-  const colourAt = useMemo(() => (data ? (i: number) => colourOf(data, data.projects[ids[i]]) : undefined), [data, ids]);
+  const kept = plain ? neighbors : null;
+  const colourAt = useMemo(() => {
+    if (!data) return undefined;
+    const keep = plain ? new Set(kept ?? []) : null;
+    return (i: number) => (keep && !keep.has(ids[i]) ? null : colourOf(data, data.projects[ids[i]]));
+  }, [data, ids, plain, kept]);
   const ringAt = useMemo(() => (data ? (i: number) => wins(data.projects[ids[i]], filter.event).length > 0 : undefined), [data, ids, filter.event]);
   // Idea focus: the active idea's stored neighbours keep their colour, every other star dims, and one line runs to each.
-  const focus = useMemo(() => (neighbors && focusOn ? new Set(neighbors) : null), [neighbors, focusOn]);
-  const dimAt = useMemo(() => (focus ? (i: number) => !focus.has(ids[i]) : undefined), [focus, ids]);
+  // The scene's star shader draws the dimming, so the scan can settle into it; it starts once the scan has this idea.
+  const scanHas = scanStatus.key === activeIdea;
+  const focus = useMemo(() => (neighbors && focusOn && scanHas ? new Set(neighbors) : null), [neighbors, focusOn, scanHas]);
+  // Each star's category slot (domains in the file's order, then mixed, then not enough text), for the scan's shader.
+  const slots = useMemo(() => (data ? [...data.domains.map((d) => d.id), MIXED, UNCLEAR] : []), [data]);
+  const cats = useMemo(
+    () => (data ? Float32Array.from(ids, (id) => (keyOf(data.projects[id]) === null ? -1 : slots.indexOf(keyOf(data.projects[id])!))) : undefined),
+    [data, ids, slots],
+  );
   // The active idea: placed among its stored neighbours in whichever layout is showing, with an arc to each while
   // focused.
   const idea = useMemo((): Idea | null => {
@@ -92,13 +130,51 @@ export default function Galaxy() {
   }, [ideaStars, activeIdea, neighbors, focus, ids]);
   const regions = useMemo(
     () =>
-      data
-        ? compactRegions(data, ids, positions, (i) => visible[i] === 1).map((g) => ({ ...g, colour: colourOf(data, { domain: g.key, status: "clear", prizes: [] }) ?? [1, 1, 1] }))
+      // By meaning, a category spans the whole map, so its centre is the map's middle: no labels there.
+      data && layout === "clouds"
+        ? compactRegions(data, ids, positions, (i) => visible[i] === 1).map((g) => ({
+            ...g,
+            slot: slots.indexOf(g.key),
+            colour: colourOf(data, { domain: g.key, status: "clear", prizes: [] }) ?? [1, 1, 1],
+          }))
         : [],
-    [data, ids, positions, visible],
+    [data, ids, positions, visible, slots, layout],
   );
   const ringCount = useMemo(() => (ringAt ? ids.filter((_, i) => visible[i] && ringAt(i)).length : 0), [ringAt, ids, visible]);
   const shown = useMemo(() => visible.reduce((n, v) => n + v, 0), [visible]);
+  // The project list (specs/decisions/galaxy-project-list.md): one row per visible star stopped being usable at 57k.
+  // A few stars (a narrow filter) are all listed; otherwise, over the whole map it lists the clouds, each flying the
+  // camera in, and zoomed in (or without categories) the projects nearest the middle of the view, from the scene.
+  const [listOpen, setListOpen] = useState(false);
+  const [nearby, setNearby] = useState<Nearby>({ ids: [], zoomed: false });
+  const onNearby = useCallback((ids: number[], zoomed: boolean) => setNearby({ ids, zoomed }), []);
+  const listHeld = useRef(false); // pointer or focus in the list: its rows stay put
+  const nearbyHold = useCallback(() => listHeld.current, []);
+  const onListHold = useCallback((held: boolean) => void (listHeld.current = held), []);
+  const listClouds = useMemo((): ListCloud[] => {
+    if (!data || !cats) return [];
+    const sum = new Map<number, number[]>(); // slot -> [x, y, z, count]
+    for (let i = 0; i < cats.length; i++) {
+      if (!visible[i] || cats[i] < 0) continue;
+      const a = sum.get(cats[i]) ?? [0, 0, 0, 0];
+      a[0] += positions[3 * i];
+      a[1] += positions[3 * i + 1];
+      a[2] += positions[3 * i + 2];
+      a[3]++;
+      sum.set(cats[i], a);
+    }
+    return [...sum.entries()]
+      .map(([slot, [x, y, z, n]]) => ({
+        key: slots[slot],
+        n,
+        at: [x / n, y / n, z / n] as [number, number, number],
+        label: data.domains.find((d) => d.id === slots[slot])?.label ?? (slots[slot] === MIXED ? "Mixed" : "Not enough text"),
+        colour: colourOf(data, { domain: slots[slot], status: slots[slot] === MIXED ? "mixed" : slots[slot] === UNCLEAR ? "insufficient_text" : "clear", prizes: [] } as Parameters<typeof colourOf>[1]) ?? [1, 1, 1],
+      }))
+      .sort((a, b) => b.n - a.n);
+  }, [data, cats, visible, positions, slots]);
+  const listMode: ListMode = shown <= LIST_ALL ? "all" : !nearby.zoomed && listClouds.length > 0 ? "clouds" : "near";
+  const flyToCloud = useCallback((at: [number, number, number]) => view.flyToCloud(at), [view]);
   const dimmed = useMemo(() => (focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0), [focus, ids, visible]);
   const unknownYear = useMemo(() => stars.filter((s) => s.year == null).length, [stars]);
   const shownAt = useCallback((i: number) => revealed[i] === 1, [revealed]);
@@ -110,6 +186,55 @@ export default function Galaxy() {
       years.length > 0 && <History years={years} reveal={reveal} onReveal={setReveal} shown={shown} total={stars.length} unknown={unknownYear} />,
     [years, reveal, shown, stars.length, unknownYear],
   );
+  // The scan plays once per idea version in this page, when its neighbours are known (and categories have loaded or
+  // failed); Replay plays it again.
+  const played = useRef(new Set<string>());
+  const playScan = useCallback(
+    (key: string) => {
+      if (!idea || idea.neighbours.length === 0) return;
+      played.current.add(key);
+      director.startScan(key, idea.neighbours.map((i) => (cats ? cats[i] : -1)), performance.now() / 1000);
+    },
+    [idea, cats, director],
+  );
+  useEffect(() => {
+    if (!activeIdea || !neighbors || !idea || classes.state === "loading" || played.current.has(activeIdea)) return;
+    playScan(activeIdea);
+  }, [activeIdea, neighbors, idea, classes.state, playScan]);
+  const scanRows = useMemo((): ScanRow[] => {
+    const sim = scan.state === "ready" ? new Map(scan.neighbors.map((n) => [n.id, n.similarity])) : null;
+    const index = new Map(ids.map((id, i) => [id, i]));
+    return (neighbors ?? []).flatMap((id) => (index.has(id) ? [{ id, title: titles[index.get(id)!], similarity: sim?.get(id) ?? null }] : []));
+  }, [neighbors, scan, ids, titles]);
+  // The intro: every category, largest first, with its real count; at /?intro or from the map's play button.
+  const survey = useMemo((): Survey | null => {
+    if (!data) return null;
+    const count = new Map<number, number>();
+    let prizes = 0;
+    ids.forEach((id, i) => {
+      const c = cats?.[i] ?? -1;
+      if (c >= 0) count.set(c, (count.get(c) ?? 0) + 1);
+      if (wins(data.projects[id]).length > 0) prizes++;
+    });
+    const label = (slot: number) => data.domains.find((d) => d.id === slots[slot])?.label ?? (slots[slot] === MIXED ? "Mixed" : "Not enough text");
+    const hue = (slot: number) => {
+      const key = slots[slot];
+      const status = key === MIXED ? "mixed" : key === UNCLEAR ? "insufficient_text" : "clear";
+      return colourOf(data, { domain: key, status, prizes: [] } as Parameters<typeof colourOf>[1]) ?? [1, 1, 1];
+    };
+    const clouds = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([slot, n]) => ({ slot, n, label: label(slot), colour: hue(slot) }));
+    return { clouds, prizes };
+  }, [data, ids, cats, slots]);
+  const playIntro = useCallback(() => {
+    if (survey) director.startIntro(survey.clouds.map((c) => c.slot), performance.now() / 1000);
+  }, [survey, director]);
+  const introAsked = useRef(false);
+  useEffect(() => {
+    if (introAsked.current || !survey || !new URLSearchParams(location.search).has("intro")) return;
+    introAsked.current = true;
+    playIntro();
+  }, [survey, playIntro]);
+
   // A wheel over a name zooms the map, as it would a hair to the side.
   const passWheel = useCallback((e: React.WheelEvent) => {
     e.currentTarget.parentElement?.querySelector("canvas")?.dispatchEvent(new WheelEvent("wheel", e.nativeEvent));
@@ -136,9 +261,12 @@ export default function Galaxy() {
       data-ring-count={ringCount}
       data-line-count={idea?.lines ? idea.neighbours.length : 0}
       data-layout={layout}
+      data-plain={plain}
       data-dimmed-count={dimmed}
+      data-scan={scanStatus.key === activeIdea && activeIdea ? scanStatus.scan : "idle"}
+      data-intro={scanStatus.intro}
       tabIndex={0}
-      aria-label="Star map. Drag to move across it, option-drag to turn it, scroll or pinch to zoom where you point; plus, minus and 0 keys zoom in, out and fit."
+      aria-label="Star map. Drag to move across it, right-drag or option-drag to turn it, scroll or pinch to zoom where you point; plus, minus and 0 keys zoom in, out and fit."
       onKeyDown={(e) => {
         const act = ({ "+": () => view.zoomBy(1.6), "=": () => view.zoomBy(1.6), "-": () => view.zoomBy(1 / 1.6), "0": () => view.fit() } as Record<string, () => void>)[e.key];
         if (!act || e.target !== e.currentTarget) return;
@@ -155,13 +283,26 @@ export default function Galaxy() {
         view={view}
         colourAt={colourAt}
         ringAt={ringAt}
-        dimAt={dimAt}
         idea={idea}
         regions={regions}
         labelLayer={labelLayer}
         titles={titles}
         nameLayer={nameLayer}
+        director={director}
+        cats={cats}
+        tagLayer={tagLayer}
+        nearby={listOpen && listMode !== "all" ? onNearby : undefined}
+        nearbyHold={nearbyHold}
       />
+      {/* The scan's tags: each neighbour's real similarity and title, placed beside its star by the scene. */}
+      <div ref={setTagLayer} className={styles.tags} role="group" aria-label="Nearest projects to your idea" onWheel={passWheel}>
+        {scanRows.slice(0, 8).map((r) => (
+          <button key={r.id} type="button" aria-label={`Select ${r.title}${r.similarity === null ? "" : `, similarity ${r.similarity.toFixed(2)}`}`} onClick={() => setState({ selectedProjectId: r.id })}>
+            {r.similarity !== null && <b>{r.similarity.toFixed(2)}</b>}
+            <span>{shortTitle(r.title)}</span>
+          </button>
+        ))}
+      </div>
       {/* Zoomed in, the nearest projects' names: filled and placed by the scene; a name selects its project. */}
       <div ref={setNameLayer} className={styles.names} role="group" aria-label="Projects near the middle" onWheel={passWheel}>
         {Array.from({ length: NAME_MAX }, (_, k) => (
@@ -171,7 +312,7 @@ export default function Galaxy() {
       {/* A cloud's name flies the camera to that cloud. */}
       <div ref={setLabelLayer} className={styles.regions} onWheel={passWheel}>
         {regions.map((g) => (
-          <span key={g.key} className={styles.region} style={{ "--hue": `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
+          <span key={g.key} className={styles.region} style={{ "--hue": plain ? "var(--paper)" : `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
             <button type="button" aria-label={`Go to ${g.label}, ${g.count.toLocaleString()} projects`} onClick={() => view.flyToCloud([g.at[0], g.at[1], g.at[2]])}>
               {g.label}
               <small> · {g.count.toLocaleString()}</small>
@@ -201,12 +342,27 @@ export default function Galaxy() {
         <button type="button" aria-label="Zoom out" onClick={() => view.zoomBy(1 / 1.6)}>
           <svg viewBox="0 0 24 24" aria-hidden><path d="M5 11h14v2H5z" /></svg>
         </button>
+        <button type="button" aria-label="Run the intro" onClick={playIntro} disabled={!survey}>
+          <svg viewBox="0 0 24 24" aria-hidden><path d="M8 5.5v13l10.5-6.5z" /></svg>
+        </button>
         <button type="button" aria-label="Show the whole map" onClick={() => view.fit()}>
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z" />
           </svg>
         </button>
       </div>
+      <Readout
+        status={scanStatus}
+        active={Boolean(activeIdea && neighbors && neighbors.length > 0)}
+        rows={scanRows}
+        searched={scan.state === "ready" ? scan.searched : stars.length}
+        sourceUpdated={scan.state === "ready" && scan.neighbors.some((neighbor) => neighbor.corpusVersion !== scan.corpusVersion)}
+        similarity={scan.state}
+        survey={survey}
+        total={stars.length}
+        onSelect={(id) => setState({ selectedProjectId: id })}
+        onReplay={() => activeIdea && playScan(activeIdea)}
+      />
       {hover && hovered && (
         <div role="tooltip" className={styles.tooltip} style={{ left: hover.x + 12, top: hover.y + 12 }}>
           <strong>{hovered.title}</strong>
@@ -219,7 +375,22 @@ export default function Galaxy() {
         <div className={rail ? styles.railControls : styles.controls}>
           {legend}
           {history}
-          <ProjectList stars={stars} visible={visible} selectedId={selectedId} data={data} />
+          <ProjectList
+            stars={stars}
+            visible={visible}
+            selectedId={selectedId}
+            data={data}
+            mode={listMode}
+            near={nearby.ids}
+            clouds={listClouds}
+            shown={shown}
+            onCloud={flyToCloud}
+            onOpen={setListOpen}
+            onHold={onListHold}
+          />
+          <button type="button" className={`ui-chip ${styles.plain}`} aria-pressed={plain} onClick={togglePlain}>
+            Hide category colors
+          </button>
         </div>,
       )}
     </div>
@@ -228,18 +399,74 @@ export default function Galaxy() {
 
 // Memoised, so a hover (which re-renders the galaxy) doesn't re-render every row; and its rows exist only while it's
 // open, so a collapsed list costs nothing at any corpus size.
-// ponytail: an open list renders every visible row (100k at full scale); window it if people browse it at that size.
-const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: Uint8Array; selectedId: string | null; data: ClassesFile | null }) {
-  const { stars, visible, selectedId, data } = props;
-  const [open, setOpen] = useState(false);
+const LIST_ALL = 200; // at most this many visible stars are all listed
+type ListMode = "all" | "clouds" | "near";
+type ListCloud = { key: string; n: number; at: [number, number, number]; label: string; colour: readonly number[] };
+type Nearby = { ids: number[]; zoomed: boolean };
+const ProjectList = memo(function ProjectList(props: {
+  stars: Star[];
+  visible: Uint8Array;
+  selectedId: string | null;
+  data: ClassesFile | null;
+  mode: ListMode;
+  near: number[];
+  clouds: ListCloud[];
+  shown: number;
+  onCloud: (at: [number, number, number]) => void;
+  onOpen: (open: boolean) => void;
+  onHold: (held: boolean) => void;
+}) {
+  const { stars, visible, selectedId, data, mode, near, clouds, shown, onCloud, onOpen, onHold } = props;
+  const [open, setOpenState] = useState(false);
+  const setOpen = (o: boolean) => (setOpenState(o), onOpen(o));
+  const caption = useRef<HTMLParagraphElement>(null);
+  const rows = mode === "all" ? stars.flatMap((s, i) => (visible[i] ? [i] : [])) : mode === "near" ? near.filter((i) => visible[i]) : [];
   return (
-    <details className={styles.list} onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details
+      className={styles.list}
+      data-list-mode={mode}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      onPointerEnter={() => onHold(true)}
+      onPointerLeave={(e) => onHold(e.currentTarget.contains(document.activeElement))}
+      onFocus={() => onHold(true)}
+      onBlur={(e) => onHold(e.currentTarget.contains(e.relatedTarget as Node | null) || e.currentTarget.matches(":hover"))}
+    >
       {/* Click (Enter on a summary is one) renders the rows at once: toggle fires a task later, after a quick Tab. */}
       <summary onClick={(e) => setOpen(!(e.currentTarget.parentElement as HTMLDetailsElement).open)}>Projects ({stars.length})</summary>
+      {open && mode !== "all" && (
+        <p ref={caption} tabIndex={-1} className={styles.listNote}>
+          {mode === "clouds"
+            ? `${shown.toLocaleString("en-US")} projects. Pick a cloud, zoom in or search to list projects.`
+            : rows.length > 0
+              ? `${rows.length} nearest the middle of the view, of ${shown.toLocaleString("en-US")}.`
+              : "No projects in view. Move the map or search."}
+        </p>
+      )}
+      {open && mode === "clouds" && (
+        <ul aria-label="Clouds">
+          {clouds.map((c) => (
+            <li key={c.key}>
+              <button
+                type="button"
+                className={styles.cloudRow}
+                style={{ "--hue": `rgb(${c.colour.map((v) => Math.round(v * 255)).join(" ")})` } as React.CSSProperties}
+                onClick={() => {
+                  onCloud(c.at);
+                  caption.current?.focus(); // the row is about to become that cloud's projects
+                }}
+              >
+                {c.label}
+                <span className={styles.meta}>{c.n.toLocaleString("en-US")} projects</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <ul aria-label="Projects">
         {open &&
-          stars.map((s, i) =>
-            visible[i] ? (
+          rows.map((i) => {
+            const s = stars[i];
+            return (
               <li key={s.id}>
                 <button type="button" aria-pressed={s.id === selectedId} onClick={() => setState({ selectedProjectId: s.id })}>
                   {s.title}
@@ -247,8 +474,8 @@ const ProjectList = memo(function ProjectList(props: { stars: Star[]; visible: U
                   <Category data={data} id={s.id} />
                 </button>
               </li>
-            ) : null,
-          )}
+            );
+          })}
       </ul>
     </details>
   );
@@ -295,5 +522,26 @@ async function neighborsOf(versionId: string): Promise<string[] | null> {
   }
   return null;
 }
+
+// The scan's similarity for a version's neighbours (specs/features/idea-scan); a failure is shown, never filled in.
+type ScanLoad = { state: "loading" } | { state: "unavailable" } | { state: "ready"; corpusVersion: string; searched: number | null; neighbors: { id: string; similarity: number; corpusVersion: string }[] };
+async function scanOf(versionId: string): Promise<ScanLoad> {
+  if (!(await initWorkspace()).ok) return { state: "unavailable" };
+  try {
+    const r = await fetch(`/api/scan/${versionId}`);
+    if (!r.ok) return { state: "unavailable" };
+    const body = (await r.json()) as { corpusVersion: string; searched: number | null; neighbors: { id: string; similarity: number; corpusVersion: string }[] };
+    return { state: "ready", corpusVersion: body.corpusVersion, searched: body.searched, neighbors: body.neighbors };
+  } catch {
+    return { state: "unavailable" };
+  }
+}
+
+const setParam = (key: string, value: string | null) => {
+  const url = new URL(location.href);
+  if (value === null) url.searchParams.delete(key);
+  else url.searchParams.set(key, value);
+  window.history.replaceState(window.history.state, "", url);
+};
 
 const portal = (target: HTMLElement | null, node: React.ReactNode) => (target ? createPortal(node, target) : node);

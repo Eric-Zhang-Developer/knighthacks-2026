@@ -10,7 +10,12 @@ import styles from "./evidence.module.css";
 
 // Shape pinned by neighbor-evidence-api (lib/evidence/contract.ts).
 type Claim = { text: string; label: ClaimLabel; sourceIds: string[] };
-type Card = { projectId: string; url: string; title: string; excerpt: string; overlaps: Claim[]; differences: Claim[]; uncertainty: Claim };
+// excerptSource (summary-records-api): which project field the excerpt came from, or "unknown" if it has since changed.
+type Card = { projectId: string; url: string; title: string; excerpt: string; excerptSource?: "description" | "tagline" | "title" | "unknown";
+  savedCorpusVersion?: string; currentCorpusVersion?: string | null;
+  overlaps: Claim[]; differences: Claim[]; uncertainty: Claim };
+const EXCERPT_NOTE = { tagline: "From the gallery card (title and tagline only)", title: "From the gallery card (title and tagline only)",
+  unknown: "Source text has changed since this card was made" } as const;
 type View =
   | { kind: "idle" }
   | { kind: "loading" }
@@ -49,7 +54,7 @@ function Claims({ heading, claims }: { heading: string; claims: Claim[] }) {
   );
 }
 
-function EvidenceCard({ card }: { card: Card }) {
+export function EvidenceCard({ card }: { card: Card }) {
   return (
     <article className={styles.card} aria-label={`Evidence: ${card.title}`} data-project-id={card.projectId}>
       <h3 className={styles.title}>
@@ -67,6 +72,7 @@ function EvidenceCard({ card }: { card: Card }) {
         <p>
           <ClaimBadge label={card.uncertainty.label} /> {card.uncertainty.text}
         </p>
+        {card.excerptSource && card.excerptSource !== "description" && <p>{EXCERPT_NOTE[card.excerptSource]}</p>}
         <blockquote className={styles.excerpt}>{card.excerpt.slice(0, 600)}</blockquote>
       </details>
     </article>
@@ -110,6 +116,9 @@ export default function Evidence() {
         )}
         {view.kind === "ready" && (
           <>
+            {view.cards.some((card) => card.savedCorpusVersion && card.currentCorpusVersion && card.savedCorpusVersion !== card.currentCorpusVersion) && (
+              <p className={styles.prompt}>Saved neighbors are unchanged. New comparisons use current source records; existing cards keep their saved excerpts.</p>
+            )}
             {view.cards.length === 0 && <PanelState kind="empty" message="No evidence for this idea yet." />}
             {view.cards.map((card) => (
               <EvidenceCard key={card.projectId} card={card} />

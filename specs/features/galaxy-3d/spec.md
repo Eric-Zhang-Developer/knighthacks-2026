@@ -18,9 +18,9 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 ## Plan
 1. Perspective camera that moves like a map (person, 2026-10-10: "you can only zoom in on one singular point"): a
    drag moves across the galaxy with what's under the pointer staying under it, and a release glides on and slows;
-   the wheel and pinch zoom toward the pointer, with limits; option-, ctrl- or cmd-drag turns it (about a third of a
-   circle per 300px). While a project is selected the camera holds on it: a drag circles it, a right-drag does
-   nothing, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
+   the wheel and pinch zoom toward the pointer, with limits; a right-drag, or an option-, ctrl- or cmd-drag, turns it
+   (about a third of a circle per 300px; person, 2026-10-11: "I can't rotate with the left or right mouse button").
+   While a project is selected the camera holds on it: any drag circles it, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
    any input stops the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the
    current view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working. A cloud's label is a
    button that flies to that cloud.
@@ -41,15 +41,22 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    (person, 2026-10-11, of flat discs: "these dont look like stars"), keeping its own brightness, with four faint
    spikes on the brightest, and the cloud glow, bloom and white bleach fade out, so a dense core
    reads as separate projects; stars spread apart as the camera closes in rather than swelling. A prize winner is a
-   star inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
-   named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a cloud's
-   name, each a button that selects its project; none while a project is selected or the stars are flying.
+   star inside a thin ring of a fixed width, at full brightness. From 4x in, the stars nearest the map's centre that
+   stand apart (no other star drawn within 16px; person, 2026-10-11, at 57k stars: names "coming out way too early")
+   are named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a
+   cloud's name, each a button that selects its project; none while a project is selected or the stars are flying.
+   The camera zooms in to 50x (was about 17x), so a dense core can separate into single stars.
 5. Idea focus: dotted arcs from the active idea (placed among its neighbours in the current layout) to each
    neighbour, with a pulsing ring at the idea; other stars dim. Selecting a project flies the camera to it and
    rings it; clearing the selection eases back to the whole view.
 6. Picking, the reveal mask, legend filters, prize rings and history work in both layouts and mid-flight.
 7. Remove the 2D `Viewport`, `StarGrid` and `boundsOf` code and `tests/galaxy-2d/`, `tests/e2e/galaxy-2d/`; their
    checks move to `tests/galaxy-3d/` and `tests/e2e/galaxy-3d/`.
+8. Plain stars (person, 2026-10-11, on "By meaning": "how the fuck do I read this?… What if we just added a filter
+   to drop color… a toggle", placed "bottom left under projects"). A "Hide category colors" toggle under the project
+   list gives every star the neutral blue-white; the active idea's neighbours keep their category colour, so a scan
+   lights its matches against a plain field. Kept in the URL as `?colors=off`. "By meaning" shows no category labels:
+   a category spans the whole map there, so its centre is the middle and the labels piled up on each other.
 
 ## Requirements
 - No new dependency: the camera, morph and glow pass are our own code on three.js and react-three-fiber.
@@ -81,9 +88,15 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 7. Zoomed into a cloud, stars are separate points (`sharp.spec.ts`, into Productivity & work at about 5.8x): in a
    240px box at the map's centre, the share blown out (brightest channel above half) is at most a third of before the
    change (49.4% on cd9b1b7) and the bright local peaks are no fewer (398). Over the whole map no project is named;
-   zoomed in, 1 to 10 are, each a real title from `stars.json`, and clicking one selects that project. Unit
+   in the cloud's core any name shown is on a star with no other within 16px; closer in (about 37x), 1 to 10 are,
+   each a real title from `stars.json` on such a star, and clicking one selects that project. Unit
    (`tests/galaxy-3d/sharp.test.ts`): sharpness is 0 at the fit view, 1 at the closest zoom, never falling as you zoom
-   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name.
+   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name,
+   and names none with another star drawn within 16px (a dense field has none; a lone star beside it is named).
+8. `plain.spec.ts`: "By meaning" has no "Go to <category>" labels ("By category" has them). Of the lit pixels in a
+   320px box at the map's centre, more than 30% have a hue outside the plain stars' blue-white before "Hide category
+   colors" and under 5% after; the toggle is pressed, `?colors=off` is in the URL and survives a reload, and pressing
+   it again removes both.
 
 ## Defaults
 "By category" is the default because it reads at a glance; "By meaning" is one tap away. Undo: set the default
