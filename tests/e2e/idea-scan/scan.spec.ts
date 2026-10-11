@@ -118,7 +118,9 @@ test("the intro lights every category in turn, only when asked", async ({ page }
   await expect(galaxy(page)).toHaveAttribute("data-classes", "ready", { timeout: 20_000 });
   await page.waitForTimeout(500);
   await expect(galaxy(page)).toHaveAttribute("data-intro", "idle");
-  await page.getByRole("button", { name: "Run the intro" }).click();
+  // The map's play button plays the story, which opens with the intro's sweep (Plan 4, 5).
+  await page.getByRole("button", { name: "Play the story" }).click();
+  await expect(galaxy(page)).toHaveAttribute("data-story", "sky");
   await expect(galaxy(page)).toHaveAttribute("data-intro", "play");
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Director, introFrame, introLength, landAt, landedAt, scanFrame, scanLength, scanPhase, SCAN } from "@/components/scan/director";
+import { BEAT_AT, TWIN_AT } from "@/components/scan/story";
 
 // The scan and intro clock (specs/features/idea-scan, Plan 2 and 4): pure timing, so the order and the end state are
 // exact.
@@ -90,5 +91,54 @@ describe("director", () => {
     d.tick(introLength(3) + 0.01);
     expect(d.status.intro).toBe("done");
     expect(d.status.scan).toBe("drain");
+  });
+});
+
+// The story (Plan 5) drives the same clock: slower arcs on its beat, a pause that holds the frame, and a halt that hands
+// back what was showing.
+describe("director in the story", () => {
+  const pace = { reachAt: TWIN_AT[0] - BEAT_AT.twins - SCAN.reach, gap: TWIN_AT[1] - TWIN_AT[0] };
+  test("a paced scan lands each twin on its story time; an unpaced scan keeps the default timing", () => {
+    TWIN_AT.forEach((at, k) => expect(BEAT_AT.twins + landAt(k, pace)).toBeCloseTo(at, 9));
+    expect(landAt(2)).toBe(SCAN.reachAt + 2 * SCAN.gap + SCAN.reach);
+    const d = new Director();
+    d.startScan("story", [1, 2, 3], 0, pace);
+    d.tick(TWIN_AT[1] - BEAT_AT.twins + 0.01);
+    expect(d.status).toMatchObject({ scan: "reach", landed: 2 });
+  });
+  test("pause holds the frame however long; resume picks up where it stood", () => {
+    const d = new Director();
+    d.startScan("v1", [1, 2, 3, 4, 5], 0);
+    const at = landAt(1) + 0.01;
+    d.tick(at);
+    d.pause(at);
+    expect(d.paused).toBe(true);
+    const held = d.tick(at + 60)!;
+    expect(d.status.landed).toBe(2);
+    expect([...held.land.slice(0, 3)].map((x) => x >= 0)).toEqual([true, true, false]);
+    d.resume(at + 60);
+    expect(d.paused).toBe(false);
+    d.tick(at + 60 + SCAN.gap);
+    expect(d.status.landed).toBe(3);
+    // The intro pauses the same way.
+    const i = new Director();
+    i.startIntro([1, 2, 3], 0);
+    i.pause(0.2);
+    i.tick(100);
+    expect(i.status.intro).toBe("play");
+    i.resume(100);
+    i.tick(100 + introLength(3));
+    expect(i.status.intro).toBe("done");
+  });
+  test("halt drops whatever is playing, queued scan and camera asks included, and restores the given status", () => {
+    const d = new Director();
+    const before = { ...d.status, scan: "done" as const, landed: 5, key: "user-idea" };
+    d.startIntro([1, 2], 0);
+    d.startScan("v1", [1], 0.1);
+    d.halt(before);
+    expect(d.playing).toBe(false);
+    expect(d.introCamera).toBeNull();
+    expect(d.tick(10)).toBeNull();
+    expect(d.status).toEqual(before);
   });
 });
