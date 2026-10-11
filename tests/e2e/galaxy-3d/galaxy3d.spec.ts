@@ -107,6 +107,7 @@ test("dragging turns the camera, not the stars", async ({ page }) => {
 });
 
 test("a right-drag turns the camera; a left-drag doesn't", async ({ page }) => {
+  test.slow(); // two drags, each waiting for software GL to settle
   await page.emulateMedia({ reducedMotion: "reduce" }); // no drift, so only the drag moves the camera
   await page.goto("/?layout=nebula");
   const box = await ready(page);
