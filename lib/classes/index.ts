@@ -50,11 +50,12 @@ export const isProject = (p: unknown): p is ProjectClass => {
   );
 };
 
-// A file for another corpus would colour the wrong stars, so it's refused rather than half-applied.
-export function parseClasses(json: unknown, corpusVersion: string): Load {
+// Labels are keyed by project id, so a file from an earlier release still labels every project it covers, and never
+// another project's star. Projects added since have no entry: they stay uncategorised (neutral), not guessed, and the
+// legend counts them. (A release that grew 57,301 -> 76,316 projects otherwise lost every category on the map.)
+export function parseClasses(json: unknown): Load {
   const parsed = Head.safeParse(json);
   if (!parsed.success || !Object.values(parsed.data.projects).every(isProject)) return { state: "missing", reason: "classes.json is invalid" };
-  if (parsed.data.corpus_version !== corpusVersion) return { state: "missing", reason: "classes.json is for another corpus" };
   return { state: "ready", data: parsed.data as ClassesFile };
 }
 
@@ -110,14 +111,16 @@ export function matches(data: ClassesFile | null, id: string, f: ClassFilter) {
 export function counts(data: ClassesFile, ids: string[], keep: (i: number) => boolean, event: string | null = null) {
   const byKey = new Map<string, number>();
   let prizes = 0;
+  let uncategorised = 0;
   ids.forEach((id, i) => {
     if (!keep(i)) return;
     const c = data.projects[id];
     const key = keyOf(c);
     if (key !== null) byKey.set(key, (byKey.get(key) ?? 0) + 1);
+    else uncategorised++;
     if (wins(c, event).length) prizes++;
   });
-  return { byKey, prizes };
+  return { byKey, prizes, uncategorised };
 }
 
 // One shared load and filter, read by the galaxy, legend, search and drawer.
@@ -146,7 +149,7 @@ export function loadClasses(corpusVersion: string) {
   started = corpusVersion;
   fetch("/api/classes")
     .then((r) => (r.status === 200 ? r.json() : Promise.reject(new Error("not found"))))
-    .then((json) => set({ load: parseClasses(json, corpusVersion) }))
+    .then((json) => set({ load: parseClasses(json) }))
     .catch(() => set({ load: { state: "missing", reason: "categories not loaded" } }));
 }
 

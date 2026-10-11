@@ -28,7 +28,7 @@ export default function Legend(props: { ids: string[]; shown: (i: number) => boo
     );
   }
   const data = load.data;
-  const { byKey, prizes } = counts(data, ids, shown, filter.event);
+  const { byKey, prizes, uncategorised } = counts(data, ids, shown, filter.event);
   const entries = [
     ...data.domains.map((d, i) => ({ key: d.id, label: d.label, colour: PALETTE[i % PALETTE.length] })),
     { key: MIXED, label: "Mixed", colour: NEUTRAL },
@@ -70,6 +70,7 @@ export default function Legend(props: { ids: string[]; shown: (i: number) => boo
             </li>
           ))}
         </ul>
+        {uncategorised > 0 && <p className={`${styles.muted} ${styles.pending}`}>{uncategorised.toLocaleString()} not yet categorised</p>}
         <button
           type="button"
           className={styles.entry}

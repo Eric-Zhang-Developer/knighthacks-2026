@@ -3,16 +3,27 @@ import { colourOf, counts, keyOf, matches, MIXED, NEUTRAL, PALETTE, parseClasses
 import fixture from "./fixtures/classes.json";
 
 const ready = (() => {
-  const l = parseClasses(fixture, "test-1");
+  const l = parseClasses(fixture);
   if (l.state !== "ready") throw new Error("fixture should load");
   return l.data;
 })();
 const ids = ["a", "b", "c", "d", "e"];
 
 describe("classes.json loader", () => {
-  it("refuses a file for another corpus and an invalid file", () => {
-    expect(parseClasses(fixture, "other").state).toBe("missing");
-    expect(parseClasses({ corpus_version: "test-1" }, "test-1").state).toBe("missing");
+  it("refuses an invalid file", () => {
+    expect(parseClasses({ corpus_version: "test-1" }).state).toBe("missing");
+  });
+
+  // A release that grew keeps its earlier labels by project id; projects added since are counted, never guessed.
+  it("applies a file from an earlier release to the projects it covers and counts the rest as uncategorised", () => {
+    const load = parseClasses(fixture);
+    expect(load.state).toBe("ready");
+    if (load.state !== "ready") return;
+    const grown = [...ids, "new-1", "new-2"];
+    const { byKey, uncategorised } = counts(load.data, grown, () => true);
+    expect(uncategorised).toBe(2 + ids.filter((id) => !load.data.projects[id]).length);
+    expect([...byKey.values()].reduce((a, b) => a + b, 0) + uncategorised).toBe(grown.length);
+    expect(colourOf(load.data, load.data.projects["new-1"])).toBeNull();
   });
 
   it("puts mixed and not-enough-text projects under their own keys", () => {

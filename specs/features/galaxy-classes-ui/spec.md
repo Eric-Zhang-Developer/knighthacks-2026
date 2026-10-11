@@ -14,8 +14,11 @@ up with no code change. The done note says whether the real file was on main at 
 `docs/design-references/` (desktop, phone, video frames). Their names and numbers are illustrative, never data.
 
 ## Plan
-1. `lib/classes/`: load and validate `classes.json`. When it's missing or its `corpus_version` doesn't match
-   `stars.json`, the galaxy renders as before and the legend says "categories not loaded".
+1. `lib/classes/`: load and validate `classes.json`. When it's missing or invalid, the galaxy renders as before and
+   the legend says "categories not loaded". Labels are keyed by project id, so a file from an earlier release still
+   labels every project it covers (2026-10-11: the map grew to 76,316 projects while labels covered 57,301, and the
+   whole map had lost its categories); projects added since stay neutral and the legend says "<n> not yet
+   categorised". A label never lands on another project's star.
 2. Star colour = domain (one muted palette entry per domain; `mixed` and `insufficient_text` in neutral grey).
    Highlighted, selected and idea stars keep their current styles on top.
 3. Prize ring: stars with a `placement` or `sponsor` prize get a ring (a shape, so not colour alone). `participation`
