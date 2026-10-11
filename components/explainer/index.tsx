@@ -36,8 +36,8 @@ export default function Explainer() {
         <summary className="ui-heading">What am I looking at?</summary>
         <div className={styles.body} data-testid="explainer-text">
           <p>
-            Each star is one real past hackathon project: <strong data-testid="explainer-count">{summary.count}</strong>{" "}
-            projects indexed from {summary.events.length} {summary.events.length === 1 ? "event" : "events"}.
+            Each star is one real past hackathon project: <strong data-testid="explainer-count">{summary.count.toLocaleString()}</strong>{" "}
+            projects indexed from {summary.events.length.toLocaleString()} {summary.events.length === 1 ? "event" : "events"}.
           </p>
           <p>
             Stars sit near each other when their descriptions are similar. Similarity is computed in the full embedding
@@ -51,7 +51,7 @@ export default function Explainer() {
         <ul className={styles.body + " " + styles.events} aria-label="Source coverage">
           {summary.events.map(([name, n]) => (
             <li key={name}>
-              <span>{name}</span> · {n}
+              <span>{name}</span> · {n.toLocaleString()}
             </li>
           ))}
         </ul>

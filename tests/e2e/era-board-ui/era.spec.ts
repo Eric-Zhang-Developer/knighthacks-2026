@@ -21,7 +21,7 @@ test("the explainer's era board: rows sum to the corpus, tool use sums to each r
   await explainer.getByText("What am I looking at?").click();
   const board = explainer.getByRole("region", { name: "AI tools and eras" });
   await expect(board.locator('[data-count="reported"]').first()).toBeVisible({ timeout: 30_000 });
-  const total = Number(await explainer.getByTestId("explainer-count").textContent());
+  const total = Number((await explainer.getByTestId("explainer-count").textContent())?.replace(/,/g, ""));
   expect(total).toBe(stars.stars.length);
 
   // Shown formatted ("7,908"); data-value carries the raw count, and the text must match it.
