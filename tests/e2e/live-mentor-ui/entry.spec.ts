@@ -7,6 +7,34 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/workspace", (route) => route.fulfill({ json: { workspaceId: "fixture-workspace", memberId: "fixture-member" } }));
 });
 
+for (const width of [390, 1440]) {
+  test(`map-first contextual rail and persistent bubble at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#explore");
+    const rail = page.getByRole("complementary", { name: "Idea and evidence", includeHidden: true });
+    const bubble = page.getByRole("button", { name: "Start live voice conversation", exact: true });
+    await expect(bubble).toBeVisible();
+    await expect(rail).toBeHidden();
+    await expect(page.getByText("Hold to talk", { exact: true })).toHaveCount(0);
+    for (const destination of ["Idea", "Decide", "Plan"]) {
+      await page.getByRole("link", { name: destination, exact: true }).click();
+      await expect(rail).toBeVisible();
+      await expect(page.locator(`#step-${destination.toLowerCase()}`)).toBeVisible();
+      for (const other of ["idea", "decide", "plan"].filter((id) => id !== destination.toLowerCase())) {
+        await expect(page.locator(`#step-${other}`)).toBeHidden();
+      }
+      await expect(bubble).toBeVisible();
+      const bounds = await bubble.boundingBox();
+      expect(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width && bounds.y + bounds.height <= 900).toBeTruthy();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    await page.getByRole("link", { name: "Explore", exact: true }).click();
+    await expect(rail).toBeHidden();
+    await expect(bubble).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath(`map-first-${width}.png`) });
+  });
+}
+
 test("one tap requests microphone; mount/hash never listen; denial keeps typing optional and usable", async ({ page }) => {
   let microphoneRequests = 0;
   await page.exposeFunction("recordMicAttempt", () => { microphoneRequests++; });
