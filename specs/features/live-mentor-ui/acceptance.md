@@ -74,17 +74,17 @@ The production build passed; full lint and type checking are also required on th
 Full deletion UI acceptance (selected/unselected/last, failure and real voice), visual QA, and the previously
 outstanding real evidence -> confirmed save -> decision/share journey still block feature completion.
 
-Integration-only follow-up: this branch includes API448 at19280d6 and enables the named delete button for
-local testing against the dedicated TEST database. Type checking, scoped lint and60 combined mentor/idea
-unit tests pass. Selection also clears news cards, with live tool invalidation from mentor-quality454.
-This is not production approval or browser/voice acceptance; the UI feature branch keeps deletion disabled.
-The integration server enables this capability only in development when DATABASE_URL exactly equals the
+Historical integration-preview receipt: API448 at 19280d6 enabled the named delete button for local testing
+against the dedicated TEST database. Type checking, scoped lint and 60 combined mentor/idea unit tests passed.
+Selection also cleared news cards, with live tool invalidation from mentor-quality #454. PR #369 contains only
+the UI side and requires the coordinated #448 route before deletion can work. This is not production approval or
+browser/voice acceptance. Its server capability is limited to development when DATABASE_URL exactly equals the
 nonempty TEST_DATABASE_URL; hosted/production builds cannot enable it. Only a boolean reaches the browser.
 
 ## Merge acceptance receipt (October 11)
 
-The human explicitly responded, "A good accept merge." This authorizes merging the prepared UI change; it is
-not evidence that the complete voice journey, interruption behavior, real-audio naturalness, or response latency
-was exercised. The focused news/provider readback suite passes 27 UI tests. The UI owner previously reported the
-full unit suite at 584 passed and two skipped. The browser, real-audio and end-to-end decision/share gaps above
-remain open and are not reclassified by this merge acceptance.
+The human explicitly accepted the prepared UI change for merge. This is not evidence that the complete voice
+journey, interruption behavior, real-audio naturalness, or response latency was exercised. The current focused
+UI suite passes 36 tests. The UI owner previously reported the full unit suite at 584 passed and two skipped.
+A warm mic-denial browser rerun passed in 13 seconds (PR #454 comment 6108265346). The remaining browser,
+real-audio and end-to-end decision/share gaps above stay open and are not reclassified by merge acceptance.
