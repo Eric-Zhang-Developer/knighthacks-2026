@@ -1,126 +1,272 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useAppState } from "@/lib/store";
-import { STYLE, styleFor } from "./stars";
-import { boundsOf, StarGrid, type Viewport } from "./view";
+import { placeIdea } from "./layouts";
+import { easeInOut, Morph, MORPH_GLSL } from "./morph";
+import { pickNearest, STYLE, styleFor } from "./stars";
+import { FOV, type Orbit, type Vec3 } from "./view";
 
 const PICK_RADIUS = 10; // CSS px
 const WHEEL_ZOOM = 0.0015; // per wheel pixel: one notch (~100px) is about 16%
-const DRAG_PX = 4; // a pointer that moves less than this between down and up is a click, not a pan
+const DRAG_PX = 4; // a pointer that moves less than this between down and up is a click, not a drag
 
-// Round points with a per-star colour and size, so every corpus star is one draw call. Base stars are bare dots that
-// grow a little as you zoom in (so a close view isn't all empty space); marked stars (bigger than base) keep their
-// size and glow. A prize winner's core sits inside a ring: the shape marks it, not the colour alone.
-const material = () =>
+// Light is added, never alpha: the canvas is transparent over the page's background, and writing alpha would punch
+// dark discs through it. Every layer here is additive, so dense regions glow on their own.
+const ADD = {
+  transparent: true,
+  depthWrite: false,
+  depthTest: false,
+  blending: THREE.CustomBlending,
+  blendEquation: THREE.AddEquation,
+  blendSrc: THREE.OneFactor,
+  blendDst: THREE.OneFactor,
+  blendSrcAlpha: THREE.ZeroFactor,
+  blendDstAlpha: THREE.OneFactor,
+} as const;
+
+// Shared by the stars and their glow: size falls off with distance, and stars on the far side of the galaxy are
+// dimmer and smaller than the near side (a cheap fog), measured from the orbit's target.
+const DEPTH_GLSL = /* glsl */ `
+  uniform float uPixelRatio;
+  uniform float uFit;
+  uniform float uDist;
+  uniform float uScale; // smaller canvases get smaller stars, so a phone shows the same picture, not bigger blobs
+  float atten(float depth) { return uScale * pow(uFit / max(depth, 0.02), 0.8); }
+  float farness(float depth) { return clamp((depth - uDist) / 1.2 + 0.5, 0.0, 1.0); } // 0 near side, 1 far side
+`;
+
+const starUniforms = () => ({
+  uPixelRatio: { value: 1 },
+  uFit: { value: 2 },
+  uDist: { value: 2 },
+  uScale: { value: 1 },
+  uMorph: { value: 1 },
+  uTime: { value: 0 },
+  uTwinkle: { value: 1 },
+});
+
+// The stars: a soft sprite per star with a white-hot core, a halo in its category colour, per-star brightness, a slow
+// twinkle and depth cueing. A prize winner's core sits inside a ring, so the mark is a shape, not colour alone.
+const starMaterial = () =>
   new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    blending: THREE.NormalBlending,
-    uniforms: { pixelRatio: { value: 1 }, zoomScale: { value: 1 } },
-    vertexShader: `
+    ...ADD,
+    uniforms: starUniforms(),
+    vertexShader: /* glsl */ `
+      ${MORPH_GLSL}
+      ${DEPTH_GLSL}
       attribute vec3 starColor;
       attribute float size;
       attribute float ring;
-      uniform float pixelRatio;
-      uniform float zoomScale;
+      uniform float uTime;
+      uniform float uTwinkle;
       varying vec3 vColor;
-      varying float vGlow;
-      varying float vRing;
       varying float vAlpha;
+      varying float vRing;
       void main() {
+        vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
+        float depth = -mv.z;
+        float far = farness(depth);
+        float marked = step(${STYLE.highlighted.size - 0.5}, size); // highlighted, selected: full brightness
+        float s2 = fract(seed * 91.7);
+        float bright = 0.4 + 0.6 * pow(s2, 2.2);
+        float tw = 1.0 - uTwinkle * 0.5 * smoothstep(0.75, 1.0, sin(uTime * (0.5 + 1.8 * fract(seed * 7.31)) + seed * 60.0));
+        vAlpha = mix(bright * tw, 1.0, marked) * mix(1.3, 0.35, far);
         vColor = starColor;
         vRing = ring;
-        vGlow = step(${STYLE.base.size + 0.5}, size); // 1 for any marked star: every marked style is bigger than base
-        float grow = mix(zoomScale, 1.0, vGlow);
-        vAlpha = mix(0.78, 1.0, vGlow);
-        gl_PointSize = size * 2.2 * pixelRatio * grow; // room for a halo; the core keeps the nominal size
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xy, 0.0, 1.0);
+        float jitter = mix(0.7 + 0.7 * s2, 1.0, marked);
+        gl_PointSize = min(size * jitter * 2.6 * uPixelRatio * atten(depth) * mix(1.15, 0.75, far), 90.0 * uPixelRatio);
+        gl_Position = projectionMatrix * mv;
       }`,
-    fragmentShader: `
+    fragmentShader: /* glsl */ `
       varying vec3 vColor;
-      varying float vGlow;
-      varying float vRing;
       varying float vAlpha;
+      varying float vRing;
       void main() {
         float d = length(gl_PointCoord - 0.5) * 2.0;
         if (d > 1.0) discard;
-        float core = 1.0 - smoothstep(mix(0.38, 0.22, vRing), mix(0.46, 0.3, vRing), d);
-        float band = vRing * (smoothstep(0.58, 0.64, d) - smoothstep(0.8, 0.86, d));
-        float halo = pow(1.0 - d, 2.2) * 0.45 * vGlow * (1.0 - vRing);
-        gl_FragColor = vec4(vColor, max(max(core, band), halo) * vAlpha);
+        float core = exp(-d * d * 30.0);
+        float halo = exp(-d * d * 6.0) * 0.22;
+        float band = vRing * (smoothstep(0.56, 0.62, d) - smoothstep(0.68, 0.74, d)) * 0.4;
+        float lum = max(vColor.r, max(vColor.g, vColor.b));
+        vec3 col = vColor * (core + halo + band) + vec3(core * 0.6 * lum);
+        gl_FragColor = vec4(col * vAlpha, 0.0);
       }`,
   });
 
-// The nebula: the same stars again, drawn large, faint and additive under the points, so each category's region
-// glows in its own hue and dense regions glow brighter. Static: it changes only when the stars' styles do.
-const nebula = () =>
+// The nebula: every star again, large, faint and additive under the points, so each cloud glows in its own hue and
+// dense regions glow brighter. It flies with the stars.
+const glowMaterial = () =>
   new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    // Add light, never alpha: the canvas is transparent over the chart's CSS background, and writing alpha would
-    // punch dark discs through it.
-    blending: THREE.CustomBlending,
-    blendEquation: THREE.AddEquation,
-    blendSrc: THREE.OneFactor,
-    blendDst: THREE.OneFactor,
-    blendSrcAlpha: THREE.ZeroFactor,
-    blendDstAlpha: THREE.OneFactor,
-    uniforms: { pixelRatio: { value: 1 }, zoomScale: { value: 1 }, fade: { value: 1 } },
-    vertexShader: `
+    ...ADD,
+    uniforms: starUniforms(),
+    vertexShader: /* glsl */ `
+      ${MORPH_GLSL}
+      ${DEPTH_GLSL}
       attribute vec3 starColor;
       attribute float size;
-      uniform float pixelRatio;
-      uniform float zoomScale;
       varying vec3 vColor;
       void main() {
-        vColor = starColor;
-        // ponytail: one quad per star; at ~55k stars this is the fill-rate cost to watch (shrink the 34px first).
-        gl_PointSize = size > 0.0 ? 34.0 * pixelRatio : 0.0;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xy, 0.0, 1.0);
+        vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
+        float depth = -mv.z;
+        vColor = starColor * mix(1.0, 0.35, farness(depth));
+        // ponytail: one big quad per star; at ~55k stars this fill rate is the cost to watch (shrink the 32 first).
+        gl_PointSize = size > 0.0 ? min(32.0 * uPixelRatio * atten(depth), 160.0 * uPixelRatio) : 0.0;
+        gl_Position = projectionMatrix * mv;
       }`,
-    fragmentShader: `
-      uniform float fade;
+    fragmentShader: /* glsl */ `
       varying vec3 vColor;
       void main() {
         float d = length(gl_PointCoord - 0.5) * 2.0;
         if (d > 1.0) discard;
-        gl_FragColor = vec4(vColor * exp(-d * d * 4.0) * 0.07 * fade, 0.0);
+        gl_FragColor = vec4(vColor * exp(-d * d * 5.0) * 0.026, 0.0);
       }`,
   });
+
+// Plain soft dots: the far starfield, the dust inside the galaxy, and idea stars. `uAtten` 0 = fixed pixel size.
+const spriteMaterial = () =>
+  new THREE.ShaderMaterial({
+    ...ADD,
+    uniforms: { uPixelRatio: { value: 1 }, uAtten: { value: 0 }, uTime: { value: 0 }, uTwinkle: { value: 1 } },
+    vertexShader: /* glsl */ `
+      attribute vec3 color;
+      attribute float size;
+      attribute float seed;
+      uniform float uPixelRatio;
+      uniform float uAtten;
+      uniform float uTime;
+      uniform float uTwinkle;
+      varying vec3 vColor;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        float a = uAtten > 0.0 ? min(pow(uAtten / max(-mv.z, 0.02), 0.8), 6.0) : 1.0;
+        vColor = color * (1.0 - uTwinkle * 0.35 * (0.5 + 0.5 * sin(uTime * (0.4 + seed) + seed * 40.0)));
+        gl_PointSize = size * uPixelRatio * a;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      varying vec3 vColor;
+      void main() {
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        if (d > 1.0) discard;
+        gl_FragColor = vec4(vColor * (exp(-d * d * 14.0) + exp(-d * d * 3.0) * 0.25), 0.0);
+      }`,
+  });
+
+// HDR: the scene renders into a half-float target, then one full-screen pass adds a glow from the target's blurred
+// mip levels (a bloom faked in the shader) and tone-maps by each pixel's brightest channel, so a dense cloud
+// saturates into its own hue instead of clipping to white.
+function Composite() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const dpr = useThree((s) => s.viewport.dpr);
+  const post = useMemo(() => {
+    const rt = new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.HalfFloatType,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+    });
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { tScene: { value: rt.texture }, uExposure: { value: 0.95 }, uBloom: { value: 0.45 } },
+      depthTest: false,
+      depthWrite: false,
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tScene;
+        uniform float uExposure;
+        uniform float uBloom;
+        varying vec2 vUv;
+        void main() {
+          vec3 base = texture2D(tScene, vUv).rgb;
+          vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.6;
+          vec3 c = (base + bloom * uBloom) * uExposure;
+          float l = max(max(c.r, c.g), c.b);
+          float m = 1.0 - exp(-l);
+          vec3 hue = c / max(l, 1e-4);
+          // Hue kept as it brightens; only the very brightest cores bleach a little toward white.
+          vec3 col = mix(hue * m, vec3(m), smoothstep(2.0, 8.0, l) * 0.45);
+          gl_FragColor = vec4(col, clamp(m, 0.0, 1.0)); // premultiplied: alpha 0 made a real GPU compositor drop every star
+        }`,
+    });
+    const tri = new THREE.BufferGeometry();
+    tri.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));
+    const quad = new THREE.Mesh(tri, mat);
+    quad.frustumCulled = false;
+    const s = new THREE.Scene();
+    s.add(quad);
+    return { rt, mat, tri, scene: s, cam: new THREE.OrthographicCamera() };
+  }, []);
+  useEffect(() => post.rt.setSize(Math.round(size.width * dpr), Math.round(size.height * dpr)), [post, size, dpr]);
+  useEffect(() => () => (post.rt.dispose(), post.mat.dispose(), post.tri.dispose()), [post]);
+  // Priority 1: this frame callback does the rendering instead of r3f's default render.
+  useFrame(() => {
+    gl.setRenderTarget(post.rt);
+    gl.setClearColor(0x000000, 0);
+    gl.clear();
+    gl.render(scene, camera);
+    gl.setRenderTarget(null);
+    gl.clear();
+    gl.render(post.scene, post.cam);
+  }, 1);
+  return null;
+}
 
 type Style = { color: readonly number[]; size: number; ring?: boolean };
 const HIDDEN: Style = { color: STYLE.base.color, size: 0 };
+const NEUTRAL_STAR = [0.72, 0.8, 0.95] as const; // before categories load: a cool white
+const IDEA_RGB = [0.31, 0.84, 0.91] as const;
+const SELECTED_RGB = [0.9, 0.92, 1] as const;
 
-// The e2e reads the live position buffer through this to prove a reveal never moves a star, and the view to find
-// stars on screen.
-export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number>; starView?: Viewport };
+// The e2e reads the live layout positions through this (a reveal never moves a star).
+// starScreen: the stars as drawn now (mid-flight too), in canvas pixels.
+export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number>; starView?: Orbit; starScreen?: (idx: number[]) => { x: number; y: number }[]; starMorph?: Morph };
 
-function StarPoints(props: { positions: Float32Array; styleAt: (i: number) => Style; view: Viewport; expose?: boolean; glow?: boolean }) {
-  const { positions, styleAt, view, expose, glow } = props;
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: number) => Style; view: Orbit }) {
+  const { positions, morph, styleAt, view } = props;
   const dpr = useThree((s) => s.viewport.dpr);
   const dom = useThree((s) => s.gl.domElement) as StarCanvas;
-  const invalidate = useThree((s) => s.invalidate);
-  const mats = useMemo(() => ({ star: material(), glow: glow ? nebula() : null }), [glow]);
+  const n = positions.length / 3;
+  const mats = useMemo(() => ({ star: starMaterial(), glow: glowMaterial() }), []);
   const geometry = useMemo(() => {
-    const n = positions.length / 3;
     const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute("aFrom", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute("seed", new THREE.BufferAttribute(new Float32Array(n), 1));
     g.setAttribute("starColor", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
     g.setAttribute("size", new THREE.BufferAttribute(new Float32Array(n), 1));
     g.setAttribute("ring", new THREE.BufferAttribute(new Float32Array(n), 1));
     return g;
-  }, [positions]);
-
+  }, [n]);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => (mats.star.dispose(), mats.glow.dispose()), [mats]);
+
+  // A new layout (or the first one): fly every star from where it is now.
   useEffect(() => {
-    if (expose) dom.starPositions = geometry.getAttribute("position").array;
-  }, [expose, dom, geometry]);
-  useEffect(() => () => (mats.star.dispose(), mats.glow?.dispose()), [mats]);
+    morph.set(positions, performance.now() / 1000, !reducedMotion());
+    const set = (name: string, a: Float32Array) => {
+      const attr = geometry.getAttribute(name) as THREE.BufferAttribute;
+      attr.copyArray(a);
+      attr.needsUpdate = true;
+    };
+    set("position", morph.to);
+    set("aFrom", morph.from);
+    set("seed", morph.seed);
+    dom.starPositions = morph.to;
+    // Frame the layout by where 97% of its stars are, so a stray outlier doesn't shrink the picture.
+    const r = Float32Array.from({ length: n }, (_, i) => Math.hypot(positions[3 * i], positions[3 * i + 1], positions[3 * i + 2])).sort();
+    if (n) view.setRadius(Math.max(0.2, r[Math.floor(n * 0.97)] * 1.05));
+  }, [positions, morph, geometry, dom, n, view]);
+
   useEffect(() => {
     const color = geometry.getAttribute("starColor") as THREE.BufferAttribute;
     const size = geometry.getAttribute("size") as THREE.BufferAttribute;
@@ -132,56 +278,122 @@ function StarPoints(props: { positions: Float32Array; styleAt: (i: number) => St
       ring.setX(i, s.ring ? 1 : 0);
     }
     color.needsUpdate = size.needsUpdate = ring.needsUpdate = true;
-    invalidate();
-  }, [geometry, styleAt, invalidate]);
-  useFrame(() => {
-    // Base stars grow with zoom, gently: double size at 10x in, never more than 2.6x.
-    const zoomScale = Math.min(2.6, Math.max(1, Math.pow(view.zoomOverFit, 0.3)));
+  }, [geometry, styleAt]);
+
+  const box = useThree((s) => s.size);
+  const scale = Math.min(1.1, Math.max(0.45, Math.min(box.width, box.height) / 850));
+  useFrame((state) => {
+    morph.step(performance.now() / 1000);
     for (const m of [mats.star, mats.glow]) {
-      if (!m) continue;
-      m.uniforms.pixelRatio.value = dpr;
-      m.uniforms.zoomScale.value = zoomScale;
+      const u = m.uniforms;
+      u.uPixelRatio.value = dpr;
+      u.uFit.value = view.fitDist;
+      u.uDist.value = view.dist;
+      u.uScale.value = scale;
+      u.uMorph.value = morph.t;
+      u.uTime.value = state.clock.elapsedTime;
+      u.uTwinkle.value = view.reduced ? 0 : 1;
     }
-    // The nebula is the overview: it fades as you zoom in to read single stars, gone by about 6x.
-    if (mats.glow) mats.glow.uniforms.fade.value = Math.max(0, 1 - (view.zoomOverFit - 1) / 5);
   });
 
   return (
     <>
-      {mats.glow && <points geometry={geometry} material={mats.glow} renderOrder={0} />}
-      <points geometry={geometry} material={mats.star} renderOrder={1} />
+      <points geometry={geometry} material={mats.glow} renderOrder={1} frustumCulled={false} />
+      <points geometry={geometry} material={mats.star} renderOrder={2} frustumCulled={false} />
+    </>
+  );
+}
+
+function mulberry(a: number) {
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// A cloud of sprites from per-point generators.
+function sprites(n: number, at: () => Vec3, colour: () => Vec3, size: () => number, rand: () => number) {
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(n * 3);
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    pos.set(at(), 3 * i);
+    col.set(colour(), 3 * i);
+  }
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  g.setAttribute("size", new THREE.BufferAttribute(Float32Array.from({ length: n }, size), 1));
+  g.setAttribute("seed", new THREE.BufferAttribute(Float32Array.from({ length: n }, rand), 1));
+  return { g, m: spriteMaterial() };
+}
+
+// Depth: a far starfield that moves with the camera (so it reads as infinitely far, turning but never sliding), and a
+// faint dust in and around the galaxy that gives parallax as it turns.
+function Sky({ view }: { view: Orbit }) {
+  const dpr = useThree((s) => s.viewport.dpr);
+  const far = useRef<THREE.Points>(null);
+  const dust = useRef<THREE.Points>(null);
+  const built = useMemo(() => {
+    const rand = mulberry(7);
+    const gauss = () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
+    const onSphere = (r: number): Vec3 => {
+      const u = rand() * 2 - 1;
+      const t = rand() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      return [r * s * Math.cos(t), r * u, r * s * Math.sin(t)];
+    };
+    const tint = (b: number): Vec3 => {
+      const k = rand();
+      return k < 0.15 ? [b, b * 0.85, b * 0.7] : k < 0.55 ? [b * 0.78, b * 0.87, b] : [b, b, b];
+    };
+    return {
+      far: sprites(2600, () => onSphere(30), () => tint(0.08 + 0.42 * Math.pow(rand(), 3)), () => 2 + 3 * Math.pow(rand(), 4), rand),
+      dust: sprites(3200, () => [gauss() * 0.55, gauss() * 0.4, gauss() * 0.55], () => tint(0.05 + 0.08 * rand()), () => 1.2 + 2 * rand(), rand),
+    };
+  }, []);
+  useEffect(() => () => [built.far, built.dust].forEach((x) => (x.g.dispose(), x.m.dispose())), [built]);
+  useFrame((state, dt) => {
+    for (const x of [built.far, built.dust]) {
+      x.m.uniforms.uPixelRatio.value = dpr;
+      x.m.uniforms.uTime.value = state.clock.elapsedTime;
+      x.m.uniforms.uTwinkle.value = view.reduced ? 0 : 1;
+    }
+    built.dust.m.uniforms.uAtten.value = view.fitDist;
+    far.current?.position.copy(state.camera.position);
+    if (dust.current && !view.reduced) dust.current.rotation.y += dt * 0.012;
+  });
+  return (
+    <>
+      <points ref={far} geometry={built.far.g} material={built.far.m} renderOrder={0} frustumCulled={false} />
+      <points ref={dust} geometry={built.dust.g} material={built.dust.m} renderOrder={0} frustumCulled={false} />
     </>
   );
 }
 
 export type Hover = { index: number; x: number; y: number } | null;
 
-// Pointer, wheel and pinch input, and the camera: every frame the orthographic camera is set from the viewport.
-// Panning and zooming are refused while a selection's panel is open (the camera holds still).
-function Rig(props: {
-  view: Viewport;
-  positions: Float32Array;
-  visible: Uint8Array;
-  locked: boolean;
-  onHover: (h: Hover) => void;
-  onPick: (index: number) => void;
-}) {
-  const { view, positions, visible, locked, onHover, onPick } = props;
-  const camera = useThree((s) => s.camera) as THREE.OrthographicCamera;
+// Pointer, wheel and pinch input, and the camera: every frame the perspective camera is set from the orbit.
+function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (h: Hover) => void; onPick: (index: number) => void }) {
+  const { view, morph, visible, onHover, onPick } = props;
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const dom = useThree((s) => s.gl.domElement);
   const size = useThree((s) => s.size);
-  const invalidate = useThree((s) => s.invalidate);
-  const box = useMemo(() => boundsOf(positions), [positions]);
-  const grid = useMemo(() => new StarGrid(positions, box), [positions, box]);
 
-  useEffect(() => view.setBounds(box, size.width, size.height), [view, box, size]);
+  useEffect(() => view.setAspect(size.width, size.height), [view, size]);
   useEffect(() => void ((dom as StarCanvas).starView = view), [dom, view]);
-  // The canvas draws on demand: only when the view or the stars change, never at idle.
   useEffect(() => {
-    view.onChange = invalidate;
-    invalidate();
-    return () => void (view.onChange = () => {});
-  }, [view, invalidate]);
+    const v = new THREE.Vector3();
+    (dom as StarCanvas).starMorph = morph;
+    (dom as StarCanvas).starScreen = (idx) => {
+      const { width: w, height: h } = dom.getBoundingClientRect();
+      return idx.map((i) => {
+        v.set(morph.current[3 * i], morph.current[3 * i + 1], morph.current[3 * i + 2]).project(camera);
+        return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h };
+      });
+    };
+  }, [dom, morph, camera]);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => (view.reduced = mq.matches);
@@ -191,26 +403,41 @@ function Rig(props: {
   }, [view]);
   useFrame((_, dt) => {
     view.step(Math.min(dt, 0.1));
-    if (view.moving) invalidate(); // still gliding or springing: draw the next frame too
-    camera.position.set(view.x, view.y, 10);
-    camera.zoom = view.zoom;
-    camera.near = 0.1;
-    camera.far = 100;
-    camera.updateProjectionMatrix();
+    camera.position.set(...view.eye());
+    camera.lookAt(...view.target);
+    camera.updateMatrixWorld();
   });
 
   useEffect(() => {
+    const v = new THREE.Vector3();
     const local = (e: { clientX: number; clientY: number }) => {
       const r = dom.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
+    // Project the stars as drawn now (mid-morph too) and take the nearest on screen.
     const pick = (p: { x: number; y: number }) => {
-      const w = view.toWorld(p.x, p.y);
-      return grid.nearest(w.x, w.y, PICK_RADIUS / view.zoom, visible);
+      const { width: w, height: h } = dom.getBoundingClientRect();
+      const at = morph.current;
+      const screen = new Float32Array(visible.length * 2).fill(NaN);
+      for (let i = 0; i < visible.length; i++) {
+        if (visible[i] !== 1) continue;
+        v.set(at[3 * i], at[3 * i + 1], at[3 * i + 2]).project(camera);
+        if (v.z > 1) continue;
+        screen[2 * i] = ((v.x + 1) / 2) * w;
+        screen[2 * i + 1] = ((1 - v.y) / 2) * h;
+      }
+      return pickNearest(screen, p.x, p.y, PICK_RADIUS);
     };
     const pointers = new Map<number, { x: number; y: number }>();
     let down = { x: 0, y: 0 };
     let moved = false;
+    let turning = false; // a modifier-drag turns the camera; a plain drag moves across the map
+    let grab = 0; // the depth of what the drag picked up
+    // The depth of the star under a screen point, or the target's when there's none.
+    const depthAt = (p: { x: number; y: number }) => {
+      const i = pick(p);
+      return i >= 0 ? view.depthOf(morph.current.subarray(3 * i, 3 * i + 3)) : view.dist;
+    };
     let trail: { x: number; y: number; t: number }[] = [];
 
     const onDown = (e: PointerEvent) => {
@@ -220,15 +447,19 @@ function Rig(props: {
       if (pointers.size === 1) {
         down = p;
         moved = false;
+        // Selected, the camera holds on the project: a plain drag circles it, and a right-drag does nothing.
+        turning = e.altKey || e.ctrlKey || e.metaKey || (view.held && e.button === 0);
+        grab = depthAt(p);
         trail = [{ ...p, t: e.timeStamp }];
       }
-      view.interrupt(); // grabbing the map stops any glide or spring where it is
+      view.interrupt();
+      view.dragging = true;
     };
     const onMove = (e: PointerEvent) => {
       const p = local(e);
       const prev = pointers.get(e.pointerId);
+      view.poke(); // a pointer over the map holds the drift, so a star stays under it
       if (!prev) {
-        // Hover, no button down.
         const index = pick(p);
         dom.style.cursor = index >= 0 ? "pointer" : "grab";
         onHover(index >= 0 ? { index, ...p } : null);
@@ -236,18 +467,16 @@ function Rig(props: {
       }
       onHover(null);
       if (Math.hypot(p.x - down.x, p.y - down.y) > DRAG_PX) moved = true;
-      if (locked) return;
       if (pointers.size === 2) {
-        // Pinch: zoom by the change in finger spread, about the fingers' midpoint, and pan with the midpoint.
-        const [a, b] = [...pointers.values()];
-        const other = a === prev ? b : a;
-        const mid0 = { x: (prev.x + other.x) / 2, y: (prev.y + other.y) / 2 };
-        const mid1 = { x: (p.x + other.x) / 2, y: (p.y + other.y) / 2 };
+        // Pinch: zoom by the change in finger spread.
+        const other = [...pointers.values()].find((q) => q !== prev)!;
         const spread = Math.hypot(prev.x - other.x, prev.y - other.y);
-        if (spread > 0) view.zoomAt(Math.hypot(p.x - other.x, p.y - other.y) / spread, mid1.x, mid1.y);
-        view.panBy(mid1.x - mid0.x, mid1.y - mid0.y);
+        const r = dom.getBoundingClientRect();
+        const mid = { dxPx: (p.x + other.x) / 2 - r.width / 2, dyPx: (p.y + other.y) / 2 - r.height / 2, heightPx: r.height };
+        if (spread > 0) view.dollyBy(Math.hypot(p.x - other.x, p.y - other.y) / spread, mid);
       } else {
-        view.panBy(p.x - prev.x, p.y - prev.y);
+        if (turning) view.rotateBy(p.x - prev.x, p.y - prev.y);
+        else view.panBy(p.x - prev.x, p.y - prev.y, dom.getBoundingClientRect().height, grab);
         trail.push({ ...p, t: e.timeStamp });
         if (trail.length > 6) trail.shift();
       }
@@ -258,23 +487,26 @@ function Rig(props: {
       const wasPinch = pointers.size > 1;
       pointers.delete(e.pointerId);
       if (pointers.size > 0) return;
+      view.dragging = false;
       if (!moved) return onPick(pick(p)); // a click: select the star under the pointer, or clear on empty space
-      if (locked || wasPinch) return;
-      // Hand the drag's velocity to the glide, from the last ~100 ms of movement. A pointer that held still before
-      // letting go has no velocity, so the map stays where it was put.
+      if (wasPinch) return;
+      // Hand the drag's velocity to the glide or the spin, from the last ~100 ms of movement.
       const first = trail.find((s) => e.timeStamp - s.t < 100);
       const dt = first ? (e.timeStamp - first.t) / 1000 : 0;
-      if (first && dt > 0) view.release((p.x - first.x) / dt, (p.y - first.y) / dt);
+      if (!first || dt <= 0) return;
+      const [vx, vy] = [(p.x - first.x) / dt, (p.y - first.y) / dt];
+      if (turning) view.release(vx, vy);
+      else view.releasePan(vx, vy, dom.getBoundingClientRect().height, grab);
     };
     const onLeave = () => onHover(null);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault(); // the map zooms; the page doesn't scroll
-      if (locked) return;
-      const p = local(e);
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-      view.zoomAt(Math.exp(-px * WHEEL_ZOOM), p.x, p.y);
+      const r = dom.getBoundingClientRect();
+      const q = local(e);
+      view.dollyBy(Math.exp(-px * WHEEL_ZOOM), { dxPx: q.x - r.width / 2, dyPx: q.y - r.height / 2, heightPx: r.height, depth: depthAt(q) });
     };
-    const onContext = (e: Event) => e.preventDefault(); // right-drag pans too
+    const onContext = (e: Event) => e.preventDefault();
 
     dom.style.touchAction = "none";
     dom.addEventListener("pointerdown", onDown);
@@ -293,40 +525,187 @@ function Rig(props: {
       dom.removeEventListener("wheel", onWheel);
       dom.removeEventListener("contextmenu", onContext);
     };
-  }, [view, grid, visible, locked, dom, onHover, onPick]);
+  }, [view, morph, visible, dom, camera, onHover, onPick]);
   return null;
 }
 
-// Lines from the active idea star to its stored neighbours: only edges backed by saved data.
-function Lines({ segments }: { segments: Float32Array }) {
+export type Idea = { neighbours: number[]; own: Vec3; lines: boolean };
+const SEG = 40; // segments per tentacle
+
+// Where the active idea sits in the layout as drawn now.
+const ideaAt = (idea: Idea, morph: Morph) => placeIdea(idea.neighbours, morph.current, idea.own);
+
+// Idea focus: a dotted arc from the idea to each stored neighbour, bowing outward and flowing toward the neighbour,
+// rebuilt every frame so it follows the stars through a morph.
+function Tentacles({ idea, morph, view }: { idea: Idea; morph: Morph; view: Orbit }) {
+  const count = idea.neighbours.length;
   const geometry = useMemo(() => {
     const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(segments, 3));
+    const u = new Float32Array(count * SEG * 2);
+    for (let k = 0; k < count * SEG; k++) {
+      u[2 * k] = (k % SEG) / SEG;
+      u[2 * k + 1] = ((k % SEG) + 1) / SEG;
+    }
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * SEG * 6), 3));
+    g.setAttribute("u", new THREE.BufferAttribute(u, 1));
     return g;
-  }, [segments]);
-  const mat = useMemo(() => new THREE.LineBasicMaterial({ color: "#4fd6e8", transparent: true, opacity: 0.55, depthWrite: false, depthTest: false }), []);
+  }, [count]);
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        ...ADD,
+        uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(...IDEA_RGB) } },
+        vertexShader: /* glsl */ `
+          attribute float u;
+          varying float vU;
+          void main() { vU = u; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          uniform vec3 uColor;
+          varying float vU;
+          void main() {
+            float dash = step(0.55, fract(vU * 34.0 - uTime * 0.8));
+            float a = dash * mix(0.9, 0.35, vU) * smoothstep(0.0, 0.04, vU);
+            gl_FragColor = vec4(uColor * a, 0.0);
+          }`,
+      }),
+    [],
+  );
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => mat.dispose(), [mat]);
-  return <lineSegments geometry={geometry} material={mat} renderOrder={2} />;
+  useFrame((state) => {
+    mat.uniforms.uTime.value = view.reduced ? 0 : state.clock.elapsedTime;
+    const a = ideaAt(idea, morph);
+    const pos = geometry.getAttribute("position") as THREE.BufferAttribute;
+    const out = pos.array as Float32Array;
+    const at = morph.current;
+    idea.neighbours.forEach((i, n) => {
+      const b = [at[3 * i], at[3 * i + 1], at[3 * i + 2]];
+      const m = [0, 1, 2].map((k) => (a[k] + b[k]) / 2);
+      const len = Math.hypot(m[0], m[1], m[2]) || 1;
+      const bow = 0.45 * Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) + 0.02;
+      const c = [m[0] + (m[0] / len) * bow, m[1] + (m[1] / len) * bow + bow * 0.3, m[2] + (m[2] / len) * bow];
+      const curve = (t: number) => [0, 1, 2].map((k) => (1 - t) * (1 - t) * a[k] + 2 * (1 - t) * t * c[k] + t * t * b[k]);
+      for (let s = 0; s < SEG; s++) {
+        const o = (n * SEG + s) * 6;
+        out.set(curve(s / SEG), o);
+        out.set(curve((s + 1) / SEG), o + 3);
+      }
+    });
+    pos.needsUpdate = true;
+  });
+  return <lineSegments geometry={geometry} material={mat} renderOrder={3} frustumCulled={false} />;
+}
+
+// A pulsing reticle at a point: the active idea (cyan) or the selected star (white).
+function Pulse({ at, colour, view }: { at: () => Vec3 | null; colour: readonly number[]; view: Orbit }) {
+  const dpr = useThree((s) => s.viewport.dpr);
+  const ref = useRef<THREE.Points>(null);
+  const geometry = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3), 3));
+    return g;
+  }, []);
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        ...ADD,
+        uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(colour[0], colour[1], colour[2]) }, uSize: { value: 56 } },
+        vertexShader: /* glsl */ `
+          uniform float uSize;
+          void main() { gl_PointSize = uSize; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          uniform vec3 uColor;
+          void main() {
+            float d = length(gl_PointCoord - 0.5) * 2.0;
+            float phase = fract(uTime * 0.5);
+            float r = mix(0.28, 0.98, phase);
+            float wave = (1.0 - smoothstep(0.0, 0.05, abs(d - r))) * (1.0 - phase) * 0.8;
+            float still = (1.0 - smoothstep(0.0, 0.035, abs(d - 0.3))) * 0.7;
+            gl_FragColor = vec4(uColor * (wave + still), 0.0);
+          }`,
+      }),
+    [colour],
+  );
+  useEffect(() => () => (geometry.dispose(), mat.dispose()), [geometry, mat]);
+  useFrame((state) => {
+    const p = at();
+    if (ref.current) ref.current.visible = p !== null;
+    if (!p) return;
+    const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
+    attr.setXYZ(0, ...p);
+    attr.needsUpdate = true;
+    mat.uniforms.uTime.value = view.reduced ? 0.3 : state.clock.elapsedTime;
+    mat.uniforms.uSize.value = 56 * dpr;
+  });
+  return <points ref={ref} geometry={geometry} material={mat} renderOrder={4} frustumCulled={false} />;
+}
+
+type IdeaStar = { x: number; y: number; z: number; versionId: string };
+
+// Idea stars: cyan, larger than any project. The active one sits where its neighbours are in the current layout;
+// the rest keep their stored position (only their neighbours would place them in another layout).
+function Ideas({ ideas, active, idea, morph, view }: { ideas: IdeaStar[]; active: string | null; idea: Idea | null; morph: Morph; view: Orbit }) {
+  const dpr = useThree((s) => s.viewport.dpr);
+  const built = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ideas.flatMap((s) => [s.x, s.y, s.z])), 3));
+    g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(ideas.flatMap(() => [...IDEA_RGB])), 3));
+    g.setAttribute("size", new THREE.BufferAttribute(Float32Array.from(ideas, (s) => (s.versionId === active ? 30 : 20)), 1));
+    g.setAttribute("seed", new THREE.BufferAttribute(new Float32Array(ideas.length), 1));
+    return { g, m: spriteMaterial() };
+  }, [ideas, active]);
+  useEffect(() => () => (built.g.dispose(), built.m.dispose()), [built]);
+  useFrame(() => {
+    built.m.uniforms.uPixelRatio.value = dpr;
+    built.m.uniforms.uAtten.value = view.fitDist;
+    built.m.uniforms.uTwinkle.value = 0;
+    const k = ideas.findIndex((s) => s.versionId === active);
+    if (k < 0 || !idea) return;
+    const attr = built.g.getAttribute("position") as THREE.BufferAttribute;
+    attr.setXYZ(k, ...ideaAt(idea, morph));
+    attr.needsUpdate = true;
+  });
+  return <points geometry={built.g} material={built.m} renderOrder={3} frustumCulled={false} />;
 }
 
 export type Region = { key: string; label: string; count: number; at: number[] };
 
-// Region names follow their centroid on screen at a constant size, whatever the zoom. Positions are written straight
-// to the DOM each frame, so moving the view doesn't re-render React. A label near the idea star is hidden rather than
-// covering it, and so is one off the map.
-function Labels({ regions, layer, idea, view }: { regions: Region[]; layer: HTMLDivElement | null; idea: number[] | null; view: Viewport }) {
+// Region names follow their centroid on screen, written straight to the DOM each frame so moving the camera doesn't
+// re-render React. Names on the far side of the galaxy fade back; behind the camera, off the map, or covering the idea
+// they hide; during a morph they fade out and return where the clouds land.
+function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; layer: HTMLDivElement | null; idea: Idea | null; morph: Morph; view: Orbit }) {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const v = useMemo(() => new THREE.Vector3(), []);
   useFrame(() => {
     if (!layer) return;
-    const ideaAt = idea ? view.toScreen(idea[0], idea[1]) : null;
-    regions.forEach((g, i) => {
+    const toScreen = (p: ArrayLike<number>) => {
+      v.set(p[0], p[1], p[2]).applyMatrix4(camera.matrixWorldInverse);
+      const depth = -v.z;
+      v.applyMatrix4(camera.projectionMatrix);
+      return { x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height, depth };
+    };
+    const ideaS = idea ? toScreen(ideaAt(idea, morph)) : null;
+    const settle = easeInOut(Math.max(0, (morph.t - 0.7) / 0.3));
+    // Nearest first; a name that would overlap one already placed waits until the galaxy turns.
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    const at = regions.map((g, i) => ({ i, s: toScreen(g.at) })).sort((a, b) => a.s.depth - b.s.depth);
+    at.forEach(({ i, s }) => {
       const el = layer.children[i] as HTMLElement | undefined;
       if (!el) return;
-      const s = view.toScreen(g.at[0], g.at[1]);
-      const onMap = s.x > 0 && s.y > 0 && s.x < view.width && s.y < view.height;
-      const covers = ideaAt && Math.hypot(s.x - ideaAt.x, s.y - ideaAt.y) < 56;
-      el.style.visibility = onMap && !covers ? "visible" : "hidden";
-      el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
+      const w = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 120;
+      const box = { x0: s.x - w / 2, x1: s.x + w / 2, y0: s.y - 50, y1: s.y - 24 };
+      const clash = placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0);
+      const onMap = s.depth > 0.05 && s.x > 0 && s.y > 0 && s.x < size.width && s.y < size.height;
+      const covers = ideaS && Math.hypot(s.x - ideaS.x, s.y - ideaS.y) < 56;
+      const far = Math.min(1, Math.max(0, (s.depth - view.dist) / 1.2 + 0.5));
+      const opacity = onMap && !covers && !clash ? settle * (1 - 0.7 * far) : 0;
+      if (opacity > 0.01) placed.push(box);
+      el.style.visibility = opacity > 0.01 ? "visible" : "hidden";
+      el.style.opacity = opacity.toFixed(3);
+      el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
     });
   });
   return null;
@@ -336,29 +715,36 @@ export default function Scene(props: {
   ids: string[];
   positions: Float32Array;
   visible: Uint8Array;
-  view: Viewport;
+  view: Orbit;
   onHover: (h: Hover) => void;
   onPick: (index: number) => void;
   // Category colour per star (null = uncategorised), prize ring, and idea-focus dimming. All optional: without
-  // categories the galaxy renders as before.
+  // categories every star is a cool white.
   colourAt?: (i: number) => readonly number[] | null;
   ringAt?: (i: number) => boolean;
   dimAt?: (i: number) => boolean;
-  lines?: Float32Array;
+  idea?: Idea | null;
   regions?: Region[];
   labelLayer?: HTMLDivElement | null;
 }) {
-  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, lines, regions, labelLayer } = props;
+  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer } = props;
   const selectedId = useAppState((s) => s.selectedProjectId);
   const highlightedIds = useAppState((s) => s.highlightedIds);
   const ideaStars = useAppState((s) => s.ideaStars);
   const activeIdea = useAppState((s) => s.activeIdeaVersionId);
+  const morph = useMemo(() => new Morph(), []);
+  const selected = selectedId ? ids.indexOf(selectedId) : -1;
 
-  // Selecting a project, from the map, the list, search or the drawer, flies the view to it.
+  // Selecting a project, from the map, the list, search or the drawer, flies the camera to frame it; clearing the
+  // selection eases back to the whole galaxy.
+  const hadSelection = useRef(false);
   useEffect(() => {
-    const i = selectedId ? ids.indexOf(selectedId) : -1;
-    if (i >= 0) view.flyTo(positions[3 * i], positions[3 * i + 1]);
-  }, [selectedId, ids, positions, view]);
+    view.held = selected >= 0;
+    // Where the star ends up, so a layout switch while selected follows it to its new place.
+    if (selected >= 0) view.flyTo([positions[3 * selected], positions[3 * selected + 1], positions[3 * selected + 2]]);
+    else if (hadSelection.current) view.fit();
+    hadSelection.current = selected >= 0;
+  }, [selected, positions, morph, view]);
 
   const corpusStyle = useMemo(() => {
     const highlighted = new Set(highlightedIds);
@@ -366,26 +752,29 @@ export default function Scene(props: {
       if (!visible[i]) return HIDDEN;
       const marked = styleFor(ids[i], selectedId, highlighted);
       if (marked !== STYLE.base) return marked; // highlighted and selected keep their styles on top
-      const colour = colourAt?.(i) ?? STYLE.base.color;
+      const colour = colourAt?.(i) ?? NEUTRAL_STAR;
       const style: Style = ringAt?.(i) ? { color: colour, size: STYLE.prize.size, ring: true } : { color: colour, size: STYLE.base.size };
-      return dimAt?.(i) ? { ...style, color: style.color.map((c) => c * 0.22) } : style;
+      return dimAt?.(i) ? { ...style, color: style.color.map((c) => c * 0.12) } : style;
     };
   }, [ids, visible, selectedId, highlightedIds, colourAt, ringAt, dimAt]);
 
-  const ideaPositions = useMemo(() => new Float32Array(ideaStars.flatMap((s) => [s.x, s.y, s.z])), [ideaStars]);
-  const ideaStyle = useMemo(
-    () => (i: number) => (ideaStars[i].versionId === activeIdea ? STYLE.activeIdea : STYLE.idea),
-    [ideaStars, activeIdea],
+  const ideaPoint = useMemo(() => (idea ? () => ideaAt(idea, morph) : null), [idea, morph]);
+  const selectedPoint = useMemo(
+    () => () => (selected >= 0 && morph.current.length ? ([morph.current[3 * selected], morph.current[3 * selected + 1], morph.current[3 * selected + 2]] as Vec3) : null),
+    [selected, morph],
   );
-  const idea = ideaStars.find((x) => x.versionId === activeIdea);
 
   return (
-    <Canvas orthographic frameloop="demand" camera={{ position: [0, 0, 10], zoom: 1 }} aria-hidden>
-      <StarPoints positions={positions} styleAt={corpusStyle} view={view} expose glow />
-      {ideaStars.length > 0 && <StarPoints positions={ideaPositions} styleAt={ideaStyle} view={view} />}
-      <Rig view={view} positions={positions} visible={visible} locked={selectedId !== null} onHover={onHover} onPick={onPick} />
-      {lines && lines.length > 0 && <Lines segments={lines} />}
-      {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} idea={idea ? [idea.x, idea.y] : null} view={view} />}
+    <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.005, far: 100, position: [0, 0, 2] }} aria-hidden>
+      <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} />
+      <Composite />
+      <Sky view={view} />
+      <Stars positions={positions} morph={morph} styleAt={corpusStyle} view={view} />
+      {ideaStars.length > 0 && <Ideas ideas={ideaStars} active={activeIdea} idea={idea ?? null} morph={morph} view={view} />}
+      {idea && idea.lines && idea.neighbours.length > 0 && <Tentacles idea={idea} morph={morph} view={view} />}
+      {ideaPoint && <Pulse at={ideaPoint} colour={IDEA_RGB} view={view} />}
+      <Pulse at={selectedPoint} colour={SELECTED_RGB} view={view} />
+      {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} idea={idea ?? null} morph={morph} view={view} />}
     </Canvas>
   );
 }

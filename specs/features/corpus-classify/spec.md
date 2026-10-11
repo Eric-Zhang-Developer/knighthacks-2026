@@ -41,6 +41,8 @@ Communication & social · `security` Security & privacy · `science` Science & r
 transport. "AI agents" is a method, not a domain: an agent that books doctor visits is `health`.
 
 ## Requirements
+- A prize `place` that the prize text doesn't state ("Winner", "First Runner-Up") becomes null for that prize; it
+  doesn't fail the other prizes in its batch.
 - Every corpus id appears exactly once, and the counts and `corpus_version` match `public/corpus/stars.json`. The
   script exits non-zero otherwise.
 - `dev_tools_evidence` must be a verbatim substring of the stored description. Otherwise the script sets `dev_tools`
@@ -59,5 +61,9 @@ transport. "AI agents" is a method, not a domain: an agent that books doctor vis
 3. The review file exists with the numbers from Plan 5.
 
 ## Defaults
+Labels are stored per project and prize string (`corpus/classify/labels/`), so a grown corpus only labels new rows.
+When Gemini has no budget, classification agents may answer the same prompts (`--provider agent`); their answers
+pass the same validators, the store records each label's model, and `classes.json`'s `model` lists every model in
+it (`specs/decisions/corpus-classify-agent-labels.md`).
 Batch size 25, concurrency 4. If the largest domain holds more than 30%, inspect its descriptions before shipping;
 don't split it just to balance the chart.

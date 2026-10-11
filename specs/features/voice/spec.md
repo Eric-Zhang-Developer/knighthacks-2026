@@ -30,4 +30,6 @@ idea-create.
    check written in the done note.
 
 ## Defaults
-Push-to-talk only; hands-free mode is backlog.
+This existing component is push-to-talk only. The user's October 10 clarification (#345) makes live spoken
+mentorship the primary experience; live-mentor-api/ui implement it separately. Do not count this transcription
+feature or the cut read-back feature as conversational acceptance.

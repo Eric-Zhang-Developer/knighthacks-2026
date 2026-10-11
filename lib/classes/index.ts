@@ -139,9 +139,15 @@ export function compactRegions(data: ClassesFile, ids: string[], positions: Floa
   const all = ids.map((_, i) => i).filter(keep);
   if (!all.length) return [];
   const mean = (is: number[]) => [0, 1, 2].map((k) => is.reduce((s, i) => s + positions[3 * i + k], 0) / is.length);
-  const spread = median(all.map((i) => dist(at(i), mean(all))));
+  const centre = mean(all); // once: inside the map below it made this quadratic (40 s at 100k stars)
+  const spread = median(all.map((i) => dist(at(i), centre)));
+  const byKey = new Map<string, number[]>();
+  for (const i of all) {
+    const key = keyOf(data.projects[ids[i]]);
+    if (key !== null) (byKey.get(key) ?? byKey.set(key, []).get(key)!).push(i);
+  }
   return data.domains.flatMap((d) => {
-    const is = all.filter((i) => keyOf(data.projects[ids[i]]) === d.id);
+    const is = byKey.get(d.id) ?? [];
     if (is.length < 2) return [];
     const c = mean(is);
     return median(is.map((i) => dist(at(i), c))) < 0.6 * spread ? [{ key: d.id, label: d.label, count: is.length, at: c }] : [];

@@ -41,6 +41,15 @@
   color: inherit;
 }
 
+/* The app's Material buttons (app/globals.css: pill corners, a hover state layer) don't belong on a site-office
+   terminal. :where() keeps this at one class, so a foreman class later in the file still sets its own corners. */
+.root :where(button) {
+  border-radius: 0;
+}
+.root :where(button)::after {
+  content: none;
+}
+
 .stencil {
   font-family: var(--font-stencil), Impact, sans-serif;
   letter-spacing: 0.04em;
@@ -101,36 +110,6 @@
 }
 
 /* A scrolling strip of the latest merges. */
-.ticker {
-  overflow: hidden;
-  border-block: 1px solid var(--line);
-  margin-bottom: 22px;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--dim);
-}
-
-.tickerTrack {
-  display: inline-block;
-  padding: 6px 0;
-  animation: scroll 90s linear infinite;
-}
-
-.tickerTrack span {
-  margin-right: 36px;
-}
-
-.tickerTrack b {
-  color: var(--amber);
-  font-weight: 500;
-}
-
-@keyframes scroll {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 /* ---- sections ---- */
 .section {
   margin-top: 30px;
@@ -694,7 +673,8 @@
   height: 34px;
 }
 
-.range {
+/* .root: the app's input[type="range"] accent (globals.css) outranks a single class. */
+.root .range {
   width: 100%;
   margin: 2px 0 0;
   accent-color: var(--amber);
@@ -791,6 +771,12 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--amber);
+}
+
+.invite {
+  color: var(--dim);
+  font-size: 0.6em;
+  letter-spacing: 0.12em;
 }
 
 .captionText {

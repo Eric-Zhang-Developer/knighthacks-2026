@@ -1,11 +1,15 @@
 ---
 name: Hear short spoken replies, with mute and stop-speaking always visible
 depends_on: [voice-replies-api, voice, idea-create-ui]
-owns: [components/voice/, components/speech/, tests/voice-replies-ui/, tests/e2e/voice-replies-ui/]
+owns: [components/speech/, tests/voice-replies-ui/, tests/e2e/voice-replies-ui/]
 assignee: ""
 ---
 
 # Voice replies (F03 voice, replies): UI
+
+Superseded for the current release by live-mentor-ui (#345), per the user's October 10 clarification. This
+cut read-back feature no longer reserves components/voice/. Its original plan below is historical, not an
+instruction to race or replace the conversational mentor integration.
 
 Frontend half: Mac workers only (user decision 2026-10-10). Build against the response shape pinned in `voice-replies-api`; the routes exist once it is done. Mount: the voice bar (`components/voice/`, done) renders `<Speech />` from `components/speech/index.tsx`, so no shell change is needed. Owning the bar also lets pressing push-to-talk interrupt a reply.
 

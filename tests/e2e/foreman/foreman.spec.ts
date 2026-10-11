@@ -49,7 +49,7 @@ test("milestones and graph from the checkout, asks from GitHub at the snapshot, 
       await request.get(`https://api.github.com/repos/${REPO}/issues?state=open&labels=needs-human&per_page=100`, { headers })
     ).json()) as { title: string; updated_at: string; pull_request?: unknown }[];
     for (const i of issues.filter((i) => before(i) && !i.pull_request)) await expect(asks).toContainText(i.title);
-    await expect(page.getByTestId("intro")).toContainText(/agent workers.*merged \d+ PRs and built \d+ of \d+ planned features/);
+    await expect(page.getByTestId("intro")).toContainText(/built by \d+ agent workers in parallel, under one rulebook/);
   }
 
   await expect(page.locator("meta[name=robots]")).toHaveAttribute("content", /noindex/);
@@ -77,6 +77,10 @@ test("the replay scrubs the graph back to the first PR and returns to the snapsh
   const done = await page.locator('svg a[data-state="done"]').count();
 
   const slider = page.getByRole("slider", { name: "Time" });
+  // The terminal's own controls, not the app's Material ones (#358): a square amber play plate, an amber scrubber.
+  const play = page.getByRole("button", { name: /replay/i });
+  await expect(play).toHaveCSS("border-radius", "0px");
+  await expect(slider).toHaveCSS("accent-color", "rgb(255, 181, 71)");
   await slider.focus();
   await page.keyboard.press("Home");
   await expect(info).not.toContainText("SNAPSHOT");
@@ -94,10 +98,10 @@ test("the tour leads the page; space plays it with chapters and flashes and ends
   test.setTimeout(60_000);
   await page.goto("/foreman");
   await expect(page.locator("section").first().getByRole("heading")).toHaveText(/watch it get built/i);
-  const intro = await page.getByTestId("intro").innerText();
-  const [, merged, built] = /merged (\d+) PRs and built (\d+) of/.exec(intro)!;
+  // At rest the counters are the snapshot's; the play must end on the same numbers.
   const counters = page.getByTestId("tour-counters");
-  await expect(counters).toContainText(`${built}/`);
+  const atRest = await counters.innerText();
+  await expect(page.getByTestId("tour-caption")).toContainText("press space");
   await expect(page.getByTestId("chapter").first()).toBeAttached();
 
   // Hydration can land after goto: retry space until the replay starts.
@@ -105,7 +109,7 @@ test("the tour leads the page; space plays it with chapters and flashes and ends
     await page.keyboard.press(" ");
     await expect(page.getByRole("button", { name: /pause/i })).toBeVisible({ timeout: 1000 });
   }).toPass();
-  await expect(page.getByTestId("tour-caption")).not.toBeEmpty({ timeout: 20_000 });
+  await expect(page.getByTestId("chapter-caption")).not.toBeEmpty({ timeout: 20_000 });
   await expect(page.locator("svg a[data-slug][class*=flash]").first()).toBeAttached({ timeout: 20_000 });
   // Motion (spec § The tour): a landing sends out a ring and draws the edges it unlocks.
   await expect(page.locator("svg rect[class*=ring]").first()).toBeAttached({ timeout: 20_000 });
@@ -113,8 +117,7 @@ test("the tour leads the page; space plays it with chapters and flashes and ends
   await page.screenshot({ path: test.info().outputPath("foreman-tour-playing.png") });
 
   await expect(page.getByTestId("replay-info")).toContainText("SNAPSHOT", { timeout: 40_000 });
-  await expect(counters).toContainText(`${built}/`);
-  await expect(counters).toContainText(merged);
+  await expect(counters).toHaveText(atRest, { useInnerText: true });
 });
 
 test("reduced motion: the tour still plays, but no node animates", async ({ page }) => {

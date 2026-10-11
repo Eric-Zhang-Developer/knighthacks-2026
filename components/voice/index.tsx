@@ -1,11 +1,14 @@
 "use client";
 
-import { useScribe } from "@elevenlabs/react";
-import { useRef, useState, type KeyboardEvent } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import { getState, setState } from "@/lib/store";
 import { appendUtterance } from "@/lib/voice/draft";
 import { PanelState } from "@/components/ui";
+import type { Engine } from "./engine";
 import styles from "./voice.module.css";
+
+const ScribeEngine = dynamic(() => import("./engine"), { ssr: false });
 
 const MIC_DENIED = "Microphone blocked. Type your idea instead.";
 const UNAVAILABLE = "Voice is unavailable right now. Type your idea instead.";
@@ -16,23 +19,32 @@ export default function Voice() {
   const [notice, setNotice] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
   const holdingRef = useRef(false);
-
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    onCommittedTranscript: ({ text }) => {
-      if (!text.trim()) return;
-      setState({ ideaDraft: appendUtterance(getState().ideaDraft, text) });
-      setAdded(text.trim());
-    },
-    onError: () => setNotice(UNAVAILABLE),
+  // The SDK loads on first intent (hover, focus or press), so a visitor who never talks never downloads it. A press
+  // that beats the download waits for it below; the button itself is always here, so focus never moves.
+  const [wanted, setWanted] = useState(false);
+  const [partial, setPartial] = useState("");
+  const [connected, setConnected] = useState(false);
+  const engine = useRef<Engine | null>(null);
+  const [ready] = useState(() => {
+    let resolve!: (e: Engine) => void;
+    return { promise: new Promise<Engine>((r) => (resolve = r)), resolve };
   });
+  const onReady = useCallback((e: Engine) => ((engine.current = e), ready.resolve(e)), [ready]);
+  const onCommitted = useCallback((text: string) => {
+    if (!text.trim()) return;
+    setState({ ideaDraft: appendUtterance(getState().ideaDraft, text) });
+    setAdded(text.trim());
+  }, []);
+  const onError = useCallback(() => setNotice(UNAVAILABLE), []);
+  const want = () => setWanted(true);
 
   async function start() {
+    want();
     if (holdingRef.current) return;
     holdingRef.current = true;
     setHolding(true);
     setNotice(null);
-    if (scribe.isConnected) return scribe.unmute();
+    if (engine.current?.isConnected()) return engine.current.unmute();
     try {
       // Ask for the mic first, so a denial never spends a token.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -44,6 +56,7 @@ export default function Voice() {
     const token = res?.ok ? ((await res.json()) as { token?: string }).token : undefined;
     if (!token) return fail(UNAVAILABLE);
     try {
+      const scribe = engine.current ?? (await ready.promise);
       await scribe.connect({ token, microphone: { echoCancellation: true, noiseSuppression: true } });
       if (!holdingRef.current) scribe.mute(); // released while connecting
     } catch {
@@ -55,7 +68,8 @@ export default function Voice() {
     if (!holdingRef.current) return;
     holdingRef.current = false;
     setHolding(false);
-    if (!scribe.isConnected) return;
+    const scribe = engine.current;
+    if (!scribe?.isConnected()) return;
     scribe.commit();
     scribe.mute();
   }
@@ -80,6 +94,8 @@ export default function Voice() {
         type="button"
         className={styles.talk}
         aria-pressed={holding}
+        onPointerEnter={want}
+        onFocus={want}
         onPointerDown={start}
         onPointerUp={stop}
         onPointerLeave={stop}
@@ -88,9 +104,9 @@ export default function Voice() {
       >
         {holding ? "Listening… release to add" : "Hold to talk"}
       </button>
-      {holding && scribe.partialTranscript ? (
+      {holding && partial ? (
         <p className={styles.transcript} aria-live="polite">
-          {scribe.partialTranscript}
+          {partial}
         </p>
       ) : added ? (
         <p className={styles.added} aria-live="polite">
@@ -98,9 +114,10 @@ export default function Voice() {
         </p>
       ) : null}
       {notice && <PanelState kind="failed" message={notice} />}
-      <button type="button" className={styles.end} disabled={!scribe.isConnected} onClick={() => scribe.disconnect()}>
+      <button type="button" className={styles.end} disabled={!connected} onClick={() => engine.current?.disconnect()}>
         End voice session
       </button>
+      {wanted && <ScribeEngine onReady={onReady} onCommitted={onCommitted} onPartial={setPartial} onConnected={setConnected} onError={onError} />}
     </div>
   );
 }

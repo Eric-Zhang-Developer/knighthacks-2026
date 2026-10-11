@@ -7,7 +7,10 @@ const box = async (page: Page, selector: string) => (await page.locator(selector
 const near = (actual: number, expected: number) => expect(Math.abs(actual - expected), `${actual} vs ${expected}`).toBeLessThanOrEqual(1);
 const RAIL = "main[aria-label=Galaxy] > div:first-child";
 
-test("desktop: top bar, rails and composer at their sizes, the galaxy filling the centre", async ({ page }, info) => {
+// The rails float 12px in from the edges over a full-window chart (design-refresh Validation 1 supersedes "the galaxy
+// filling the centre"): the canvas sits between them, under the top bar, and push-to-talk floats over its bottom.
+const GAP = 12;
+test("desktop: top bar, rails and composer at their sizes, the galaxy between the rails", async ({ page }, info) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
@@ -20,13 +23,16 @@ test("desktop: top bar, rails and composer at their sizes, the galaxy filling th
   near(rail.width, 224);
   near(side.width, 360);
   near(composer.height, 72);
-  // The galaxy takes everything else: right of the rail, left of the side rail, between the top bar and composer.
-  near(canvas.x, 224);
+  near(rail.x, GAP);
+  near(side.x + side.width, 1440 - GAP);
+  // The galaxy takes everything between the rails, from the top bar to the bottom; the composer floats over it.
+  near(canvas.x, 224 + 2 * GAP);
   near(canvas.y, 52);
-  near(canvas.width, 1440 - 224 - 360);
-  near(canvas.height, 900 - 52 - 72);
-  near(composer.x, 224);
+  near(canvas.width, 1440 - 224 - 360 - 4 * GAP);
+  near(canvas.height, 900 - 52);
+  near(composer.x, canvas.x);
   near(composer.width, canvas.width);
+  near(composer.y + composer.height, 900);
   // History and the project list sit in the left rail.
   const inRail = page.locator(RAIL);
   await expect(inRail.getByRole("slider")).toBeVisible();

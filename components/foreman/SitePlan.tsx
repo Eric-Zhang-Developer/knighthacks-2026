@@ -91,10 +91,12 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
             <Counter n={working ?? "—"} label="agents at work" />
           </div>
           <p className={styles.caption} data-testid="tour-caption" aria-live="polite">
-            {caption && (
-              <span key={caption.label} className={styles.captionText}>
+            {caption ? (
+              <span key={caption.label} className={styles.captionText} data-testid="chapter-caption">
                 {caption.label}
               </span>
+            ) : (
+              t === null && <span className={styles.invite}>press space to watch it get built</span>
             )}
           </p>
         </div>
