@@ -12,7 +12,7 @@ const clouds = layoutOf("clouds", stars, classes);
 const dist = (p: Float32Array, a: number, b: number) =>
   Math.hypot(p[3 * a] - p[3 * b], p[3 * a + 1] - p[3 * b + 1], p[3 * a + 2] - p[3 * b + 2]);
 
-describe("layoutOf", () => {
+describe("layoutOf", { timeout: 30_000 }, () => { // the real 57k-star corpus: array compares take seconds
   it("nebula is the real positions; clouds without classes is nebula", () => {
     const real = stars.flatMap((s) => [s.x, s.y, s.z]);
     expect([...layoutOf("nebula", stars, classes)]).toEqual([...new Float32Array(real)]);
@@ -30,18 +30,30 @@ describe("layoutOf", () => {
   });
 
   it("clouds don't overlap: every star's nearest other-category star is farther than a gap", () => {
-    // ponytail: brute force over all ~35M pairs, inlined to stay well under a second at this corpus size.
+    // Exact, not sampled: any pair closer than GAP shares or touches a GAP-sized grid cell, so only those are compared
+    // (brute force over all pairs grew to ~1.6B at 57k stars and timed out).
+    const GAP = 0.02; // measured 0.036 on the 8,409 corpus
     const names = [...new Set(keys)];
     const id = Int32Array.from(keys, (k) => names.indexOf(k));
+    const cell = (v: number) => Math.floor(v / GAP);
+    const grid = new Map<string, number[]>();
+    for (let a = 0; a < stars.length; a++) {
+      const k = `${cell(clouds[3 * a])},${cell(clouds[3 * a + 1])},${cell(clouds[3 * a + 2])}`;
+      (grid.get(k) ?? grid.set(k, []).get(k)!).push(a);
+    }
     let closest = Infinity;
-    for (let a = 0; a < stars.length; a++)
-      for (let b = a + 1; b < stars.length; b++) {
-        if (id[a] === id[b]) continue;
-        const dx = clouds[3 * a] - clouds[3 * b], dy = clouds[3 * a + 1] - clouds[3 * b + 1], dz = clouds[3 * a + 2] - clouds[3 * b + 2];
-        closest = Math.min(closest, dx * dx + dy * dy + dz * dz);
-      }
-    closest = Math.sqrt(closest);
-    expect(closest).toBeGreaterThan(0.02); // measured 0.036 on this corpus
+    for (let a = 0; a < stars.length; a++) {
+      const [cx, cy, cz] = [cell(clouds[3 * a]), cell(clouds[3 * a + 1]), cell(clouds[3 * a + 2])];
+      for (let x = cx - 1; x <= cx + 1; x++)
+        for (let y = cy - 1; y <= cy + 1; y++)
+          for (let z = cz - 1; z <= cz + 1; z++)
+            for (const b of grid.get(`${x},${y},${z}`) ?? []) {
+              if (b <= a || id[a] === id[b]) continue;
+              const dx = clouds[3 * a] - clouds[3 * b], dy = clouds[3 * a + 1] - clouds[3 * b + 1], dz = clouds[3 * a + 2] - clouds[3 * b + 2];
+              closest = Math.min(closest, dx * dx + dy * dy + dz * dz);
+            }
+    }
+    expect(Math.sqrt(closest)).toBeGreaterThan(GAP); // Infinity when no other-category pair is within one cell
   });
 
   it("clouds keep meaning inside a cloud: distances between a category's stars track the real ones", () => {
