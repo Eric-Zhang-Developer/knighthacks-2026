@@ -187,3 +187,21 @@ revisions remain outside this UI command set until their own reviewed contracts 
 Validation adds parser tests for quoted/negated/ambiguous prose and binding/expiry/edits, plus phone browser
 tests showing a requested save does not write, explicit confirmation writes only that card, and duplicate or
 cancelled confirmation does not write. Mocked text/SDK inputs do not establish real ASR or spoken acceptance.
+
+## The conversation drives the screen (human request, 2026-10-11)
+
+The person, in session: as the mentor talks, the screen should follow, as if the user were clicking. Two behaviours:
+
+- **A related project comes up on its own.** When the agent's `find_projects` call returns, the top match opens
+  (`selectedProjectId`): the galaxy flies to its star and its project card opens (the phone sheet, or the desktop
+  side column scrolled to it). The other matches stay in "Related projects". The agent is told which project is on
+  screen. This is navigation only: nothing is saved.
+- **The Idea step fills in as you talk.** Each proposal (voice `propose_idea` or a typed turn) fills the Idea step's
+  fields, so the user doesn't retype what they said. A field the user typed in is never overwritten by a later
+  proposal; a field the proposal leaves blank keeps its value. A saved idea or a save in flight is never
+  touched. Nothing is saved until the user presses Save, and every field stays editable. Back clears the draft.
+
+Validation: `tests/live-mentor-ui/autofill.test.ts` (the merge rule) and `tests/e2e/live-mentor-ui/autofill.spec.ts`
+at 1440×900 and 390×844: two proposals fill the fields and keep a typed field; a project search result opens that
+project's card in view. The search result is delivered as Live.tsx hands it over (`mentor:evidence`), since the
+voice provider can't run in CI; a real spoken call is not covered.
