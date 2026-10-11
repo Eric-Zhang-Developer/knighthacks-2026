@@ -21,12 +21,15 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test.each([undefined, "", " ", "another-database"])("unapproved database configuration prevents deletion (%s)", async (testDatabase) => {
+test.each([undefined, "", " ", "another-database"])("confirmed owner deletion works in production without test-database configuration (%s)", async (testDatabase) => {
+  vi.stubEnv("NODE_ENV", "production");
+  vi.stubEnv("DATABASE_URL", "production-database");
+  deleteIdea.mockResolvedValue({ ideaId, deleted: true });
   vi.stubEnv("TEST_DATABASE_URL", testDatabase);
   const response = await DELETE(request(), context());
-  expect(response.status).toBe(503);
-  expect(deleteIdea).not.toHaveBeenCalled();
-  expect(await response.text()).not.toMatch(/test-database|another-database|DATABASE_URL/);
+  expect(response.status).toBe(200);
+  expect(deleteIdea).toHaveBeenCalledExactlyOnceWith("workspace-a", ideaId);
+  expect(await response.json()).toEqual({ ideaId, deleted: true });
 });
 
 test("deletion uses the authenticated workspace and returns a no-store committed receipt", async () => {
