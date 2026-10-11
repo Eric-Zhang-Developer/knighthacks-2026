@@ -3,11 +3,12 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { ARCS, SLOTS, type Director, type Frame } from "@/components/scan/director";
 import { useAppState } from "@/lib/store";
 import { placeIdea } from "./layouts";
 import { easeInOut, Morph, MORPH_GLSL } from "./morph";
 import { nearestNames, pickNearest, shortTitle, STYLE, styleFor } from "./stars";
-import { FOV, type Orbit, type Vec3 } from "./view";
+import { crowding, dragTurns, FOV, type Orbit, type Vec3 } from "./view";
 
 const PICK_RADIUS = 10; // CSS px
 const WHEEL_ZOOM = 0.0015; // per wheel pixel: one notch (~100px) is about 16%
@@ -38,7 +39,43 @@ const DEPTH_GLSL = /* glsl */ `
   float farness(float depth) { return clamp((depth - uDist) / 1.2 + 0.5, 0.0, 1.0); } // 0 near side, 1 far side
 `;
 
+// The idea scan and the intro (specs/features/idea-scan), per star from uniforms, so a scan never re-uploads the
+// buffer: unlit stars drain to a cool grey, a category's cloud warms back to its colour, a neighbour flashes as its
+// arc lands, the settle dims everything else toward the idea focus, and prize rings glint as their cloud lights.
+const SCAN_GLSL = /* glsl */ `
+  attribute float aCat; // category slot, -1 none
+  attribute float aNbr; // 1 + the neighbour's arc, 0 for any other star
+  uniform float uScanning; // 1 while a scan or the intro plays; at rest only the focus dim applies
+  uniform float uDrain;
+  uniform float uFade;
+  uniform float uWarm[${SLOTS}];
+  uniform float uLand[${ARCS}];
+  vec3 scanned(vec3 col, float ringed) {
+    float other = 1.0 - step(0.5, aNbr);
+    if (uScanning < 0.5) return col * (1.0 - 0.88 * uFade * other); // no array lookups at rest
+    float warm = aCat >= 0.0 ? uWarm[int(aCat + 0.5)] : 0.0;
+    float since = aNbr > 0.5 ? uLand[int(aNbr - 0.5)] : -1.0;
+    float landed = step(0.0, since);
+    float grey = uDrain * (1.0 - max(warm, landed));
+    float lum = dot(col, vec3(0.3, 0.59, 0.11));
+    vec3 c = mix(col, vec3(lum) * vec3(0.78, 0.84, 1.0) * 0.9, grey) * mix(1.0, 0.38, grey); // quiet, cool, unscanned
+    c *= mix(1.0, 0.12, uFade * other);
+    c *= 1.0 + landed * 3.0 * exp(-max(since, 0.0) * 3.5); // the landing flash
+    c *= 1.0 + ringed * uDrain * 6.0 * warm * (1.0 - warm); // prize rings glint as their cloud lights
+    return c;
+  }
+`;
+
+const scanUniforms = () => ({
+  uScanning: { value: 0 },
+  uDrain: { value: 0 },
+  uFade: { value: 0 },
+  uWarm: { value: new Float32Array(SLOTS) },
+  uLand: { value: new Float32Array(ARCS).fill(99) },
+});
+
 const starUniforms = () => ({
+  ...scanUniforms(),
   uPixelRatio: { value: 1 },
   uFit: { value: 2 },
   uDist: { value: 2 },
@@ -47,6 +84,7 @@ const starUniforms = () => ({
   uTime: { value: 0 },
   uTwinkle: { value: 1 },
   uSharp: { value: 0 },
+  uCrowd: { value: 1 }, // zoomed-out dimming for a big corpus (view.ts crowding)
 });
 
 // The stars. Over the whole map (uSharp 0): a soft sprite per star with a white-hot core, a halo in its category
@@ -62,12 +100,14 @@ const starMaterial = () =>
     vertexShader: /* glsl */ `
       ${MORPH_GLSL}
       ${DEPTH_GLSL}
+      ${SCAN_GLSL}
       attribute vec3 starColor;
       attribute float size;
       attribute float ring;
       uniform float uTime;
       uniform float uTwinkle;
       uniform float uSharp;
+      uniform float uCrowd;
       varying vec3 vColor;
       varying float vAlpha;
       varying float vRing;
@@ -83,11 +123,11 @@ const starMaterial = () =>
         float bright = 0.4 + 0.6 * pow(s2, 2.2);
         float tw = 1.0 - uTwinkle * 0.5 * smoothstep(0.75, 1.0, sin(uTime * (0.5 + 1.8 * fract(seed * 7.31)) + seed * 60.0));
         float even = max(marked, ring); // marked stars and prize winners are always at full brightness
-        float soft = mix(bright * tw, 1.0, even) * mix(1.3, 0.35, far);
+        float soft = mix(bright * tw * uCrowd, 1.0, even) * mix(1.3, 0.35, far);
         float lit = mix(0.45 + 0.55 * pow(s2, 1.6), 1.0, even) * mix(1.0, tw, 0.5); // a magnitude, kept up close
         vAlpha = mix(soft, lit * mix(1.0, 0.45, far), uSharp);
         vSpark = max(even, smoothstep(0.82, 0.97, s2));
-        vColor = starColor;
+        vColor = scanned(starColor, ring);
         vRing = ring;
         float jitter = mix(0.7 + 0.7 * s2, 1.0, marked);
         float softPx = min(size * jitter * 2.6 * uPixelRatio * atten(depth) * mix(1.15, 0.75, far), 90.0 * uPixelRatio);
@@ -137,14 +177,16 @@ const glowMaterial = () =>
     vertexShader: /* glsl */ `
       ${MORPH_GLSL}
       ${DEPTH_GLSL}
+      ${SCAN_GLSL}
       attribute vec3 starColor;
       attribute float size;
       uniform float uSharp;
+      uniform float uCrowd;
       varying vec3 vColor;
       void main() {
         vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
         float depth = -mv.z;
-        vColor = starColor * mix(1.0, 0.35, farness(depth)) * (1.0 - uSharp);
+        vColor = scanned(starColor, 0.0) * mix(1.0, 0.35, farness(depth)) * (1.0 - uSharp) * uCrowd;
         // ponytail: one big quad per star; at ~55k stars this fill rate is the cost to watch (shrink the 32 first).
         gl_PointSize = size > 0.0 && uSharp < 0.99 ? min(32.0 * uPixelRatio * atten(depth), 160.0 * uPixelRatio) : 0.0;
         gl_Position = projectionMatrix * mv;
@@ -221,7 +263,7 @@ function Composite({ view }: { view: Orbit }) {
         varying vec2 vUv;
         void main() {
           vec3 base = texture2D(tScene, vUv).rgb;
-          vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.6;
+          vec3 bloom = textureLod(tScene, vUv, 2.0).rgb * 0.35 + textureLod(tScene, vUv, 3.5).rgb * 0.45 + textureLod(tScene, vUv, 5.0).rgb * 0.25; // the 1/32 level shows as squares over bright clouds
           vec3 c = (base + bloom * uBloom * (1.0 - 0.85 * uSharp)) * uExposure;
           float l = max(max(c.r, c.g), c.b);
           float m = 1.0 - exp(-l);
@@ -267,8 +309,21 @@ export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number>
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: number) => Style; view: Orbit }) {
-  const { positions, morph, styleAt, view } = props;
+// What the scan is drawing this frame, set by <ScanDriver> before any other frame callback reads it; null = at rest.
+type Live = { frame: Frame | null; intro: boolean; focused: boolean };
+const REST_WARM = new Float32Array(SLOTS);
+const REST_LAND = new Float32Array(ARCS).fill(99);
+// At rest the idea focus is the same dim the scan settles into, so the hand-over from scan to rest is seamless.
+function applyScan(u: Record<string, THREE.IUniform>, f: Frame | null, focused: boolean) {
+  u.uScanning.value = f ? 1 : 0;
+  u.uDrain.value = f?.drain ?? 0;
+  u.uFade.value = f ? f.fade : focused ? 1 : 0;
+  (u.uWarm.value as Float32Array).set(f?.warm ?? REST_WARM);
+  (u.uLand.value as Float32Array).set(f?.land ?? REST_LAND);
+}
+
+function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: number) => Style; view: Orbit; cats?: Float32Array; arcs: number[]; live: Live }) {
+  const { positions, morph, styleAt, view, cats, arcs, live } = props;
   const dpr = useThree((s) => s.viewport.dpr);
   const dom = useThree((s) => s.gl.domElement) as StarCanvas;
   const n = positions.length / 3;
@@ -281,8 +336,24 @@ function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: numb
     g.setAttribute("starColor", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
     g.setAttribute("size", new THREE.BufferAttribute(new Float32Array(n), 1));
     g.setAttribute("ring", new THREE.BufferAttribute(new Float32Array(n), 1));
+    g.setAttribute("aCat", new THREE.BufferAttribute(new Float32Array(n).fill(-1), 1));
+    g.setAttribute("aNbr", new THREE.BufferAttribute(new Float32Array(n), 1));
     return g;
   }, [n]);
+  // Each star's category slot, and which stars are the idea's neighbours (1 + their arc), for the scan's uniforms.
+  useEffect(() => {
+    const attr = geometry.getAttribute("aCat") as THREE.BufferAttribute;
+    if (cats && cats.length === n) attr.copyArray(cats);
+    else (attr.array as Float32Array).fill(-1);
+    attr.needsUpdate = true;
+  }, [geometry, cats, n]);
+  useEffect(() => {
+    const attr = geometry.getAttribute("aNbr") as THREE.BufferAttribute;
+    const a = attr.array as Float32Array;
+    a.fill(0);
+    arcs.forEach((i, k) => k < ARCS && i < n && (a[i] = k + 1));
+    attr.needsUpdate = true;
+  }, [geometry, arcs, n]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => (mats.star.dispose(), mats.glow.dispose()), [mats]);
 
@@ -330,6 +401,8 @@ function Stars(props: { positions: Float32Array; morph: Morph; styleAt: (i: numb
       u.uTime.value = state.clock.elapsedTime;
       u.uTwinkle.value = view.reduced ? 0 : 1;
       u.uSharp.value = view.sharp;
+      u.uCrowd.value = crowding(n);
+      applyScan(u, live.frame, live.focused);
     }
   });
 
@@ -412,8 +485,8 @@ function Sky({ view }: { view: Orbit }) {
 export type Hover = { index: number; x: number; y: number } | null;
 
 // Pointer, wheel and pinch input, and the camera: every frame the perspective camera is set from the orbit.
-function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (h: Hover) => void; onPick: (index: number) => void }) {
-  const { view, morph, visible, onHover, onPick } = props;
+function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (h: Hover) => void; onPick: (index: number) => void; director?: Director }) {
+  const { view, morph, visible, onHover, onPick, director } = props;
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const dom = useThree((s) => s.gl.domElement);
   const size = useThree((s) => s.size);
@@ -468,7 +541,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
     const pointers = new Map<number, { x: number; y: number }>();
     let down = { x: 0, y: 0 };
     let moved = false;
-    let turning = false; // a modifier-drag turns the camera; a plain drag moves across the map
+    let turning = false; // a right- or modifier-drag turns the camera; a plain drag moves across the map
     let grab = 0; // the depth of what the drag picked up
     // The depth of the star under a screen point, or the target's when there's none.
     const depthAt = (p: { x: number; y: number }) => {
@@ -484,13 +557,14 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       if (pointers.size === 1) {
         down = p;
         moved = false;
-        // Selected, the camera holds on the project: a plain drag circles it, and a right-drag does nothing.
-        turning = e.altKey || e.ctrlKey || e.metaKey || (view.held && e.button === 0);
+        // Selected, the camera holds on the project: any drag circles it.
+        turning = dragTurns(e, view.held);
         grab = depthAt(p);
         trail = [{ ...p, t: e.timeStamp }];
       }
       view.interrupt();
       view.dragging = true;
+      director?.skip(performance.now() / 1000); // grabbing the map ends a scan or intro where it would have ended
     };
     const onMove = (e: PointerEvent) => {
       const p = local(e);
@@ -538,6 +612,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
     const onLeave = () => onHover(null);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault(); // the map zooms; the page doesn't scroll
+      director?.skip(performance.now() / 1000);
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       const r = dom.getBoundingClientRect();
       const q = local(e);
@@ -562,7 +637,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       dom.removeEventListener("wheel", onWheel);
       dom.removeEventListener("contextmenu", onContext);
     };
-  }, [view, morph, visible, dom, camera, onHover, onPick]);
+  }, [view, morph, visible, dom, camera, onHover, onPick, director]);
   return null;
 }
 
@@ -573,37 +648,53 @@ const SEG = 40; // segments per tentacle
 const ideaAt = (idea: Idea, morph: Morph) => placeIdea(idea.neighbours, morph.current, idea.own);
 
 // Idea focus: a dotted arc from the idea to each stored neighbour, bowing outward and flowing toward the neighbour,
-// rebuilt every frame so it follows the stars through a morph.
-function Tentacles({ idea, morph, view }: { idea: Idea; morph: Morph; view: Orbit }) {
+// rebuilt every frame so it follows the stars through a morph. During the scan each arc draws out from the idea with a
+// bright tip (a solid line while it reaches, dashes once it lands).
+const REST_REACH = new Float32Array(ARCS).fill(1);
+function Tentacles({ idea, morph, view, live }: { idea: Idea; morph: Morph; view: Orbit; live: Live }) {
   const count = idea.neighbours.length;
   const geometry = useMemo(() => {
     const g = new THREE.BufferGeometry();
     const u = new Float32Array(count * SEG * 2);
+    const arc = new Float32Array(count * SEG * 2);
     for (let k = 0; k < count * SEG; k++) {
       u[2 * k] = (k % SEG) / SEG;
       u[2 * k + 1] = ((k % SEG) + 1) / SEG;
+      arc[2 * k] = arc[2 * k + 1] = Math.floor(k / SEG);
     }
     g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * SEG * 6), 3));
     g.setAttribute("u", new THREE.BufferAttribute(u, 1));
+    g.setAttribute("arc", new THREE.BufferAttribute(arc, 1));
     return g;
   }, [count]);
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
         ...ADD,
-        uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(...IDEA_RGB) } },
+        uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(...IDEA_RGB) }, uReach: { value: new Float32Array(ARCS).fill(1) } },
         vertexShader: /* glsl */ `
           attribute float u;
+          attribute float arc;
+          uniform float uReach[${ARCS}];
           varying float vU;
-          void main() { vU = u; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+          varying float vReach;
+          void main() {
+            vU = u;
+            vReach = uReach[int(min(arc, ${ARCS - 1}.0) + 0.5)];
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
         fragmentShader: /* glsl */ `
           uniform float uTime;
           uniform vec3 uColor;
           varying float vU;
+          varying float vReach;
           void main() {
+            if (vU > vReach) discard;
+            float drawing = 1.0 - step(0.999, vReach);
             float dash = step(0.55, fract(vU * 34.0 - uTime * 0.8));
-            float a = dash * mix(0.9, 0.35, vU) * smoothstep(0.0, 0.04, vU);
-            gl_FragColor = vec4(uColor * a, 0.0);
+            float a = mix(dash, 0.55, drawing) * mix(0.9, 0.35, vU) * smoothstep(0.0, 0.04, vU);
+            float tip = drawing * exp(-pow((vReach - vU) * 28.0, 2.0)) * 2.4;
+            gl_FragColor = vec4(uColor * a + vec3(0.85, 0.97, 1.0) * tip, 0.0);
           }`,
       }),
     [],
@@ -612,6 +703,7 @@ function Tentacles({ idea, morph, view }: { idea: Idea; morph: Morph; view: Orbi
   useEffect(() => () => mat.dispose(), [mat]);
   useFrame((state) => {
     mat.uniforms.uTime.value = view.reduced ? 0 : state.clock.elapsedTime;
+    (mat.uniforms.uReach.value as Float32Array).set(live.frame?.reach ?? REST_REACH);
     const a = ideaAt(idea, morph);
     const pos = geometry.getAttribute("position") as THREE.BufferAttribute;
     const out = pos.array as Float32Array;
@@ -707,12 +799,13 @@ function Ideas({ ideas, active, idea, morph, view }: { ideas: IdeaStar[]; active
   return <points geometry={built.g} material={built.m} renderOrder={3} frustumCulled={false} />;
 }
 
-export type Region = { key: string; label: string; count: number; at: number[] };
+export type Region = { key: string; label: string; count: number; at: number[]; slot?: number };
 
 // Region names follow their centroid on screen, written straight to the DOM each frame so moving the camera doesn't
 // re-render React. Names on the far side of the galaxy fade back; behind the camera, off the map, or covering the idea
 // they hide; during a morph they fade out and return where the clouds land.
-function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; layer: HTMLDivElement | null; idea: Idea | null; morph: Morph; view: Orbit }) {
+function Labels(props: { regions: Region[]; layer: HTMLDivElement | null; tags?: HTMLDivElement | null; idea: Idea | null; morph: Morph; view: Orbit; live: Live }) {
+  const { regions, layer, tags, idea, morph, view, live } = props;
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const v = useMemo(() => new THREE.Vector3(), []);
@@ -727,7 +820,12 @@ function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; laye
     const ideaS = idea ? toScreen(ideaAt(idea, morph)) : null;
     const settle = easeInOut(Math.max(0, (morph.t - 0.7) / 0.3));
     // Nearest first; a name that would overlap one already placed waits until the galaxy turns.
-    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    // The scan's tags are placed first: a cloud's name yields to them.
+    const origin = tags?.getBoundingClientRect();
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [...(tags?.querySelectorAll("button[data-on]") ?? [])].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { x0: r.left - origin!.left, x1: r.right - origin!.left, y0: r.top - origin!.top, y1: r.bottom - origin!.top };
+    });
     const at = regions.map((g, i) => ({ i, s: toScreen(g.at) })).sort((a, b) => a.s.depth - b.s.depth);
     at.forEach(({ i, s }) => {
       const el = layer.children[i] as HTMLElement | undefined;
@@ -742,7 +840,11 @@ function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; laye
       const onMap = s.depth > 0.05 && s.x > 0 && s.y > 0 && s.x < size.width && s.y < size.height;
       const covers = ideaS && Math.hypot(s.x - ideaS.x, s.y - ideaS.y) < 56;
       const far = Math.min(1, Math.max(0, (s.depth - view.dist) / 1.2 + 0.5));
-      const opacity = onMap && !covers && !clash ? settle * (1 - 0.7 * far) : 0;
+      // Scanning, a cold cloud's name steps back; in the intro, a name appears as its cloud lights.
+      const f = live.frame;
+      const warm = f && regions[i].slot !== undefined && regions[i].slot! >= 0 ? f.warm[regions[i].slot!] : 0;
+      const gate = !f ? 1 : live.intro ? warm : 1 - 0.65 * f.drain * (1 - warm);
+      const opacity = onMap && !covers && !clash && gate > 0.02 ? settle * (1 - 0.7 * far) * gate : 0;
       if (opacity > 0.01) placed.push(box);
       el.style.visibility = opacity > 0.01 ? "visible" : "hidden";
       el.style.opacity = opacity.toFixed(3);
@@ -752,13 +854,14 @@ function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; laye
   return null;
 }
 
-// Zoomed in, the stars nearest the map's centre are named: a pool of buttons in `layer`, filled and placed straight
-// from here. Which stars are named updates a few times a second so the names don't flicker while the camera moves;
-// where they sit follows the stars every frame. None over the whole map, during a layout flight, or while a project
-// is selected (its panel names it).
+// Zoomed well in, the stars nearest the map's centre that stand apart are named (`nearestNames`): a pool of buttons in
+// `layer`, filled and placed straight from here. Which stars are named updates a few times a second so the names
+// don't flicker while the camera moves; where they sit follows the stars every frame. None below NAME_ZOOM, during a
+// layout flight, or while a project is selected (its panel names it).
 const NAME_REFRESH = 0.25; // s
-function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; layer: HTMLDivElement | null; clouds: HTMLDivElement | null; morph: Morph; view: Orbit }) {
-  const { ids, titles, visible, layer, clouds, morph, view } = props;
+const NAME_ZOOM = 4; // never named closer out than this (zoom over the whole-map view); past it, only stars standing apart
+function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; layer: HTMLDivElement | null; clouds: HTMLDivElement | null; tags?: HTMLDivElement | null; morph: Morph; view: Orbit }) {
+  const { ids, titles, visible, layer, clouds, tags, morph, view } = props;
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const v = useMemo(() => new THREE.Vector3(), []);
@@ -766,7 +869,7 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
   useFrame(({ clock }) => {
     if (!layer) return;
     const now = clock.elapsedTime;
-    const show = view.sharp > 0.5 && morph.t >= 1 && !view.held;
+    const show = view.zoomOverFit >= NAME_ZOOM && morph.t >= 1 && !view.held;
     const toScreen = (i: number) => {
       v.set(morph.current[3 * i], morph.current[3 * i + 1], morph.current[3 * i + 2]).applyMatrix4(camera.matrixWorldInverse);
       const depth = -v.z;
@@ -786,11 +889,14 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
       }
       // The cloud names showing now are taken space.
       const origin = layer.getBoundingClientRect();
-      const taken = [...(clouds?.querySelectorAll("button") ?? [])].flatMap((b) => {
-        if (getComputedStyle(b.parentElement!).visibility !== "visible") return [];
+      const box = (b: Element) => {
         const r = b.getBoundingClientRect();
-        return [{ x0: r.left - origin.left, x1: r.right - origin.left, y0: r.top - origin.top, y1: r.bottom - origin.top }];
-      });
+        return { x0: r.left - origin.left, x1: r.right - origin.left, y0: r.top - origin.top, y1: r.bottom - origin.top };
+      };
+      const taken = [
+        ...[...(clouds?.querySelectorAll("button") ?? [])].flatMap((b) => (getComputedStyle(b.parentElement!).visibility === "visible" ? [box(b)] : [])),
+        ...[...(tags?.querySelectorAll("button[data-on]") ?? [])].map(box), // the scan's tags
+      ];
       state.current.chosen = nearestNames(screen, titles, size.width / 2, size.height / 2, taken);
     }
     const els = layer.children;
@@ -818,6 +924,165 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
   return null;
 }
 
+// The scan's clock (specs/features/idea-scan): runs before every other frame callback, so the stars, arcs, tags and
+// labels all draw the same instant. Also moves the camera: a scan flies to frame the idea and its neighbours; the
+// intro starts close, turns slowly and pulls back to the whole map.
+function ScanDriver({ director, live, idea, morph, view }: { director: Director; live: Live; idea: Idea | null; morph: Morph; view: Orbit }) {
+  useFrame((_, dt) => {
+    live.frame = director.tick(performance.now() / 1000);
+    live.intro = director.status.intro === "play";
+    if (director.needsFraming && idea && idea.neighbours.length > 0 && morph.current.length) {
+      director.needsFraming = false;
+      const at = morph.current;
+      const pts = [ideaAt(idea, morph), ...idea.neighbours.map((i) => [at[3 * i], at[3 * i + 1], at[3 * i + 2]])];
+      const c = [0, 1, 2].map((k) => pts.reduce((sum, p) => sum + p[k], 0) / pts.length) as Vec3;
+      view.frameGroup(c, Math.max(...pts.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]))));
+    }
+    if (director.introCamera === "start") {
+      view.interrupt();
+      view.target = [0, 0, 0];
+      view.dist = view.fitDist * 0.55;
+    } else if (director.introCamera === "end") view.fit();
+    director.introCamera = null;
+    if (live.intro) {
+      view.poke();
+      view.dist += (view.fitDist - view.dist) * (1 - Math.exp(-dt * 0.5));
+      view.yaw += dt * 0.08;
+    }
+  }, -1);
+  return null;
+}
+
+// The scan's tags: one per neighbour, beside its star on the side away from the idea, shown once its arc lands (and
+// at rest while the idea is focused). Filled by the galaxy (title, similarity); placed here every frame.
+function Tags({ idea, layer, morph, live }: { idea: Idea; layer: HTMLDivElement | null; morph: Morph; live: Live }) {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  useFrame(() => {
+    if (!layer) return;
+    const toScreen = (p: ArrayLike<number>) => {
+      v.set(p[0], p[1], p[2]).applyMatrix4(camera.matrixWorldInverse);
+      const depth = -v.z;
+      v.applyMatrix4(camera.projectionMatrix);
+      return { x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height, depth };
+    };
+    const a = toScreen(ideaAt(idea, morph));
+    const at = morph.current;
+    const els = layer.children;
+    for (let k = 0; k < els.length; k++) {
+      const el = els[k] as HTMLElement;
+      const i = idea.neighbours[k];
+      const p = i === undefined ? null : toScreen([at[3 * i], at[3 * i + 1], at[3 * i + 2]]);
+      const landed = live.frame ? live.frame.land[k] >= 0 : idea.lines && !live.intro;
+      if (!p || !landed || p.depth < 0.01 || p.x < 0 || p.y < 0 || p.x > size.width || p.y > size.height) {
+        el.removeAttribute("data-on");
+        continue;
+      }
+      el.setAttribute("data-on", "");
+      // Away from the idea, unless that would run off the map.
+      const w = el.offsetWidth + 20;
+      let side = p.x < a.x ? "left" : "right";
+      if (side === "left" && p.x - w < 4) side = "right";
+      else if (side === "right" && p.x + w > size.width - 4) side = "left";
+      el.dataset.side = side;
+      el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
+    }
+  });
+  return null;
+}
+
+// A shockwave at each neighbour as its arc lands.
+function Rings({ idea, morph, live }: { idea: Idea; morph: Morph; live: Live }) {
+  const dpr = useThree((s) => s.viewport.dpr);
+  const geometry = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ARCS * 3), 3));
+    g.setAttribute("k", new THREE.BufferAttribute(Float32Array.from({ length: ARCS }, (_, k) => k), 1));
+    return g;
+  }, []);
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        ...ADD,
+        uniforms: { uLand: { value: new Float32Array(ARCS).fill(99) }, uSize: { value: 90 }, uColor: { value: new THREE.Color(0.85, 0.97, 1) } },
+        vertexShader: /* glsl */ `
+          attribute float k;
+          uniform float uLand[${ARCS}];
+          uniform float uSize;
+          varying float vSince;
+          void main() {
+            vSince = uLand[int(k + 0.5)];
+            gl_PointSize = vSince >= 0.0 && vSince < 0.9 ? uSize : 0.0;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uColor;
+          varying float vSince;
+          void main() {
+            float d = length(gl_PointCoord - 0.5) * 2.0;
+            float t = clamp(vSince / 0.9, 0.0, 1.0);
+            float r = mix(0.12, 1.0, 1.0 - pow(1.0 - t, 3.0));
+            float ring = 1.0 - smoothstep(0.0, 0.05, abs(d - r));
+            gl_FragColor = vec4(uColor * ring * (1.0 - t) * 0.9, 0.0);
+          }`,
+      }),
+    [],
+  );
+  useEffect(() => () => (geometry.dispose(), mat.dispose()), [geometry, mat]);
+  useFrame(() => {
+    const pos = geometry.getAttribute("position") as THREE.BufferAttribute;
+    const at = morph.current;
+    idea.neighbours.slice(0, ARCS).forEach((i, k) => pos.setXYZ(k, at[3 * i], at[3 * i + 1], at[3 * i + 2]));
+    pos.needsUpdate = true;
+    (mat.uniforms.uLand.value as Float32Array).set(live.frame?.land ?? REST_LAND);
+    mat.uniforms.uSize.value = 90 * dpr;
+  });
+  return <points geometry={geometry} material={mat} renderOrder={5} frustumCulled={false} />;
+}
+
+// The project list's rows when it can't list every star: the visible projects nearest the middle of the view, nearest
+// first, and whether the camera is in close (past this, the list shows projects instead of clouds). Only while the
+// list is open; recomputed a few times a second while the camera is at rest, and reported only when it changes. While
+// someone is pointing at or focused in the list (`hold`) its rows stay put, so they don't reshuffle under the pointer;
+// a change between clouds and projects still goes through.
+const NEARBY_MAX = 50;
+const NEARBY_REFRESH = 0.4; // s
+const NEARBY_ZOOM = 1.5; // zoom over the whole-map view: a cloud's label flies to 2.2x
+function Nearby(props: { visible: Uint8Array; morph: Morph; view: Orbit; onChange: (ids: number[], zoomed: boolean) => void; hold?: () => boolean }) {
+  const { visible, morph, view, onChange, hold } = props;
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  const last = useRef({ at: -1, key: "", zoomed: false, any: false });
+  useFrame(({ clock }) => {
+    if (clock.elapsedTime - last.current.at < NEARBY_REFRESH) return;
+    const zoomed = view.zoomOverFit >= NEARBY_ZOOM;
+    const held = last.current.any && zoomed === last.current.zoomed && (view.moving || hold?.());
+    if (held) return;
+    last.current.at = clock.elapsedTime;
+    const at = morph.current;
+    const best: { i: number; d: number }[] = [];
+    for (let i = 0; i < visible.length; i++) {
+      if (visible[i] !== 1) continue;
+      v.set(at[3 * i], at[3 * i + 1], at[3 * i + 2]).project(camera);
+      if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue; // behind the camera or off the map
+      const d = Math.hypot((v.x * size.width) / 2, (v.y * size.height) / 2);
+      if (best.length === NEARBY_MAX && d >= best[NEARBY_MAX - 1].d) continue;
+      let k = best.length;
+      while (k > 0 && best[k - 1].d > d) k--;
+      best.splice(k, 0, { i, d });
+      if (best.length > NEARBY_MAX) best.pop();
+    }
+    const ids = best.map((b) => b.i);
+    const key = `${zoomed}:${ids.join(",")}`;
+    if (key === last.current.key) return;
+    last.current = { at: clock.elapsedTime, key, zoomed, any: ids.length > 0 };
+    onChange(ids, zoomed);
+  });
+  return null;
+}
+
 export default function Scene(props: {
   ids: string[];
   positions: Float32Array;
@@ -835,8 +1100,19 @@ export default function Scene(props: {
   labelLayer?: HTMLDivElement | null;
   titles?: string[];
   nameLayer?: HTMLDivElement | null;
+  // The idea scan and intro (specs/features/idea-scan): the clock, each star's category slot, and the tag layer.
+  director?: Director;
+  cats?: Float32Array;
+  tagLayer?: HTMLDivElement | null;
+  // While the project list is open and can't list every star: its rows, the projects nearest the middle of the view.
+  nearby?: (ids: number[], zoomed: boolean) => void;
+  nearbyHold?: () => boolean;
 }) {
-  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer } = props;
+  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer, director, cats, tagLayer, nearby, nearbyHold } = props;
+  const live = useMemo((): Live => ({ frame: null, intro: false, focused: false }), []);
+  // Idea focus: the neighbours keep their colour and every other star dims, drawn by the star shader (uFade).
+  useEffect(() => void (live.focused = Boolean(idea?.lines && idea.neighbours.length > 0)), [live, idea]);
+  const arcs = useMemo(() => idea?.neighbours ?? [], [idea]);
   const selectedId = useAppState((s) => s.selectedProjectId);
   const highlightedIds = useAppState((s) => s.highlightedIds);
   const ideaStars = useAppState((s) => s.ideaStars);
@@ -849,11 +1125,12 @@ export default function Scene(props: {
   const hadSelection = useRef(false);
   useEffect(() => {
     view.held = selected >= 0;
+    if (selected >= 0) director?.skip(performance.now() / 1000);
     // Where the star ends up, so a layout switch while selected follows it to its new place.
     if (selected >= 0) view.flyTo([positions[3 * selected], positions[3 * selected + 1], positions[3 * selected + 2]]);
     else if (hadSelection.current) view.fit();
     hadSelection.current = selected >= 0;
-  }, [selected, positions, morph, view]);
+  }, [selected, positions, morph, view, director]);
 
   const corpusStyle = useMemo(() => {
     const highlighted = new Set(highlightedIds);
@@ -875,16 +1152,20 @@ export default function Scene(props: {
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.005, far: 100, position: [0, 0, 2] }} aria-hidden>
-      <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} />
+      {director && <ScanDriver director={director} live={live} idea={idea ?? null} morph={morph} view={view} />}
+      <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} director={director} />
       <Composite view={view} />
       <Sky view={view} />
-      <Stars positions={positions} morph={morph} styleAt={corpusStyle} view={view} />
+      <Stars positions={positions} morph={morph} styleAt={corpusStyle} view={view} cats={cats} arcs={arcs} live={live} />
       {ideaStars.length > 0 && <Ideas ideas={ideaStars} active={activeIdea} idea={idea ?? null} morph={morph} view={view} />}
-      {idea && idea.lines && idea.neighbours.length > 0 && <Tentacles idea={idea} morph={morph} view={view} />}
+      {idea && idea.lines && idea.neighbours.length > 0 && <Tentacles idea={idea} morph={morph} view={view} live={live} />}
+      {idea && idea.lines && idea.neighbours.length > 0 && <Rings idea={idea} morph={morph} live={live} />}
+      {idea && idea.neighbours.length > 0 && <Tags idea={idea} layer={tagLayer ?? null} morph={morph} live={live} />}
       {ideaPoint && <Pulse at={ideaPoint} colour={IDEA_RGB} view={view} />}
       <Pulse at={selectedPoint} colour={SELECTED_RGB} view={view} />
-      {titles && <Names ids={ids} titles={titles} visible={visible} layer={nameLayer ?? null} clouds={labelLayer ?? null} morph={morph} view={view} />}
-      {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} idea={idea ?? null} morph={morph} view={view} />}
+      {titles && <Names ids={ids} titles={titles} visible={visible} layer={nameLayer ?? null} clouds={labelLayer ?? null} tags={tagLayer ?? null} morph={morph} view={view} />}
+      {nearby && <Nearby visible={visible} morph={morph} view={view} onChange={nearby} hold={nearbyHold} />}
+      {regions && regions.length > 0 && <Labels regions={regions} layer={labelLayer ?? null} tags={tagLayer ?? null} idea={idea ?? null} morph={morph} view={view} live={live} />}
     </Canvas>
   );
 }

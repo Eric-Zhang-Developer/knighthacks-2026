@@ -62,10 +62,19 @@ test("foreign or missing version fails before source, card or AI access", async 
   const query = new PgDialect().sqlToQuery(execute.mock.calls[0][0]);
   expect(query.params).toEqual(["version", "workspace"]); expect(query.sql).toContain("i.workspace_id =");
 });
-test("source mismatch and later provider failure cause zero batch writes", async () => {
+test("an older saved corpus version uses the current stable source id", async () => {
   execute.mockResolvedValueOnce(result([version])).mockResolvedValueOnce(result([])).mockResolvedValueOnce(result(records.map((r) => ({ ...r, corpusVersion: "new" }))));
+  execute.mockResolvedValueOnce(result([])).mockResolvedValueOnce(result(ids.slice(0, 3).map(card)));
+  expect((await createEvidence("workspace", "version", false)).cards).toHaveLength(3);
+  expect(generate).toHaveBeenCalledTimes(3);
+});
+test("an older saved corpus still fails when a neighbor id is no longer available", async () => {
+  execute.mockResolvedValueOnce(result([version])).mockResolvedValueOnce(result([])).mockResolvedValueOnce(result(records.slice(0, 2)));
   await expect(createEvidence("workspace", "version", false)).rejects.toMatchObject({ status: 503 });
-  expect(generate).not.toHaveBeenCalled(); expect(execute).toHaveBeenCalledTimes(3);
+  expect(generate).not.toHaveBeenCalled();
+  expect(execute).toHaveBeenCalledTimes(3);
+});
+test("provider failure causes zero batch writes", async () => {
   execute.mockReset();
   execute.mockResolvedValueOnce(result([version])).mockResolvedValueOnce(result([])).mockResolvedValueOnce(result(records));
   generate.mockResolvedValueOnce({ overlaps: [], differences: [], uncertainty: { text: "Unknown", label: "unverified", sourceIds: [] } }).mockRejectedValueOnce(new Error("provider secret"));

@@ -11,7 +11,7 @@ const L = 44; // y labels
 const R = 16;
 const T = 18;
 const B = 26; // x labels
-const LINE = "#8fef9a"; // the page's "built" green: one series, so no categorical hue
+const LINE = "#7ddc9c"; // the page's "built" green: one series, so no categorical hue
 
 const hour = 3_600_000;
 
@@ -48,7 +48,7 @@ export default function BuildUp({ data }: { data: Data }) {
         >
           {yTicks.map((n) => (
             <g key={n}>
-              <line x1={L} x2={W - R} y1={y(n)} y2={y(n)} stroke="#2c261c" strokeWidth={1} />
+              <line x1={L} x2={W - R} y1={y(n)} y2={y(n)} stroke="#1f1f24" strokeWidth={1} />
               <text x={L - 8} y={y(n) + 4} textAnchor="end" className={styles.axis}>
                 {n}
               </text>
@@ -73,15 +73,15 @@ export default function BuildUp({ data }: { data: Data }) {
               opacity={0.6}
             />
           )}
-          <line x1={x(snapshot)} x2={x(snapshot)} y1={T - 6} y2={y(0)} stroke="#ffb547" strokeWidth={1} strokeDasharray="3 3" />
+          <line x1={x(snapshot)} x2={x(snapshot)} y1={T - 6} y2={y(0)} stroke="#d6b37a" strokeWidth={1} strokeDasharray="3 3" />
           <text x={x(snapshot) - 4} y={T - 8} textAnchor="end" className={styles.axis}>
             snapshot
           </text>
           {target && (
             <g>
-              <line x1={x(target.t)} x2={x(target.t)} y1={T} y2={y(0)} stroke="#e9dfcc" strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />
-              <line x1={L} x2={x(target.t)} y1={y(target.total)} y2={y(target.total)} stroke="#e9dfcc" strokeWidth={1} strokeDasharray="2 4" opacity={0.35} />
-              <circle cx={x(target.t)} cy={y(target.total)} r={5} fill="#14110c" stroke={target.built !== null && target.built >= target.total ? LINE : "#e9dfcc"} strokeWidth={2} />
+              <line x1={x(target.t)} x2={x(target.t)} y1={T} y2={y(0)} stroke="#ece8de" strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />
+              <line x1={L} x2={x(target.t)} y1={y(target.total)} y2={y(target.total)} stroke="#ece8de" strokeWidth={1} strokeDasharray="2 4" opacity={0.35} />
+              <circle cx={x(target.t)} cy={y(target.total)} r={5} fill="#09090b" stroke={target.built !== null && target.built >= target.total ? LINE : "#ece8de"} strokeWidth={2} />
               <text x={x(target.t) - 10} y={y(target.total) - 10} textAnchor="end" className={styles.chartLabel}>
                 freeze {clock(target.t)} · {target.total} features
                 {target.built !== null && ` (${target.built} built)`}
@@ -90,8 +90,8 @@ export default function BuildUp({ data }: { data: Data }) {
           )}
           {h && hover !== null && (
             <g pointerEvents="none">
-              <line x1={x(hover)} x2={x(hover)} y1={T} y2={y(0)} stroke="#e9dfcc" strokeWidth={1} opacity={0.5} />
-              <circle cx={x(hover)} cy={y(h.built)} r={4} fill={LINE} stroke="#14110c" strokeWidth={2} />
+              <line x1={x(hover)} x2={x(hover)} y1={T} y2={y(0)} stroke="#ece8de" strokeWidth={1} opacity={0.5} />
+              <circle cx={x(hover)} cy={y(h.built)} r={4} fill={LINE} stroke="#09090b" strokeWidth={2} />
             </g>
           )}
         </svg>

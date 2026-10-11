@@ -12,6 +12,7 @@ import styles from "./evidence.module.css";
 type Claim = { text: string; label: ClaimLabel; sourceIds: string[] };
 // excerptSource (summary-records-api): which project field the excerpt came from, or "unknown" if it has since changed.
 type Card = { projectId: string; url: string; title: string; excerpt: string; excerptSource?: "description" | "tagline" | "title" | "unknown";
+  savedCorpusVersion?: string; currentCorpusVersion?: string | null;
   overlaps: Claim[]; differences: Claim[]; uncertainty: Claim };
 const EXCERPT_NOTE = { tagline: "From the gallery card (title and tagline only)", title: "From the gallery card (title and tagline only)",
   unknown: "Source text has changed since this card was made" } as const;
@@ -115,6 +116,9 @@ export default function Evidence() {
         )}
         {view.kind === "ready" && (
           <>
+            {view.cards.some((card) => card.savedCorpusVersion && card.currentCorpusVersion && card.savedCorpusVersion !== card.currentCorpusVersion) && (
+              <p className={styles.prompt}>Saved neighbors are unchanged. New comparisons use current source records; existing cards keep their saved excerpts.</p>
+            )}
             {view.cards.length === 0 && <PanelState kind="empty" message="No evidence for this idea yet." />}
             {view.cards.map((card) => (
               <EvidenceCard key={card.projectId} card={card} />

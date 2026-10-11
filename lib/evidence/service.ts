@@ -15,6 +15,7 @@ async function stored(workspaceId: string, versionId: string, order: string[]): 
   // excerptSource is found on read by matching the stored excerpt against the project's current text, in the order the
   // excerpt was chosen (description, then tagline, then title; each cut to 6,000 characters), so older cards get it too.
   const result = await db().execute(sql`select c.project_id as "projectId", c.url, c.title, c.excerpt, c."overlaps", c.differences, c.uncertainty,
+      v.corpus_version as "savedCorpusVersion", p.corpus_version as "currentCorpusVersion",
       case when p.id is null then 'unknown'
         when btrim(p.description) <> '' and c.excerpt = left(p.description, 6000) then 'description'
         when btrim(coalesce(p.tagline, '')) <> '' and c.excerpt = left(p.tagline, 6000) then 'tagline'
@@ -39,7 +40,10 @@ export async function createEvidence(workspaceId: string, versionId: string, all
   const records = await db().execute(sql`select id, url, title, description, tagline, corpus_version as "corpusVersion" from projects
     where id = any(array(select jsonb_array_elements_text(${JSON.stringify(missing)}::jsonb)))`);
   const source = missing.map((id) => records.rows.find((row) => row.id === id));
-  if (source.some((row) => !row || row.corpusVersion !== version.corpusVersion || typeof row.title !== "string" ||
+  // Project ids are stable hashes of their source URL. A corpus release replaces the searchable rows, so an older
+  // immutable idea can no longer require its exact corpus_version here. Ground newly-created cards in the current
+  // source row and persist the excerpt snapshot; the saved idea and its stored neighbour ids remain unchanged.
+  if (source.some((row) => !row || typeof row.title !== "string" ||
     typeof row.url !== "string" || !/^https?:\/\//.test(row.url))) throw new EvidenceError(503, "Neighbor source records are unavailable. Please try again.");
   const cards: Omit<Card, "excerptSource">[] = [];
   for (const row of source) {

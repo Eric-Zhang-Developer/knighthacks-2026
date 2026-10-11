@@ -9,17 +9,37 @@ import { createEvidence } from "@/lib/problem-evidence/service";
 import { PgDialect } from "drizzle-orm/pg-core";
 
 let saved: { items: { source: { title: string; domain: string; url: string | null } }[] };
+let context: { problem: string; audience: string | null; workflow: string | null; constraints: string | null };
 beforeEach(() => {
   vi.resetAllMocks();
+  context = { problem: "A real problem", audience: null, workflow: null, constraints: null };
   mocks.execute.mockImplementation(async (query) => {
     const sql = new PgDialect().sqlToQuery(query);
-    if (sql.sql.startsWith("select v.problem")) return { rows: [{ problem: "A real problem" }] };
+    if (sql.sql.startsWith("select v.problem")) return { rows: [context] };
     if (sql.sql.startsWith("insert")) { saved = JSON.parse(sql.params[1] as string); return { rows: [] }; }
     return { rows: saved ? [{ data: saved }] : [] };
   });
   saved = undefined!;
   mocks.generate.mockResolvedValue({ items: [{ id: "s0-c0", about: "problem", relevance: "Relevant to the problem" }] });
   mocks.resolveSource.mockResolvedValue({ url: null, publishedAt: null });
+});
+
+test.each([true, false])("retrieval and relevance retain saved audience/workflow/constraints (known=%s)", async (known) => {
+  if (known) context = { problem: "Comparing room restrictions", audience: "Two students with accessibility needs",
+    workflow: "Compare public library room notices and agree on one room", constraints: "Unknown availability stays unknown" };
+  mocks.groundedSearch.mockResolvedValue({ model: "test", text: "Reported problem",
+    groundingChunks: [{ uri: "https://publisher.org/article", title: "Report" }],
+    groundingSupports: [{ text: "Reported problem", chunkIndices: [0] }] });
+  const result = await createEvidence("workspace", "version");
+  const query = new PgDialect().sqlToQuery(mocks.execute.mock.calls[0][0]);
+  for (const field of ["audience", "workflow", "constraints"]) expect(query.sql).toContain(`v.${field}`);
+  for (const prompt of [mocks.groundedSearch.mock.calls[0][0], mocks.generate.mock.calls[0][0].prompt]) {
+    const payload = JSON.parse(prompt.text.slice(prompt.text.indexOf("{")));
+    expect(payload).toMatchObject(context);
+  }
+  expect(result.problem).toBe(context.problem);
+  expect(result.items[0].claim.label).toBe("supported");
+  expect(result.items[0].relevance.label).toBe("inferred");
 });
 
 test.each([

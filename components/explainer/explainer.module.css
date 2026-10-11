@@ -8,7 +8,7 @@
   font-size: var(--text-sm);
   line-height: 1.5;
 }
-/* The heading keeps the shared --heading size; balanced so a narrow rail breaks it into two even lines. */
+/* The heading keeps the shared .ui-heading size; balanced so a narrow rail breaks it into two even lines. */
 .panel summary {
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
