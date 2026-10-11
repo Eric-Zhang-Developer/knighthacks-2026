@@ -84,6 +84,7 @@ for (const [name, viewport] of [["desktop", { width: 1440, height: 900 }], ["pho
       await expect(drawer.getByRole("heading", { name: fixture.title })).toBeVisible();
       await expect(drawer.getByText(GALLERY_LINE)).toBeVisible();
       await expect(drawer.getByRole("link", { name: /^Source:/ })).toHaveAttribute("href", fixture.url);
+      await drawer.scrollIntoViewIfNeeded();
       await page.screenshot({ path: info.outputPath(`${name}-drawer-gallery-card.png`) });
       await drawer.getByRole("button", { name: "Close" }).click();
       await expect(drawer).toHaveCount(0);
@@ -91,6 +92,7 @@ for (const [name, viewport] of [["desktop", { width: 1440, height: 900 }], ["pho
       await expect(drawer.getByRole("heading")).toBeVisible();
       await expect(drawer.getByText(GALLERY_LINE)).toHaveCount(0);
       await expect(drawer.getByText(/description unknown/)).toHaveCount(0);
+      await drawer.scrollIntoViewIfNeeded();
       await page.screenshot({ path: info.outputPath(`${name}-drawer-full.png`) });
     } finally {
       if (workspaceId) await sql`delete from workspaces where id = ${workspaceId}::uuid`;
