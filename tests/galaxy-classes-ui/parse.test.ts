@@ -25,11 +25,10 @@ describe("isProject", () => {
         expect(Prize.safeParse({ ...prize, [key]: v }).success).toBe(Project.safeParse(p).success);
       }
   });
-  it("refuses a file with one bad project, and still checks the head and the corpus", () => {
+  it("refuses a file with one bad project, and still checks the head", () => {
     const file = { corpus_version: "v1", domains: [{ id: "health", label: "Health" }], projects: { a: project, b: project } };
-    expect(parseClasses(file, "v1").state).toBe("ready");
-    expect(parseClasses({ ...file, projects: { a: project, b: { ...project, status: "unclear" } } }, "v1")).toEqual({ state: "missing", reason: "classes.json is invalid" });
-    expect(parseClasses({ ...file, domains: [] }, "v1").state).toBe("missing");
-    expect(parseClasses(file, "v2")).toEqual({ state: "missing", reason: "classes.json is for another corpus" });
+    expect(parseClasses(file).state).toBe("ready");
+    expect(parseClasses({ ...file, projects: { a: project, b: { ...project, status: "unclear" } } })).toEqual({ state: "missing", reason: "classes.json is invalid" });
+    expect(parseClasses({ ...file, domains: [] }).state).toBe("missing");
   });
 });
