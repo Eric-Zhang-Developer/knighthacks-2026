@@ -151,8 +151,9 @@
   min-height: 36px;
   padding: 0 var(--space-5);
   border-radius: var(--radius-round);
-  font: var(--md-sys-typescale-label-large);
-  letter-spacing: 0.02em;
+  font: 500 var(--text-xs)/1 var(--font-mono);
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase; /* the theme's control voice (globals.css), like the map's view switch */
   color: var(--ink-2);
   text-decoration: none;
   transition: background-color 150ms ease, color 150ms ease;

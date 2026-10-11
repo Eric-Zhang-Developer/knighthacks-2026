@@ -91,6 +91,10 @@
   backdrop-filter: var(--material-blur);
   -webkit-backdrop-filter: var(--material-blur);
   color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase; /* the theme's control voice (globals.css), like the map's view switch */
 }
 .toggle[aria-expanded="true"] { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
