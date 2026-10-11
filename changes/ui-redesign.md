@@ -9,7 +9,7 @@ stack and tooltip are glass over the sky. The legend no longer scrolls sideways 
 `tests/e2e/ui-redesign/`.
 
 ## How to check it
-`node scripts/verify.mjs ui-redesign <evidence>` pass at 0f066df (desktop 1440x900 and phone 390x844 screenshots in the evidence folder).
+verify: `node scripts/verify.mjs ui-redesign /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/ui-redesign/20261011T035821Z` pass at 0f066df (evidence: desktop and phone screenshots there)
 
 ## Gaps
 Layout (bottom-centre entry, contextual side panel, filters, header) is live-mentor-ui's (#369) and untouched, so the
