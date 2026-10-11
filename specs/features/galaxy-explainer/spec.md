@@ -14,6 +14,8 @@ assignee: ""
 ## Requirements
 - Counts come from `stars.json`, never typed in.
 - States plainly: the 3D layout is a projection; similarity is computed in embedding space.
+- A "How this was built" link to `/foreman` sits above the panel, visible while the panel is folded (person,
+  2026-10-11: judges shouldn't have to find the build page by its URL).
 
 ## Validation
 1. Open the panel -> the count equals `stars.json`'s `count`. `tests/e2e/galaxy-explainer/` checks it.
