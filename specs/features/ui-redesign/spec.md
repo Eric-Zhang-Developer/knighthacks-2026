@@ -40,19 +40,20 @@ Revised 2026-10-11. The person, looking at production: "the elements are boring.
 themed properly. It looks like AI slop… What if we did completely pitch black? I want to go with a proper observatory
 theme", pointing at getartemisai.com for the controls; then chose square corners and a red accent ("go red").
 
-- **Direction: inside an observatory dome at night.** Pitch-black sky; chrome is solid black instrument plates with a
-  hairline edge and a viewfinder's corner ticks (`.ui-panel`), not frosted glass. No card inside a bordered panel.
-- **Type.** IBM Plex Sans for reading and headings (`--font-display` points at it; the Cormorant serif is gone), IBM
-  Plex Mono for controls (capitals, spaced `--tracking-controls`) and data (counts, years, `[ Step n ]` markings).
-  Self-hosted in `app/fonts/` (#226). Six sizes only, as tokens: 11, 13, 15, 18 (section and panel headings), 22, 30.
-  List rows (projects, sparks, results) keep sentence text.
-- **Colour.** `#000` sky, neutral greys with no blue tint, warm paper text in three steps, brass for markings, and one
-  accent: observatory red `#ff3b30` (`--accent`, and `--idea` for the panels that read it), the light domes work under
-  to keep eyes dark-adapted. It is the opposite of the blue-white stars, so controls stand out from the map. Black text
-  on red fills (5.9:1). The idea star on the canvas keeps its cyan. Errors are orange `--failed` with a glyph, so red
-  never means "failed"; warning amber stays.
-- **Shape and space.** Square: every radius token is 0, fields included; only true circles (50%) are round. A 4px
-  spacing scale; owned stylesheets use spacing and type tokens, not raw values.
+Revised again the same day, before judging: the person preferred the live-mentor shell's design (#369, the voice
+bubble in the middle) and asked for it "implemented and deployed to the whole app", replacing the red square theme.
+
+- **Direction: the live-mentor shell's steel blue, everywhere.** Black sky; navy glass panels (`--panel` #0c1018 with a
+  hairline, glass `--material-thick` where a surface floats over the map). No card inside a bordered panel.
+- **Type.** IBM Plex Sans for reading and headings (`--font-display` points at it), Plex Mono for data (counts, years,
+  step markings). Sentence-case controls. Self-hosted in `app/fonts/` (#226). Six sizes only, as tokens.
+- **Colour.** Neutral steel text in three steps, brass for markings, one accent: pale blue `#a4cbff` (`--accent`,
+  `--idea`), the voice bubble's light. Buttons are deep steel `--control` #202d42 with a `#657894` edge; pressed or
+  current is `--control-on` #30435f. The idea star on the canvas keeps its cyan. Failure red and warning amber for
+  states only.
+- **Shape and space.** Pills for buttons, 12px fields, 20px panels; true circles stay round. A 4px spacing scale;
+  owned stylesheets use spacing and type tokens, not raw values. On a phone the layout toggle sits top right, clear of
+  the shell's "Browse the map".
 - **Controls.** One `Button` (primary, quiet, icon), one `Field` (input, select, textarea), one `Chip` (toggles and
   filters), exported from `components/ui` and as global classes (`ui-button`, `ui-field`, `ui-chip`) for panels whose
   markup belongs to other features. Panels adopt them through their stylesheets.
