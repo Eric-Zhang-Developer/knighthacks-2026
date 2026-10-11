@@ -41,11 +41,13 @@ now keeps up (#363 measured up to 8.5 records/s), which #317 named as the condit
    count, a sample summary row (`description = ''`) and its star in the written `stars.json`.
 3. `corpus/release/check.py` passes on that output (star count equals row count, ids match).
 4. Scale, measured on this machine and kept in the done note: the summary-only count the real snapshot would add,
-   the embedding rate on a batch of at least 1,000 of them, and from those the hours to embed, project, classify
-   and load them all. If that can't finish by Sun 07:30 (an hour before the 08:30 freeze), say so in the note:
+   and, on a batch of at least 1,000 of them, the time to embed, project, classify and load (each step timed
+   separately); from those, the hours to do them all. If that can't finish by Sun 07:30 (an hour before the 08:30 freeze), say so in the note:
    the release then publishes full records only, and summary records wait.
 
 ## Requirements for publishing
 - Publishing is the growth release's step (#262), not this PR's: this PR ships the code and the test-database run.
 - A release may include summary-only records only once `changes/summary-records-api.md` and
-  `changes/summary-records-ui.md` are on main, so no tagline reaches a user or the model unlabelled.
+  `changes/summary-records-ui.md` are on main: the services that build a neighbour's excerpt then tell the model
+  it's a gallery card, and the drawer and evidence excerpt tell the user. (Assumptions and the scorecard reuse
+  stored evidence excerpts as they are; those excerpts are real text from the project's own listing.)
