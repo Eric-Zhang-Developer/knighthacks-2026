@@ -4,7 +4,7 @@ import type { Candidate } from "./candidates";
 export type Command =
   | { kind: "navigate"; destination: "explore" | "idea" | "decide" | "plan" }
   | { kind: "show" | "prepare-save" | "confirm-save"; index: number }
-  | { kind: "end" | "cancel" | "minimize" | "show-ideas" | "team" };
+  | { kind: "end" | "cancel" | "minimize" | "show-ideas" | "show-evidence" | "team" };
 
 const numbers: Record<string, number> = { one: 1, first: 1, two: 2, second: 2, three: 3, third: 3 };
 const ordinal = "(one|two|three|first|second|third|[1-9][0-9]?)";
@@ -17,6 +17,7 @@ export function readCommand(text: string): Command | null {
   if (/^(cancel|cancel (the )?save|never mind|nevermind)$/.test(value)) return { kind: "cancel" };
   if (/^(minimize|hide) (the )?(call|conversation)$/.test(value)) return { kind: "minimize" };
   if (/^(show|open) (my |the )?(ideas|candidates|idea cards)$/.test(value)) return { kind: "show-ideas" };
+  if (/^(show|open) (the |me the |me )?(related projects|similar projects|conversation sources)$/.test(value)) return { kind: "show-evidence" };
   if (/^(show|open) (the )?(team|teammate menu)$/.test(value)) return { kind: "team" };
   const destination = value.match(/^(?:show|open|go to|take me to) (?:the )?(map|explore|idea|evidence|decide|decision|plan)$/)?.[1];
   if (destination) return { kind: "navigate", destination: ({ map: "explore", evidence: "idea", decision: "decide" } as Record<string, "explore" | "idea" | "decide">)[destination] ?? destination as "explore" | "idea" | "decide" | "plan" };

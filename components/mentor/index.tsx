@@ -11,11 +11,11 @@ import type { LiveControls } from "./Live";
 import { readFields, request } from "./protocol";
 import { addCandidate, type Candidate } from "./candidates";
 import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
+import EvidenceCards, { type MentorProject } from "./EvidenceCards";
 import styles from "./mentor.module.css";
 
 const Live = dynamic(() => import("./Live"), { ssr: false });
 type Message = { role: "user" | "mentor"; text: string };
-type Project = { projectId: string; title: string; url: string; excerpt: string };
 
 export default function Mentor() {
   const [open, setOpen] = useState(false);
@@ -24,6 +24,7 @@ export default function Mentor() {
   const [voiceNotice, setVoiceNotice] = useState("");
   const [notesMount, setNotesMount] = useState<HTMLElement | null>(null);
   const [ideasMount, setIdeasMount] = useState<HTMLElement | null>(null);
+  const [evidenceMount, setEvidenceMount] = useState<HTMLElement | null>(null);
   const [typing, setTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -32,7 +33,7 @@ export default function Mentor() {
   const [focusedCandidate, setFocusedCandidate] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState("");
   const pendingSave = useRef<PendingSave | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<MentorProject[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +53,7 @@ export default function Mentor() {
   useEffect(() => {
     setNotesMount(document.getElementById("mentor-notes"));
     setIdeasMount(document.getElementById("mentor-ideas"));
+    setEvidenceMount(document.getElementById("mentor-evidence"));
     const show = () => { location.hash = "talk"; setOpen(true); };
     const hash = () => { setOpen(location.hash === "#talk"); };
     window.addEventListener("mentor:open", show);
@@ -79,6 +81,15 @@ export default function Mentor() {
     if (command.kind === "navigate") { pendingSave.current = null; navigate(command.destination); actionResult(`Opened ${command.destination}. No idea was saved by this command.`); return true; }
     if (command.kind === "team") { pendingSave.current = null; openTeam(); actionResult("Opened the teammate menu. No invitation was created or sent."); return true; }
     if (command.kind === "show-ideas") { navigate("idea"); actionResult(`Showing ${candidates.length} candidate ideas. Ask to show an idea by its number.`); return true; }
+    if (command.kind === "show-evidence") {
+      pendingSave.current = null;
+      navigate("idea");
+      // After the destination switches, reveal the already-retrieved sources.
+      // No new model/search call, saved mutation or transcript popup is needed.
+      requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById("mentor-evidence")?.scrollIntoView({ block: "start" })));
+      actionResult(projects.length ? `Showing ${projects.length} projects from the latest conversation search. These are retrieved sources, not proof that the idea is already solved.` : "No conversation sources have been retrieved yet. Do not claim a search succeeded.");
+      return true;
+    }
     if (!("index" in command)) return false;
     const candidate = candidates[command.index];
     if (!candidate) { pendingSave.current = null; actionResult("That candidate number is not available. Please choose a number shown on an idea card."); return true; }
@@ -187,6 +198,7 @@ export default function Mentor() {
 
   const activeAudio = ["Listening", "Speaking", "Connecting", "Muted"].includes(voiceState);
   return <div className={styles.host}>
+    {evidenceMount && createPortal(<EvidenceCards projects={projects} onInspect={(projectId) => setState({ selectedProjectId: projectId })} />, evidenceMount)}
     <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
     {notesMount && createPortal(<section className={styles.panel} hidden={!open} aria-label="Brainstorm conversation" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
       <header className={styles.header}>
@@ -200,7 +212,6 @@ export default function Mentor() {
         <details className={styles.transcript} open={typing}><summary>Conversation transcript{messages.length > 0 ? ` (${messages.length})` : ""}</summary><div role="log" aria-label="Conversation transcript" aria-live="polite">
           {messages.map((item, index) => <div key={index} className={item.role === "user" ? styles.user : styles.reply}><span>{item.role === "user" ? "You" : "Uncharted"}</span><p>{item.text}</p></div>)}
         </div></details>
-        {projects.length > 0 && <section className={styles.sources} aria-label="Conversation sources"><h3>Related projects</h3>{projects.map((project) => <article key={project.projectId}><strong>{project.title}</strong><p>{project.excerpt}</p>{/^https?:\/\//.test(project.url) && <a href={project.url} target="_blank" rel="noopener noreferrer">View source ↗</a>}</article>)}</section>}
         {ideasMount && candidates.length > 0 && createPortal(<section aria-label="Candidate ideas" className={styles.candidates}><h3>Your possibilities</h3><p className={styles.fine}>Compare directions. Only the idea you proceed with is saved. Drafts stay in this tab.</p><button type="button" disabled={busy || voiceState === "Connecting"} onClick={anotherDirection}>Explore another direction</button>
           {!open && actionNotice && <p role="status" className={styles.actionNotice}>{actionNotice}</p>}
           {!open && error && <p role="alert" className={styles.error}>{error}</p>}
