@@ -7,13 +7,17 @@ for (const width of [1440, 1920]) {
     test.setTimeout(120_000);
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
+    // Since #369 the legend and project list live in the collapsed "Browse the map" rail.
+    await page.locator("summary", { hasText: "Browse the map" }).click();
     await expect(page.locator('[data-classes="ready"]')).toBeVisible({ timeout: 60_000 });
     const legend = page.locator('section[aria-label="Categories"]');
     await expect(legend).toBeVisible();
     const r = await legend.evaluate((el) => {
       const box = (e: Element) => e.getBoundingClientRect();
       const inner = box(el), pad = parseFloat(getComputedStyle(el).paddingRight);
-      const readouts = [...el.querySelectorAll("dl > div")].map((d) => ({ dt: box(d.querySelector("dt")!), dd: box(d.querySelector("dd")!) }));
+      // The live-mentor shell hides the readouts in its rail (app/page.module.css); check them only where they show.
+      const dl = el.querySelector("dl");
+      const readouts = [...(dl && getComputedStyle(dl).display !== "none" ? dl.querySelectorAll(":scope > div") : [])].map((d) => ({ dt: box(d.querySelector("dt")!), dd: box(d.querySelector("dd")!) }));
       const rows = [...el.querySelectorAll("button[data-key], button[aria-pressed]")].filter((b) => b.querySelector("span:nth-child(2)"));
       const labels = rows.map((b) => b.querySelector("span:nth-child(2)") as HTMLElement);
       const font = (e: Element) => { const s = getComputedStyle(e); return `${s.fontFamily}|${s.fontSize}|${s.textTransform}`; };
@@ -35,7 +39,7 @@ for (const width of [1440, 1920]) {
     expect(r.truncated, "category names are whole").toEqual([]);
     expect(r.fonts, "prize row matches category rows").toHaveLength(1);
     expect(r.stacked, "each label over its value").toBe(true);
-    expect(Math.min(...r.gaps), "readouts apart").toBeGreaterThanOrEqual(12);
+    if (r.gaps.length) expect(Math.min(...r.gaps), "readouts apart").toBeGreaterThanOrEqual(12);
     expect(r.insideRight, "readouts inside the padding").toBe(true);
     if (r.mixed && r.unclear) expect(r.mixed).not.toBe(r.unclear);
     expect(r.cue, "a scroll cue when the legend scrolls").toBe(true);
