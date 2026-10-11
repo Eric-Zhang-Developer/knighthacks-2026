@@ -1,5 +1,5 @@
 ## What shipped
-The galaxy is 3D again: a perspective camera that orbits (drag turns it, wheel or pinch zooms, idle drift), and two layouts of the same stars behind a "By category / By meaning" toggle mirrored in `?layout=clouds|nebula` (default clouds). Switching flies every star across in about 1.4 s (instant with reduced motion). Glowing stars, cloud labels projected from 3D, idea arcs, fly-to on select, and right/shift-drag panning held while a project is selected. The 2D viewport and its tests are gone.
+The galaxy is 3D again: a perspective camera that moves like a map (drag carries what's under the pointer, the wheel zooms where you point, option/ctrl-drag turns, cloud labels fly to their cloud, idle drift after 20 s), and two layouts of the same stars behind a "By category / By meaning" toggle mirrored in `?layout=clouds|nebula` (default clouds). Switching flies every star across in about 1.4 s (instant with reduced motion). Glowing stars, cloud labels projected from 3D, idea arcs, fly-to on select, with the camera held on a selected project. The 2D viewport and its tests are gone.
 ## Where it lives
 `components/galaxy/` (`Scene.tsx`, `view.ts` camera, `layouts.ts`, `morph.ts`, `index.tsx`, `galaxy.module.css`), `tests/galaxy-3d/`, `tests/e2e/galaxy-3d/`
 ## How to check it
