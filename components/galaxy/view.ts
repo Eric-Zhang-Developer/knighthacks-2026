@@ -2,7 +2,7 @@
 // so the scene, the map buttons and the keys all drive the same object.
 //
 // Motion, like a map: a drag moves across the galaxy with what's under the pointer staying under it, and a release
-// glides on; the wheel zooms toward the pointer; turning is a modifier-drag. Zoom-to, fit and fly-to are critically
+// glides on; the wheel zooms toward the pointer; turning is a right-drag or a modifier-drag. Zoom-to, fit and fly-to are critically
 // damped springs from wherever the camera is now, so any new input interrupts them. Left alone for a while, the camera
 // drifts round whatever it's looking at. With reduced motion every change is a jump and nothing drifts or glides.
 
@@ -26,6 +26,21 @@ const SHARP_AT = 3.5;
 export function sharpness(zoomOverFit: number) {
   const t = Math.min(1, Math.max(0, Math.log(zoomOverFit / SHARP_FROM) / Math.log(SHARP_AT / SHARP_FROM)));
   return t * t * (3 - 2 * t);
+}
+
+// Whether a drag starting with this pointer-down turns the camera rather than moving across the map: a right-drag
+// (like map apps) or a modifier-drag; and while a project is held, a plain drag circles it too.
+export const RIGHT_BUTTON = 2;
+export function dragTurns(e: { button: number; altKey: boolean; ctrlKey: boolean; metaKey: boolean }, held: boolean) {
+  return e.button === RIGHT_BUTTON || e.altKey || e.ctrlKey || e.metaKey || (held && e.button === 0);
+}
+
+// Zoomed out, every star's soft sprite and nebula glow add up, so a bigger corpus is brighter in the same space. The
+// look was tuned on 8,409 stars; past that, dim the zoomed-out layers by (tuned / count)^0.35 (about half at 57k), so
+// a dense core glows instead of clipping to white. Zoomed in those layers are faded out, so the sharp look is unchanged.
+export const TUNED_STARS = 8409;
+export function crowding(count: number) {
+  return count > TUNED_STARS ? Math.pow(TUNED_STARS / count, 0.35) : 1;
 }
 
 export class Orbit {
@@ -71,7 +86,7 @@ export class Orbit {
   }
 
   get minDist() {
-    return this.fitDist * 0.06;
+    return this.fitDist * 0.02; // 50x: at 57k stars a dense core only separates into single stars this close
   }
   get maxDist() {
     return this.fitDist * 2.4;
@@ -191,6 +206,13 @@ export class Orbit {
   }
   flyTo(p: Vec3) {
     this.animateTo({ target: p, dist: Math.min(this.dist, this.fitDist * 0.32) });
+  }
+  // A group of points, centred and framed whole with a margin: the idea scan's flight to an idea and its neighbours.
+  frameGroup(center: Vec3, radius: number) {
+    const v = (FOV * Math.PI) / 360;
+    const h = Math.atan(Math.tan(v) * (Math.max(this.aspect.width, 1) / Math.max(this.aspect.height, 1)));
+    const dist = (Math.max(radius, 0.02) * 1.6) / Math.sin(Math.min(v, h));
+    this.animateTo({ target: center, dist: Math.min(this.fitDist * 0.9, Math.max(this.fitDist * 0.16, dist)) });
   }
   // A category's cloud: framed whole, a little closer than the galaxy.
   flyToCloud(p: Vec3) {

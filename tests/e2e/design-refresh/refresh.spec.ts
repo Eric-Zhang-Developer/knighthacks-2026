@@ -1,5 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// The project list shows clouds over the whole map when there are too many stars to list (specs/decisions/
+// galaxy-project-list.md): pick the first cloud, then the projects nearest the view are listed.
+async function listProjects(page: Page) {
+  const list = page.locator("[data-list-mode]");
+  if ((await list.getAttribute("data-list-mode")) === "clouds") await list.getByRole("list", { name: "Clouds" }).getByRole("button").first().click();
+  const rows = list.getByRole("list", { name: "Projects" }).getByRole("button");
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  return rows;
+}
+
 // design-refresh Validation 1-5. Gemini is stubbed for the saved idea (AI_STUB_DIR); traces would hold the cookie.
 test.use({ trace: "off" });
 
@@ -106,7 +116,7 @@ test("reduced transparency: no blur; reduced motion: the sheet has no slide", as
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator("summary", { hasText: /^Projects \(/ }).click();
-  await page.getByRole("list", { name: "Projects" }).getByRole("button").first().click();
+  await (await listProjects(page)).first().click();
   const anim = await page.locator(".shell-sheet[data-open]").evaluate((e) => getComputedStyle(e).animationName);
   expect(anim).not.toBe("sheet-in");
 });
@@ -116,7 +126,7 @@ test("phone: a quick flick up closes the project sheet; a slow short drag spring
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
   const open = async () => {
-    await page.getByRole("list", { name: "Projects" }).getByRole("button").first().click();
+    await (await listProjects(page)).first().click();
     await expect(page.getByRole("region", { name: "Project" })).toBeVisible();
     await page.waitForTimeout(400); // the sheet's entrance
   };

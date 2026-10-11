@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Link from "next/link";
 import BuildUp from "@/components/foreman/BuildUp";
 import CrewTimeline from "@/components/foreman/CrewTimeline";
 import { DemoKeys, HeaderClock, Milestones } from "@/components/foreman/Live";
@@ -12,8 +13,6 @@ import { beats, buildUp, chapters, timeline, type BuildUp as BuildUpData, type T
 import { readRaw, REPO } from "@/lib/foreman/collect";
 import { clock } from "@/lib/foreman/time";
 
-// Self-hosted: Google sometimes serves this family from an extensionless URL, which crashes next/font at build time.
-const stencil = localFont({ src: "./fonts/big-shoulders-stencil-latin.woff2", weight: "600 800", variable: "--font-stencil" });
 // Same self-hosted Plex Mono as the root layout (#226): no Google fetch at build time.
 const mono = localFont({
   src: [
@@ -61,11 +60,15 @@ export default async function ForemanPage() {
   const crew = timeline(raw.prs, snapshot);
 
   return (
-    <main className={`${styles.root} ${stencil.variable} ${mono.variable}`}>
+    <main className={`${styles.root} ${mono.variable}`}>
       <header className={styles.header}>
-        <span className={`${styles.brand} ${styles.stencil}`}>Foreman</span>
+        {/* The main site's wordmark (components/shell), so the two read as one product; it leads back to the galaxy. */}
+        <Link href="/" className={styles.brand}>
+          Uncharted
+          <small>How it was built</small>
+        </Link>
         <span className={`${styles.sub} ${styles.survey}`} data-sha={board.sha} data-snapshot={board.fetchedAt}>
-          site office · <a href={`https://github.com/${REPO}`}>{REPO}</a> · surveyed <b>{clock(snapshot)}</b> · main @{" "}
+          build log · <a href={`https://github.com/${REPO}`}>{REPO}</a> · surveyed <b>{clock(snapshot)}</b> · main @{" "}
           <b>{board.sha.slice(0, 7)}</b> ·{" "}
           <span className={styles.api} data-testid="api" data-api={!api.token ? "off" : api.error ? "failed" : "ok"}>
             {!api.token

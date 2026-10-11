@@ -1,4 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, test as base } from "@playwright/test";
+
+const test = base.extend<{ workspace: { origin: string } }>({
+  workspace: async ({ request, baseURL }, provide) => {
+    if (!process.env.TEST_DATABASE_URL || process.env.DATABASE_URL !== process.env.TEST_DATABASE_URL) {
+      throw new Error("Voice workspace creation requires the dedicated test database");
+    }
+    const headers = { origin: new URL(baseURL!).origin };
+    const created = await request.post("/api/workspace", { headers });
+    expect(created.status()).toBe(201);
+    const { workspaceId } = await created.json();
+    try { await provide(headers); }
+    finally {
+      if (!process.env.TEST_DATABASE_URL || process.env.DATABASE_URL !== process.env.TEST_DATABASE_URL) {
+        throw new Error("Voice workspace cleanup requires the dedicated test database");
+      }
+      const { neon } = await import("@neondatabase/serverless");
+      await neon(process.env.DATABASE_URL)`delete from workspaces where id = ${workspaceId}::uuid`;
+    }
+  },
+});
+// Responses carry single-use bearer tokens and workspace cookies.
+test.use({ trace: "off" });
 
 const bar = (page: import("@playwright/test").Page) => page.getByLabel("Voice", { exact: true });
 
@@ -33,19 +55,25 @@ test("provider down: a notice shows and the bar stays usable", async ({ page }) 
   await expect(talk).toBeEnabled();
 });
 
-test("token route: a single-use token, never the key", async ({ request }) => {
+test("token route: a single-use token, never the key", async ({ request, workspace }) => {
   const key = process.env.ELEVENLABS_API_KEY;
   test.skip(!key, "ELEVENLABS_API_KEY not set (#11); the 200 path is unit-tested with a mocked SDK");
-  const res = await request.post("/api/voice/token");
+  const res = await request.post("/api/voice/token", { headers: workspace });
   expect(res.status()).toBe(200);
   const body = await res.text();
   expect(JSON.parse(body).token).toEqual(expect.any(String));
   expect(body).not.toContain(key!);
 });
 
-test("token route without a key: 503, nothing leaked", async ({ request }) => {
+test("token route without a key: 503, nothing leaked", async ({ request, workspace }) => {
   test.skip(!!process.env.ELEVENLABS_API_KEY, "key is set");
-  const res = await request.post("/api/voice/token");
+  const res = await request.post("/api/voice/token", { headers: workspace });
   expect(res.status()).toBe(503);
   expect(await res.json()).toEqual({ error: "voice unavailable" });
+});
+
+test("token route requires an existing workspace session", async ({ request, baseURL }) => {
+  const res = await request.post("/api/voice/token", { headers: { origin: new URL(baseURL!).origin } });
+  expect(res.status()).toBe(401);
+  expect(await res.json()).toEqual({ error: "Guest session required" });
 });

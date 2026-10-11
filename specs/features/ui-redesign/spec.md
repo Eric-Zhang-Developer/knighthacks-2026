@@ -36,18 +36,23 @@ the Filters disclosure and removing the totals strip and explainer from the firs
 
 ## The system
 
-- **Direction: an observatory instrument over the night sky.** Chrome is a translucent instrument laid on the map
-  (blurred fill, hairline edge, solid fallback under reduced transparency), never a wall in front of it. No card inside
-  a bordered panel.
-- **Type.** Cormorant Garamond (display: the wordmark and panel headings), IBM Plex Sans (interface text), IBM Plex
-  Mono (data: counts, years, coordinates, small-caps annotations). All self-hosted in `app/fonts/` (#226). Six sizes
-  only, as tokens: 11 (annotation), 13 (secondary), 15 (body), 18 (section title, serif), 22 (panel heading, serif),
-  30 (display, serif). Panels hold sections under one heading, so a step between body and heading is needed.
-- **Colour.** Near-black sky, neutral text in three steps (primary, secondary, faint), one accent: the idea cyan
-  `--idea`, already the idea star's colour. Category colours appear on the map and legend only. A warning amber and a
-  failure red for states, nothing else.
-- **Shape and space.** Two radii: 14px panels, 10px controls (and full round for icon buttons). A 4px spacing scale;
-  owned stylesheets use spacing and type tokens, not raw values.
+Revised 2026-10-11. The person, looking at production: "the elements are boring. It's just the slate colors… It's not
+themed properly. It looks like AI slop… What if we did completely pitch black? I want to go with a proper observatory
+theme", pointing at getartemisai.com for the controls; then chose square corners and a red accent ("go red").
+
+- **Direction: inside an observatory dome at night.** Pitch-black sky; chrome is solid black instrument plates with a
+  hairline edge and a viewfinder's corner ticks (`.ui-panel`), not frosted glass. No card inside a bordered panel.
+- **Type.** IBM Plex Sans for reading and headings (`--font-display` points at it; the Cormorant serif is gone), IBM
+  Plex Mono for controls (capitals, spaced `--tracking-controls`) and data (counts, years, `[ Step n ]` markings).
+  Self-hosted in `app/fonts/` (#226). Six sizes only, as tokens: 11, 13, 15, 18 (section and panel headings), 22, 30.
+  List rows (projects, sparks, results) keep sentence text.
+- **Colour.** `#000` sky, neutral greys with no blue tint, warm paper text in three steps, brass for markings, and one
+  accent: observatory red `#ff3b30` (`--accent`, and `--idea` for the panels that read it), the light domes work under
+  to keep eyes dark-adapted. It is the opposite of the blue-white stars, so controls stand out from the map. Black text
+  on red fills (5.9:1). The idea star on the canvas keeps its cyan. Errors are orange `--failed` with a glyph, so red
+  never means "failed"; warning amber stays.
+- **Shape and space.** Square: every radius token is 0, fields included; only true circles (50%) are round. A 4px
+  spacing scale; owned stylesheets use spacing and type tokens, not raw values.
 - **Controls.** One `Button` (primary, quiet, icon), one `Field` (input, select, textarea), one `Chip` (toggles and
   filters), exported from `components/ui` and as global classes (`ui-button`, `ui-field`, `ui-chip`) for panels whose
   markup belongs to other features. Panels adopt them through their stylesheets.

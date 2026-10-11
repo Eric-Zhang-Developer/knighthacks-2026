@@ -60,6 +60,12 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
    Use bounded interview/challenge domain policies; do not rewrite their limits to sustain a voice session.
 
 ## Requirements
+- Idea management follows the coordinated idea-create-api/live-mentor-ui contracts: the mentor can guide
+  adding another candidate, selecting saved ideas and requesting deletion, but cannot delete or claim a
+  successful deletion itself. A named destructive confirmation in the app calls the authenticated idea route.
+  Bare spoken agreement is insufficient for deletion. Retain the three-tool allowlist and no-write tool
+  guarantee; do not add arbitrary mutation tools. Prompt/context changes must preserve the existing save
+  confirmation flow and update the actual development agent only through a coordinated configuration change.
 - The application API owns state. Provider sessions must not create/accept an idea on the user's behalf.
   Private-agent configuration uses `platformSettings.auth.enableAuth=true` and
   `conversationConfig.conversation.maxDurationSeconds=7200`; first-message interruption stays enabled.

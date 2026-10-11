@@ -5,7 +5,8 @@ export const generatedSchema = z.object({ overlaps: z.array(claimSchema).max(6),
 // excerptSource: which project field the stored excerpt came from, matched against the project's current text when
 // the card is read; "unknown" when it no longer matches anything (the project changed or left the corpus).
 export type ExcerptSource = "description" | "tagline" | "title" | "unknown";
-export type Card = z.infer<typeof generatedSchema> & { projectId: string; url: string; title: string; excerpt: string; excerptSource: ExcerptSource };
+export type Card = z.infer<typeof generatedSchema> & { projectId: string; url: string; title: string; excerpt: string; excerptSource: ExcerptSource;
+  savedCorpusVersion?: string; currentCorpusVersion?: string | null };
 
 // A project with no description on record is only a gallery card: its title and tagline. Sources the model reads say
 // so, and the instructions forbid claims about how it works beyond that text. Full projects' prompts are unchanged.

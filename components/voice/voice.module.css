@@ -11,7 +11,7 @@
   user-select: none;
 }
 /* Hold to talk is the bar's one action: the accent's outline, filled while listening. */
-.talk { border-color: rgba(79, 214, 232, 0.55); color: var(--paper); }
+.talk { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--paper); }
 .talk[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 /* End is only an action during a session; otherwise it recedes to quiet text. */
 .end { color: var(--muted); }

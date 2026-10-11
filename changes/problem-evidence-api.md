@@ -1,8 +1,8 @@
 ## What shipped
-Immutable workspace-scoped Gemini problem evidence with cited claims, inferred relevance and server-derived dates; unresolved redirects now retain a valid grounding-title domain instead of naming Google's redirect service, while known resolved/direct hosts stay intact.
+Immutable workspace-scoped cited problem evidence; grounding and relevance classification now receive the same saved problem, audience, workflow and constraints. Unknown context remains null; supported claims and inferred relevance retain their labels.
 ## Where it lives
-`app/api/problem-evidence/`, `lib/problem-evidence/`, `lib/ai/grounded.ts`, `db/schema/problem-evidence.ts`; owned unit/e2e tests and schema decision.
+`app/api/problem-evidence/`, `lib/problem-evidence/`, `lib/ai/grounded.ts`, `db/schema/problem-evidence.ts`, and owned unit/e2e tests.
 ## How to check it
-verify: `node scripts/verify.mjs problem-evidence-api "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\problem-evidence-api\20261010T183949Z"` pass at cf98ef7. Live gemini-3.8-flash:8 problem items; domains emerald.com, epa.gov, frontiersin.org, guelphfamilyhealthstudy.com, knowledge-for-policy.ec.europa.eu, nrdc.org, pubmed.ncbi.nlm.nih.gov, stopfoodlosswaste.org;3 resolved URLs; publication2026-08-05T11:57:25-04:00 and event2024. Fixture20261010T183553Z passed;292 unit tests, typecheck/lint passed.
+Context regression reproduced twice before the fix; 35 focused and 538 full-suite tests passed (2 skipped), plus TypeScript and ESLint. Previous live verification at cf98ef7 returned 8 items via gemini-3.8-flash with cited domains and server-derived dates; this is historical evidence, not a new live-context result.
 ## Gaps
-Production schema remains coordinated under #113; only TEST rows were created. Five live URLs remain null; unknown domains/dates stay empty/null, never inferred from prose. Existing immutable snapshots keep their original data. One deployment-only Foreman test skipped; no user trial. DNS/SSRF, redirect, size and timeout protections unchanged; all spec Validation ran.
+New local built-app verification did not reach tests: the shared ElevenLabs dependency install lacks generated modules; CI/Vercel build checks passed. Live grounding Validation 1 was not repeated for this fix. Existing snapshots stay immutable; unknown URLs/dates remain null. No new user trial.
