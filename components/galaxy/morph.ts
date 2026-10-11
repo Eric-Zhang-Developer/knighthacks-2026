@@ -1,5 +1,7 @@
 // Every star flies from one layout to the other. The GPU moves the points (GLSL below); the CPU runs the
 // same formula into `current`, so picking, labels, idea tentacles and fly-to all see where the stars are drawn.
+// `current` is computed when read, at most once per frame: running it every frame of a flight cost ~1.5 s of main
+// thread over a 100k-star load (4x CPU), though on most frames nothing reads it.
 
 export const MORPH_S = 1.4;
 const SPREAD = 0.4; // share of the morph used to stagger stars: the centre leaves first, the rim last
@@ -28,22 +30,30 @@ export const MORPH_GLSL = /* glsl */ `
 export class Morph {
   from: Float32Array = new Float32Array(0);
   to: Float32Array = new Float32Array(0);
-  current: Float32Array = new Float32Array(0);
   seed: Float32Array = new Float32Array(0);
   t = 1;
   private start = 0;
   private live = false;
+  private at: Float32Array = new Float32Array(0);
+  private atT = NaN; // the t `at` holds
+
+  // Where every star is drawn at the current t.
+  get current(): Float32Array {
+    if (this.atT !== this.t) this.fill();
+    return this.at;
+  }
 
   // Set the layout to show. The first call places the stars; later calls fly them from wherever they are now, so a
   // second switch mid-flight turns around smoothly.
   set(to: Float32Array, now: number, animate: boolean) {
     const n = to.length / 3;
     if (this.seed.length !== n) this.seed = Float32Array.from({ length: n }, (_, i) => seedOf(i));
-    this.from = this.current.length === to.length && animate ? Float32Array.from(this.current) : Float32Array.from(to);
+    this.from = this.at.length === to.length && animate ? Float32Array.from(this.current) : Float32Array.from(to);
     this.to = to;
-    this.current = Float32Array.from(this.from);
+    this.at = new Float32Array(to.length);
+    this.atT = NaN;
     this.start = now;
-    this.t = this.from === to || !animate ? 1 : 0;
+    this.t = animate ? 0 : 1;
     this.live = true;
     this.step(now);
   }
@@ -52,24 +62,31 @@ export class Morph {
   step(now: number) {
     if (!this.live) return false;
     this.t = Math.min(1, Math.max(0, (now - this.start) / MORPH_S));
-    const { from, to, current, seed } = this;
-    for (let i = 0; i < seed.length; i++) {
-      const x = 3 * i;
-      const delay = SPREAD * (0.55 * seed[i] + 0.45 * Math.min(1, Math.hypot(to[x], to[x + 1], to[x + 2]) / 0.6));
-      const k = ease(Math.min(1, Math.max(0, (this.t - delay) / (1 - SPREAD))));
-      const bow = Math.sin(k * Math.PI) * BOW * Math.hypot(to[x] - from[x], to[x + 1] - from[x + 1], to[x + 2] - from[x + 2]);
-      let px = from[x] + (to[x] - from[x]) * k;
-      let py = from[x + 1] + (to[x + 1] - from[x + 1]) * k;
-      let pz = from[x + 2] + (to[x + 2] - from[x + 2]) * k;
-      const len = Math.hypot(px, py, pz) || 1;
-      px += (px / len) * bow;
-      py += (py / len) * bow;
-      pz += (pz / len) * bow;
-      current[x] = px;
-      current[x + 1] = py;
-      current[x + 2] = pz;
-    }
     if (this.t >= 1) this.live = false;
     return true;
+  }
+
+  private fill() {
+    const { from, to, at, seed, t } = this;
+    this.atT = t;
+    if (t >= 1) {
+      at.set(to);
+      return;
+    }
+    for (let i = 0; i < seed.length; i++) {
+      const x = 3 * i;
+      const [tx, ty, tz] = [to[x], to[x + 1], to[x + 2]];
+      const [fx, fy, fz] = [from[x], from[x + 1], from[x + 2]];
+      const delay = SPREAD * (0.55 * seed[i] + 0.45 * Math.min(1, Math.sqrt(tx * tx + ty * ty + tz * tz) / 0.6));
+      const k = ease(Math.min(1, Math.max(0, (t - delay) / (1 - SPREAD))));
+      const bow = Math.sin(k * Math.PI) * BOW * Math.sqrt((tx - fx) ** 2 + (ty - fy) ** 2 + (tz - fz) ** 2);
+      const px = fx + (tx - fx) * k;
+      const py = fy + (ty - fy) * k;
+      const pz = fz + (tz - fz) * k;
+      const s = bow / (Math.sqrt(px * px + py * py + pz * pz) || 1);
+      at[x] = px + px * s;
+      at[x + 1] = py + py * s;
+      at[x + 2] = pz + pz * s;
+    }
   }
 }
