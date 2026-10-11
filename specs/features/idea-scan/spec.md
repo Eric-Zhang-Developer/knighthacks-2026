@@ -33,10 +33,28 @@ feature does that with our real data: the idea is scanned against the field, and
    done`), a log line per landed arc (`link  0.83  <title>`), and a footer ledger: `<searched> projects searched ·
    5 nearest linked · closest 0.83 · 0 invented`. A log line is a button that selects its project. Collapses to the
    ledger line on a phone.
-4. The intro (cold open), at `/?intro` and from an "Intro" button beside the map controls: the field starts grey,
+4. The intro (cold open), at `/?intro` (the map's play button now plays the story, which opens with it): the field starts grey,
    each category cloud lights in turn (largest first, ~0.45 s apart) with its label and real count, prize winners
    glint, then the camera pulls back to the whole map. Any input skips it. It never plays on its own on a plain
    `/`, so no other suite's first frame changes.
+
+5. The story (person, 2026-10-11: "a curated walkthrough… animated and very polished and pretty", for the presenter,
+   30-40 s). The map's play button ("Play the story", also `/?story`) plays the demo video's joke in the real app, about
+   36 s in five beats, with Fred narrating in speech bubbles over the map:
+   - **sky** (0-7 s): the intro's sweep, the survey log hidden; a large counter counts up to the real star count
+     ("76,316 hackathon projects"). Fred: "Every star is a real hackathon project."
+   - **egg** (7-12 s): the camera flies to where the twins are; a cyan idea star appears among them. Fred: "Say your
+     idea is a new UCF parking app…"
+   - **twins** (12-23 s): three real projects, found by exact title and year in `stars.json` (Knight Parking 2016, UCF
+     Parking Agent 2019, UCF Parking 2021), are reached one by one on a beat (~2 s apart, a chime each) and a card pops
+     in for each: title, then event · year. Fred, after the third: "Smells familiar."
+   - **proof** (23-29 s): the last twin's project sheet opens (its real Devpost link). Fred: "Each one is real. Here's
+     its Devpost."
+   - **turn** (29-36 s): the sheet closes, the camera pulls back to the whole map, the idea star fades. Fred: "So what
+     hasn't been built yet? Tap me." and Fred (the pet) hops. Then everything is as before the story.
+   While it plays, the page chrome (header, rail, nav) fades back so the map and Fred carry it. Presenter keys: Space
+   pauses and resumes, the arrow keys step a beat back or forward, Escape ends it. A twin missing from the corpus is
+   skipped (never stood in for); with none found, the story skips egg, twins and proof.
 
 ## Requirements
 - Every number shown is read from data: similarity from the API (never 3D distance, never estimated client-side),
@@ -63,6 +81,9 @@ feature does that with our real data: the idea is scanned against the field, and
 6. Scan API stubbed to 500 -> arcs and title tags still appear; ledger says `similarity unavailable`.
 7. `tests/e2e/idea-scan/` covers 2-6 with desktop and phone screenshots per phase; the galaxy-3d, galaxy,
    galaxy-classes-ui, galaxy-history, experience-shell and idea-create-ui suites still pass.
+8. Story: "Play the story" -> `data-story` passes `sky`, `egg`, `twins`, `proof`, `turn`, then `idle`, in 30-40 s;
+   three twin cards show the real titles and years; Escape mid-story -> `data-story="idle"` and no project selected;
+   reduced motion -> the same beats with no flight or arcs.
 
 ## Defaults
 Five neighbours (what the idea API stores). Undo: remove the scan state from `components/galaxy/index.tsx`; the
