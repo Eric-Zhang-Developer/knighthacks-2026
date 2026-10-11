@@ -110,7 +110,7 @@ export default function Search() {
         <span>{h.title}</span>
         <span className={styles.meta}>
           {meta(h, filters.event)}
-          {similarity !== undefined && ` · ${similarity.toFixed(2)}`}
+          {similarity !== undefined && ` · ${Math.round(similarity * 100)}% match`}
         </span>
       </button>
     </li>

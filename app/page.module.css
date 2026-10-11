@@ -1,7 +1,7 @@
 .shell { position: relative; height: 100dvh; overflow: hidden; background: #03050a; color: #f3f4f8; }
 .top { position: absolute; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 32px; padding: 16px 112px 16px 24px; pointer-events: none; }
 .top > * { pointer-events: auto; }
-.brand { flex: none; display: grid; gap: 7px; }
+.brand { flex: none; display: grid; gap: 7px; margin: 0; font: inherit; } /* the page's h1 (#472) */
 .wordmark { font-size: 17px; font-weight: 650; letter-spacing: .26em; color: #fff; }
 .tagline { color: #b2bbc9; font-size: 12px; }
 .search { width: min(500px, 100%); min-width: 0; }
