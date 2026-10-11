@@ -34,8 +34,20 @@ def test_project_fields_come_from_the_page():
                             "dates": "Oct 24 - 26, 2025",
                             "prizes": ["Best Overall Hack", "Google Cloud Gemini A2A ADK: The Autonomous Agent Challenge"]}]
     assert (r["date"], r["date_kind"]) == ("2025-10-26T09:55:18-04:00", "created")
-    assert r["description"].startswith("Inspiration Every emergency manager")
+    assert r["description"].startswith("Every emergency manager")
     assert "Built With" not in r["description"]
+
+
+def test_project_description_drops_gallery_headings_and_emoji_shortcodes():
+    html = PROJECT.replace('<div id="gallery">', '<div id="gallery">img 1 img 2 img 3')
+    html = html.replace("<p>Every emergency manager", "<p>:grey_question::question::grey_question: Every emergency manager")
+    r, reason = parse_project(html, URL, "t")
+
+    assert reason is None
+    assert r["description"].startswith("Every emergency manager")
+    assert "img 1" not in r["description"]
+    assert "Inspiration" not in r["description"]
+    assert ":grey_question:" not in r["description"]
 
 
 def test_unknown_event_dates_stay_none():
