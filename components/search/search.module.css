@@ -3,21 +3,57 @@
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   background: var(--panel);
   color: var(--text);
   font: inherit;
 }
 .panel {
-  position: absolute;
-  z-index: 10;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  max-height: 60vh;
+  max-height: 50vh;
   overflow-y: auto;
   padding: var(--space-2) 0;
 }
+/* Results and filters open upward from the dock under the map (header-nav); the phone flips them under its bar. */
+.above {
+  position: absolute;
+  z-index: 10;
+  bottom: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.above:empty { display: none; }
+.filters {
+  order: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.chips { order: 3; display: flex; flex-wrap: wrap; gap: var(--space-1); list-style: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  max-width: 260px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--panel);
+  color: var(--text);
+  font: var(--md-sys-typescale-label-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip span { color: var(--ink-2); font-size: var(--text-sm); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.filters .filter { display: grid; gap: var(--space-1); min-width: 0; }
+.filters .filter span { font: var(--md-sys-typescale-label-medium); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.filters .filter select { width: 100%; max-width: none; min-height: 40px; }
+.filters button { grid-column: 1 / -1; justify-self: end; }
 .list { list-style: none; }
 .item {
   display: flex;
@@ -40,18 +76,43 @@
   .item { flex-direction: column; gap: 2px; }
   .meta { white-space: normal; }
 }
-/* One row in the desktop top bar (52px, experience-shell): the query takes two shares, each filter one, and a long
-   option truncates rather than wrapping the bar. The phone gives the query its own row (below). */
+/* One row in the dock: the query, then the Filters button with its count. */
 .bar { display: flex; gap: var(--space-2); }
-.bar .input { flex: 2 1 0; min-width: 0; }
-.bar .filter { flex: 1 1 0; min-width: 0; }
-.bar .filter select { width: 100%; max-width: none; font-size: var(--text-sm); }
+.bar .input { flex: 1 1 0; min-width: 0; min-height: 44px; border-radius: var(--radius-round); padding: 0 var(--space-4); background: var(--material-thick); backdrop-filter: var(--material-blur); -webkit-backdrop-filter: var(--material-blur); }
+.toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--hairline);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase; /* the theme's control voice (globals.css), like the map's view switch */
+}
+.toggle[aria-expanded="true"] { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-round);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 var(--text-xs)/1 var(--font-mono);
+}
 .filter select {
-  height: 100%;
-  max-width: 140px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   background: var(--panel);
   color: var(--text);
   font: inherit;
@@ -59,11 +120,8 @@
   text-overflow: ellipsis;
 }
 .filter select:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
-.hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (max-width: 720px) {
-  .bar { flex-wrap: wrap; }
-  .bar .input { flex-basis: 100%; }
-  .filter { flex: 1; min-width: 0; }
-  .filter select { width: 100%; max-width: none; }
+  .above { bottom: auto; top: calc(100% + var(--space-1)); flex-direction: column-reverse; }
+  .filters { grid-template-columns: 1fr; }
 }

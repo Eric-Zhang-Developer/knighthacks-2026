@@ -29,10 +29,11 @@ test("desktop: top bar, rails and composer at their sizes, the galaxy between th
   await expect
     .poll(() => page.locator("canvas").evaluate((c) => c.getBoundingClientRect().width === c.parentElement!.getBoundingClientRect().width), { timeout: 10_000 })
     .toBe(true);
-  const top = await box(page, "div:has(> header[aria-label=Search])");
+  const top = await box(page, "header:has(nav[aria-label=Views])");
   const rail = await box(page, RAIL);
   const side = await box(page, "aside[aria-label='Idea and evidence']");
-  const composer = await box(page, "footer[aria-label=Voice]");
+  // The dock under the map (header-nav): search, then push-to-talk.
+  const composer = await box(page, "div:has(> footer[aria-label=Voice])");
   const canvas = await box(page, "canvas");
   near(top.height, 52);
   near(rail.width, 224);
@@ -100,11 +101,12 @@ test("phone: one destination per screen (five with Plan), 44px navigation, and B
   await expect(page.locator("canvas")).toBeVisible();
 });
 
-test("keyboard: Tab reaches search, the project list, the composer and the rails in order, with a focus ring", async ({ page }) => {
+test("keyboard: Tab reaches search, the composer, the project list and the rails in order, with a focus ring", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
-  const want = ["Search projects", "Projects (", "Hold to talk", "Describe your idea"];
+  // header-nav moved search into the dock under the map, first after the header's views.
+  const want = ["Search projects", "Hold to talk", "Projects (", "Describe your idea"];
   const seen: number[] = [];
   for (let i = 0; i < 80 && seen.length < want.length; i++) {
     await page.keyboard.press("Tab");

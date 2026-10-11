@@ -59,8 +59,14 @@ function HomeWorkspace() {
           No accounts: clearing cookies loses it
         </span>
       </div>
-      <button type="button" className={styles.button} disabled={invite.state === "creating"} onClick={createInvite}>
-        Invite a teammate
+      <button
+        type="button"
+        className={styles.button}
+        aria-label="Invite a teammate"
+        disabled={invite.state === "creating"}
+        onClick={createInvite}
+      >
+        Invite
       </button>
       {(invite.state === "ready" || invite.state === "failed") && (
         <div className={`ui-panel ${styles.dropdown}`}>

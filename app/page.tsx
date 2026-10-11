@@ -15,25 +15,33 @@ import Nav from "@/components/shell";
 import Sheet from "@/components/shell/Sheet";
 import Starters from "@/components/shell/Starters";
 import Steps from "@/components/shell/Steps";
+import Tabs from "@/components/shell/Tabs";
 import Snapshot from "@/components/snapshot";
 import Voice from "@/components/voice";
 import Votes from "@/components/votes";
 import styles from "./page.module.css";
 
 // Each area is owned by one feature (specs/features/*/spec.md); a panel renders nothing until it's relevant.
-// Desktop: top bar, discovery rail | galaxy over the composer | contextual rail. Phone: one destination at a time
+// Desktop: top bar (Explore / Build), discovery rail | galaxy over the search-and-voice dock | contextual rail; Build
+// gives the contextual rail the stage. Phone: one destination at a time
 // (Explore, Talk, Idea, Decide, Plan), picked by <Nav> through html[data-dest] (specs/features/experience-shell).
 export default function Home() {
   return (
     <div className={styles.shell}>
-      <div className={styles.top}>
-        <p className={styles.brand}>
-          <span className={styles.wordmark}>Uncharted</span>
-          <span className={styles.tagline}>Brainstorm among real hackathon projects</span>
-        </p>
-        <header className={styles.search} aria-label="Search">
+      {/* The header is navigation only (specs/features/header-nav): the wordmark, Explore / Build, and the workspace
+          (app/layout.tsx mounts it over the header's right end). */}
+      <header className={styles.top}>
+        <p className={styles.wordmark}>Uncharted</p>
+        <Tabs />
+      </header>
+      {/* The dock under the map: search with its filters, then push-to-talk. First in tab order after the header. */}
+      <div className={styles.dock}>
+        <section className={styles.search} aria-label="Search">
           <Search />
-        </header>
+        </section>
+        <footer className={styles.composer} aria-label="Voice">
+          <Voice />
+        </footer>
       </div>
       <main className={styles.map} aria-label="Galaxy">
         {/* The galaxy renders its history, legend and project list into the rail. */}
@@ -47,9 +55,6 @@ export default function Home() {
           <Galaxy />
         </div>
       </main>
-      <footer className={styles.composer} aria-label="Voice">
-        <Voice />
-      </footer>
       <aside className={styles.side} aria-label="Idea and evidence">
         <Steps />
         <Sheet>
