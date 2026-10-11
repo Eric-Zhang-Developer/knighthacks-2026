@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelState } from "@/components/ui";
@@ -12,8 +13,18 @@ type InviteState = { state: "idle" | "creating" } | { state: "ready"; invite: In
 
 // Mounted from app/layout.tsx. Only the home page starts a workspace: invite pages redeem, and share pages
 // (/s/*) and every other path never create a session.
+// Beside Team, the build page (specs/features/foreman), so judges find it without the URL. One flex group keeps the
+// two a fixed gap apart whatever Team's label ("Team", "Team offline") is.
 export default function Workspace() {
-  return usePathname() === "/" ? <HomeWorkspace /> : null;
+  if (usePathname() !== "/") return null;
+  return (
+    <div className={styles.corner}>
+      <Link href="/foreman" className={styles.built}>
+        How it was built <span aria-hidden>→</span>
+      </Link>
+      <HomeWorkspace />
+    </div>
+  );
 }
 
 function HomeWorkspace() {

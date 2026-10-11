@@ -57,8 +57,16 @@
 @media (max-width: 720px) {
   .status { position: static; max-width: none; margin: var(--space-2) var(--space-4) 0; }
 }
-.workspace { display: block !important; position: fixed !important; top: 12px; right: 16px; margin: 0 !important; }
-.menu { list-style: none; cursor: pointer; border: 1px solid var(--hairline-strong); border-radius: var(--radius); padding: 11px 18px; min-height: 44px; color: var(--ink); background: var(--surface-low); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: var(--tracking-controls); text-transform: uppercase; }
+/* Team and "How it was built" share one fixed group at the header row's end, centred on it: 16px row padding +
+   (50.5px brand - 44px control) / 2. The menu opens from Team, so Team is its positioning box. */
+.corner { position: fixed; top: 19px; right: 16px; z-index: 20; display: flex; align-items: flex-start; gap: 12px; }
+.workspace { display: block !important; position: relative !important; inset: auto !important; margin: 0 !important; }
+.built { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 11px 18px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); background: var(--surface-low); color: var(--ink); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: var(--tracking-controls); text-transform: uppercase; text-decoration: none; white-space: nowrap; }
+.built span { color: var(--accent); }
+.built:hover, .built:focus-visible { border-color: var(--accent); }
+/* The phone header is a stacked column, and the build page is a laptop walkthrough. */
+@media (max-width: 720px) { .built { display: none; } }
+.menu { display: flex; align-items: center; list-style: none; cursor: pointer; border: 1px solid var(--hairline-strong); border-radius: var(--radius); padding: 11px 18px; min-height: 44px; color: var(--ink); background: var(--surface-low); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: var(--tracking-controls); text-transform: uppercase; }
 .menuContent { display: grid; gap: 14px; position: absolute; top: 54px; right: 0; width: min(320px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); background: var(--surface); box-shadow: 0 16px 60px #0009; }
 .menuContent .identity { text-align: left; }
 .menuContent .button { min-height: 44px; }
