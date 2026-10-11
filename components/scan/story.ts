@@ -76,7 +76,7 @@ export class Story {
     return { playing: true, paused: this.pausedAt !== null, t, beat: beatAt(t) };
   }
 
-  play(now: number, twins = TWINS.length) {
+  play(now: number, twins: number = TWINS.length) {
     this.beats = playable(twins);
     this.active = true;
     this.pausedAt = null;
