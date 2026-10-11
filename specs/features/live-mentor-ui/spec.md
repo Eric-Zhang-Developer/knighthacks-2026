@@ -1,7 +1,7 @@
 ---
 name: A natural spoken mentor connected to the idea and evidence panels
 depends_on: [live-mentor-api, voice, idea-create-ui, idea-interview-ui, neighbor-evidence-ui, design-refresh]
-owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
+owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
 assignee: "codex-conversation-ui"
 ---
 
@@ -42,10 +42,9 @@ tests must assert preserved behavior through the new entry rather than require t
 - Phone cleanup from the user's screenshot: remove the Projects/Events/Categories totals strip and the
   "What am I looking at?" explainer from the primary shell. Move secondary discovery/history controls out of
   the initial viewport into an explicit disclosure; retain an accessible project-list alternative to the map.
-  Replace the four cramped inline filter selects with a clearly labelled Filters disclosure/sheet, full-width
-  readable fields, active-filter summary and Clear filters. Keep the search field directly reachable.
-  Use a compact brand/header with a workspace menu for the identifier and cookie-persistence explanation;
-  keep an obvious teammate action without a permanent multi-line workspace banner. Remove the Hold to talk
+  The header, the Filters disclosure and the compact workspace line moved to `header-nav`, together with
+  `app/page.tsx`, `app/page.module.css` and `components/shell/` (person's decision 2026-10-11); this feature
+  mounts its mentor through a `fix(header-nav)` or after header-nav is done. Remove the Hold to talk
   dictation bar from the shipped primary experience rather than showing it alongside the new bubble.
   These changes require a coordinated ownership amendment for search/workspace/discovery components before
   editing those features' files; do not conceal controls with broad CSS or delete their behavior/tests.
