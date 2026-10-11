@@ -7,7 +7,7 @@ vi.mock("@elevenlabs/elevenlabs-js", () => {
   } };
 });
 import { configuredAgent, mintConversationToken } from "@/lib/mentor/provider";
-import { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG, PROGRESSIVE_BRAINSTORMING_POLICY } from "@/lib/mentor/agent-config";
+import { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG, PROGRESSIVE_BRAINSTORMING_POLICY, MENTOR_CONVERSATION_STYLE_POLICY } from "@/lib/mentor/agent-config";
 import { setupMentor } from "@/lib/mentor/setup";
 
 const setupEnv = {
@@ -46,6 +46,7 @@ describe("explicit managed mentor setup", () => {
     await setupMentor(["--update"], { ...setupEnv, ELEVENLABS_MENTOR_AGENT_ID: "agent_test" });
     const definition = mocks.update.mock.calls[0][1];
     expect(definition.conversationConfig.agent.prompt.prompt).toContain(PROGRESSIVE_BRAINSTORMING_POLICY);
+    expect(definition.conversationConfig.agent.prompt.prompt).toContain(MENTOR_CONVERSATION_STYLE_POLICY);
     expect(definition.conversationConfig.agent.prompt.tools.map((tool: { name: string }) => tool.name)).toEqual(["get_context", "find_projects", "propose_idea"]);
     expect(definition.platformSettings.auth.enableAuth).toBe(true);
     expect(definition.conversationConfig.conversation.maxDurationSeconds).toBe(1200);
