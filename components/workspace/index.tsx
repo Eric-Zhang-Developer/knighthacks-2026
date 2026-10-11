@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelState } from "@/components/ui";
 import { initWorkspace, post, shortId, type Identity } from "./api";
 import { NO_RECOVERY } from "./copy";
@@ -26,6 +26,21 @@ function HomeWorkspace() {
     initWorkspace().then((r) => (r.ok ? setIdentity(r.data) : setFailed(r.error)));
   }, []);
   useEffect(start, [start]);
+  // The Team menu closes like any popover: Escape (focus back on its summary) or a press outside it (#471).
+  const menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => {
+      const d = menu.current;
+      if (!d?.open) return;
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !d.contains(e.target as Node)) {
+        d.open = false;
+        if (e instanceof KeyboardEvent) d.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("pointerdown", close);
+    return () => (document.removeEventListener("keydown", close), document.removeEventListener("pointerdown", close));
+  }, []);
 
   async function createInvite() {
     setInvite({ state: "creating" });
@@ -37,7 +52,7 @@ function HomeWorkspace() {
 
   if (failed || !identity) {
     return (
-      <details className={styles.workspace} aria-label="Workspace">
+      <details ref={menu} className={styles.workspace} aria-label="Workspace">
         <summary className={styles.menu}>{failed ? "Team offline" : "Team"}</summary>
         <div className={styles.menuContent}>
         {failed ? (
@@ -50,7 +65,7 @@ function HomeWorkspace() {
     );
   }
   return (
-    <details className={styles.workspace} aria-label="Workspace">
+    <details ref={menu} className={styles.workspace} aria-label="Workspace">
       <summary className={styles.menu}>Team</summary>
       <div className={styles.menuContent}>
       <div className={styles.identity}>

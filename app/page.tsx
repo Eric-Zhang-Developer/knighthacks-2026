@@ -29,10 +29,10 @@ export default function Home() {
   return (
     <div className={styles.shell}>
       <div className={styles.top}>
-        <p className={styles.brand}>
+        <h1 className={styles.brand}>
           <span className={styles.wordmark}>Uncharted</span>
           <span className={styles.tagline}>Find your next idea.</span>
-        </p>
+        </h1>
         <header className={styles.search} aria-label="Search">
           <Search />
         </header>

@@ -58,7 +58,7 @@
   font-size: var(--text-sm);
   text-overflow: ellipsis;
 }
-.filter select:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.filter select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (max-width: 720px) {
