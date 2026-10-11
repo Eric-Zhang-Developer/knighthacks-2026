@@ -16,6 +16,8 @@
 .side { position: absolute; right: 20px; top: 92px; bottom: 110px; width: 350px; z-index: 3; overflow: auto; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
 .side :global(.ui-panel) { background: #121722; box-shadow: none; }
 .empty { color: #aeb7c9; padding: 20px; font-size: 14px; }
+.group { border-top: 1px solid #ffffff20; margin-top: 12px; }
+.group > summary { min-height: 48px; padding: 14px 8px; cursor: pointer; color: #d7e3f6; font-size: 14px; }
 .decide:has(:global(.ui-panel)) .empty, .plan:has(:global(.ui-panel)) .empty { display: none; }
 @media (max-width: 720px) {
   .shell { height: 100dvh; flex: none; }

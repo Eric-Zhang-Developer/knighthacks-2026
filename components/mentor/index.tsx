@@ -38,7 +38,7 @@ export default function Mentor() {
   const log = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const show = () => setOpen(true);
+    const show = () => { setOpen(true); setLoadVoice(true); };
     const hash = () => { if (location.hash === "#talk") show(); };
     window.addEventListener("mentor:open", show);
     window.addEventListener("hashchange", hash);
@@ -139,7 +139,7 @@ export default function Mentor() {
       </form>
       <div className={styles.status} role="status">{voiceState}{activeAudio && <button type="button" onClick={() => live.current?.end()}>End conversation</button>}</div>
     </section>
-    <button ref={launcher} className={styles.bubble} type="button" aria-label={open ? "Minimize conversation" : "Open conversation"} aria-expanded={open} onClick={() => open ? close() : setOpen(true)}>
+    <button ref={launcher} className={styles.bubble} type="button" aria-label={open ? "Minimize conversation" : "Open conversation"} aria-expanded={open} onClick={() => { if (open) close(); else { setOpen(true); setLoadVoice(true); } }}>
       <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 12v8m6-14v20m6-17v14m6-11v8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
     </button>
     <span className={styles.caption}>{activeAudio ? voiceState : "Let’s brainstorm"}</span>

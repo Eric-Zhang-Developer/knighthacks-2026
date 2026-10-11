@@ -57,18 +57,21 @@ export default function Home() {
           <div id="step-idea">
             <Idea />
           </div>
-          <div id="step-explore">
+          <details id="step-explore" className={styles.group}>
+            <summary>Explore related projects</summary>
             <Evidence />
-          </div>
-          <div id="step-grow">
+          </details>
+          <details id="step-grow" className={styles.group}>
+            <summary>Refine and compare</summary>
             <Revisions />
             <Branches />
             <Compare />
-          </div>
-          <div id="step-test">
+          </details>
+          <details id="step-test" className={styles.group}>
+            <summary>Test your assumptions</summary>
             <Scorecard />
             <Challenge />
-          </div>
+          </details>
         </div>
         <div id="step-decide" className={styles.decide}>
           {/* Decide's panels render nothing until an idea is saved; the phone says so instead of a blank screen. */}
