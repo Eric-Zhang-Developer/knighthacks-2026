@@ -40,29 +40,23 @@
   inset: 0 0 auto 0;
   z-index: 3;
   height: var(--top);
-  display: flex;
+  /* Wordmark | the two views, centred on the window | the workspace (fixed, from app/layout.tsx). */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: var(--space-5);
-  padding: 0 var(--space-4);
-  /* Leaves room for the fixed workspace badge on the right. */
-  padding-right: 340px;
+  padding: 0 var(--space-5);
   border-bottom: 1px solid var(--rule);
   min-width: 0;
 }
-.brand { display: grid; line-height: 1; flex: none; }
+/* Narrower windows: the views follow the wordmark, leaving the right for the workspace line. */
+@media (min-width: 721px) and (max-width: 1200px) {
+  .top { grid-template-columns: auto auto 1fr; gap: var(--space-5); }
+}
 .wordmark {
-  font: 600 17px/1 var(--font-sans);
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
+  font: 600 19px/1 var(--font-display);
+  letter-spacing: -0.01em;
   color: var(--paper);
 }
-.tagline {
-  font: var(--md-sys-typescale-label-medium);
-  letter-spacing: 0.02em;
-  color: var(--md-sys-color-primary);
-  margin-top: 5px;
-}
-.search { flex: 1; min-width: 0; max-width: 820px; }
 
 /* The Galaxy landmark holds both the discovery rail and the chart, so the rail's controls stay part of the map. */
 .map { position: absolute; inset: 0; }
@@ -101,8 +95,9 @@
   min-height: 0;
 }
 
-/* Push-to-talk floats at the bottom of the map; the bar itself is see-through. */
-.composer {
+/* The dock floats at the bottom of the map: search (with its Filters) then push-to-talk, centred between the map's
+   corners so the map controls and the "projects indexed" count stay clear. The bar itself is see-through. */
+.dock {
   position: absolute;
   left: var(--chart-left);
   right: var(--chart-right);
@@ -112,11 +107,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-3);
   min-width: 0;
-  padding: 0 var(--space-4) var(--space-2);
+  /* Clear of the map controls on the right, and lifted over the "projects indexed" count under them. */
+  padding: 0 72px 32px var(--space-4);
   pointer-events: none;
 }
-.composer > * { pointer-events: auto; }
+.dock > * { pointer-events: auto; }
+.search { flex: 0 1 460px; min-width: 200px; }
+.composer { flex: none; min-width: 0; display: flex; justify-content: center; }
+/* Narrower windows: the buttons say what the voice bar is, so its heading gives the search room. */
+@media (min-width: 721px) and (max-width: 1700px) {
+  .composer :global(.ui-heading) { display: none; }
+}
 
 /* The contextual rail grows with its content, up to the window: a lone prompt doesn't sit in an empty column. */
 .side {
@@ -138,6 +141,25 @@
 
 .empty { display: none; }
 
+/* Build (header-nav): the idea path takes the stage in a wide centred column; the galaxy stays behind it, dimmed and
+   still. Desktop only: the phone has its own destinations. */
+@media (min-width: 721px) {
+  :global(html[data-view="build"]) .rail,
+  :global(html[data-view="build"]) .dock { display: none; }
+  :global(html[data-view="build"]) .chart { opacity: 0.25; pointer-events: none; transition: opacity 200ms ease; }
+  :global(html[data-view="build"]) .side {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(760px, calc(100% - 2 * var(--gap)));
+    padding: 0 var(--space-4) var(--space-4);
+  }
+}
+@media (min-width: 721px) and (prefers-reduced-motion: reduce) {
+  :global(html[data-view="build"]) .chart { transition: none; }
+}
+
+
 /* Phone: one destination fills the screen above the bottom navigation; the rest are hidden, not stacked. */
 @media (max-width: 720px) {
   .shell {
@@ -151,20 +173,26 @@
   }
   .top,
   .map,
-  .composer,
+  .dock,
   .side { position: static; }
+  /* The dock's two parts go back to their phone places: search above the map, push-to-talk under it. */
+  .dock { display: contents; }
+  .top, .search { order: 0; }
+  .map { order: 1; }
+  .composer { order: 2; }
+  .side { order: 3; }
   .top {
+    display: flex;
     height: auto;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    padding-right: var(--space-4);
+    padding: var(--space-2) var(--space-4) 0;
     border-bottom: 0;
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .search { flex-basis: 100%; max-width: none; }
+  .top :global(.shell-tabs) { display: none; }
+  .wordmark { font-size: 17px; }
+  .search { flex: none; min-width: 0; padding: var(--space-2) var(--space-4); }
   /* Results drop over the map; on a phone they stop short of the rail and composer below it. */
   .search :global([data-panel="search"]) { max-height: 40dvh; }
   .map { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
@@ -197,6 +225,10 @@
   .decide:not(:has(:global(.ui-panel))) .empty,
   .plan:not(:has(:global(.ui-panel))) .empty { display: block; padding: var(--space-5) var(--space-4); color: var(--muted); }
 
+  :global(html[data-dest="talk"]) .search,
+  :global(html[data-dest="idea"]) .search,
+  :global(html[data-dest="decide"]) .search,
+  :global(html[data-dest="plan"]) .search,
   :global(html[data-dest="talk"]) .top,
   :global(html[data-dest="idea"]) .top,
   :global(html[data-dest="decide"]) .top,

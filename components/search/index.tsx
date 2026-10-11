@@ -6,7 +6,7 @@ import { resultIds } from "@/lib/search/highlight";
 import type { Hit, Neighbor } from "@/lib/search/neighbors";
 import { PanelState } from "@/components/ui";
 import { loadStars, type Star } from "@/components/galaxy/stars";
-import { MIXED, matches, setClassFilter, UNCLEAR, useClasses, type PrizeFilter } from "@/lib/classes";
+import { MIXED, matches, NO_FILTER, setClassFilter, UNCLEAR, useClasses, type PrizeFilter } from "@/lib/classes";
 import { filterOptions, localMatches, meta, searchUrl, type Filters } from "./filters";
 import styles from "./search.module.css";
 
@@ -29,6 +29,22 @@ export default function Search() {
   const keep = useMemo(() => (h: { id: string }) => matches(classData, h.id, classFilter), [classData, classFilter]);
   // The selection from before this search; undefined while no search is active.
   const saved = useRef<string | null | undefined>(undefined);
+  // The filters live behind one button (specs/features/header-nav), category first; the button counts the active ones.
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const active = [classFilter.key, classFilter.prize, filters.event, filters.year].filter(Boolean).length;
+  useEffect(() => {
+    if (!open) return;
+    // A click elsewhere or Escape closes it, wherever focus is (Clear filters disables itself and drops focus).
+    const away = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    addEventListener("pointerdown", away);
+    addEventListener("keydown", esc);
+    return () => {
+      removeEventListener("pointerdown", away);
+      removeEventListener("keydown", esc);
+    };
+  }, [open]);
 
   useEffect(() => {
     loadStars().then((l) => l.state === "ready" && setStars(l.data.stars)); // no stars.json: no filters, search still works
@@ -93,8 +109,13 @@ export default function Search() {
 
   const textOnly = data ? data.textMatches.filter((t) => !data.results.some((r) => r.id === t.id)) : [];
 
+  const clear = () => {
+    setFilters({ event: "", year: "" });
+    setClassFilter(NO_FILTER);
+  };
+
   return (
-    <div className={styles.search} role="search">
+    <div ref={root} className={styles.search} role="search">
       <div className={styles.bar}>
         <input
           type="search"
@@ -104,12 +125,54 @@ export default function Search() {
           maxLength={500}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Escape" && setQ("")}
+          onKeyDown={(e) => e.key === "Escape" && !open && setQ("")}
         />
         {stars.length > 0 && (
-          <>
+          <button
+            type="button"
+            className={styles.toggle}
+            aria-expanded={open}
+            aria-controls="search-filters"
+            onClick={() => setOpen(!open)}
+          >
+            Filters
+            {active > 0 && <span className={styles.count}>{active}</span>}
+          </button>
+        )}
+      </div>
+      {/* Above the bar (under it on the phone): the results, then the filters next to the button that opened them. The
+          filters come first in the DOM so they follow the button in tab order; CSS puts them nearest the bar. */}
+      <div className={styles.above}>
+        {open && stars.length > 0 && (
+          <div id="search-filters" className={`ui-panel ${styles.filters}`} aria-label="Filters" role="group">
+            {classData && (
+              <label className={styles.filter}>
+                <span>Category</span>
+                <select value={classFilter.key ?? ""} onChange={(e) => setClassFilter({ key: e.target.value || null })}>
+                  <option value="">All categories</option>
+                  {classData.domains.map((d) => (
+                    <option key={d.id} value={d.id}>{d.label}</option>
+                  ))}
+                  <option value={MIXED}>Mixed</option>
+                  <option value={UNCLEAR}>Not enough text</option>
+                </select>
+              </label>
+            )}
+            {classData && (
+              <label className={styles.filter}>
+                <span>Prize</span>
+                <select value={classFilter.prize} onChange={(e) => setClassFilter({ prize: e.target.value as PrizeFilter })}>
+                  <option value="">Any</option>
+                  <option value="win">Any prize winner</option>
+                  <option value="1">1st place</option>
+                  <option value="2">2nd place</option>
+                  <option value="3">3rd place</option>
+                  <option value="sponsor">Sponsor prize</option>
+                </select>
+              </label>
+            )}
             <label className={styles.filter}>
-              <span className={styles.hidden}>Event</span>
+              <span>Event</span>
               <select
                 value={filters.event}
                 onChange={(e) => {
@@ -124,7 +187,7 @@ export default function Search() {
               </select>
             </label>
             <label className={styles.filter}>
-              <span className={styles.hidden}>Created year</span>
+              <span>Created year</span>
               <select value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })}>
                 <option value="">Any year</option>
                 {options.years.map((y) => (
@@ -132,35 +195,11 @@ export default function Search() {
                 ))}
               </select>
             </label>
-            {classData && (
-              <>
-                <label className={styles.filter}>
-                  <span className={styles.hidden}>Category</span>
-                  <select value={classFilter.key ?? ""} onChange={(e) => setClassFilter({ key: e.target.value || null })}>
-                    <option value="">All categories</option>
-                    {classData.domains.map((d) => (
-                      <option key={d.id} value={d.id}>{d.label}</option>
-                    ))}
-                    <option value={MIXED}>Mixed</option>
-                    <option value={UNCLEAR}>Not enough text</option>
-                  </select>
-                </label>
-                <label className={styles.filter}>
-                  <span className={styles.hidden}>Prize</span>
-                  <select value={classFilter.prize} onChange={(e) => setClassFilter({ prize: e.target.value as PrizeFilter })}>
-                    <option value="">Any project</option>
-                    <option value="win">Any prize winner</option>
-                    <option value="1">1st place</option>
-                    <option value="2">2nd place</option>
-                    <option value="3">3rd place</option>
-                    <option value="sponsor">Sponsor prize</option>
-                  </select>
-                </label>
-              </>
-            )}
-          </>
+            <button type="button" className="ui-button" data-variant="quiet" disabled={active === 0} onClick={clear}>
+              Clear filters
+            </button>
+          </div>
         )}
-      </div>
       {view.state !== "idle" && (
         <div className={`ui-panel ${styles.panel}`} data-panel="search" aria-label="Search results" aria-live="polite">
           {view.state === "error" && <PanelState kind="failed" message="Search is unavailable right now." />}
@@ -197,6 +236,7 @@ export default function Search() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

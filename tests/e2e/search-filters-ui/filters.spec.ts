@@ -17,6 +17,9 @@ test("event and year filters narrow the results, keep the query, and clear back 
   await page.goto("/");
   const event = page.getByRole("combobox", { name: "Event" });
   const year = page.getByRole("combobox", { name: "Created year" });
+  // The filters sit behind one button in the dock (header-nav).
+  const toggle = page.getByRole("button", { name: /^Filters/ });
+  await toggle.click();
   await expect(event).toBeVisible({ timeout: 30_000 });
 
   const first = searched(page, (u) => !u.searchParams.has("event") && !u.searchParams.has("year"));
@@ -27,9 +30,11 @@ test("event and year filters narrow the results, keep the query, and clear back 
   const target = hits(unfiltered).find((h) => h.event && h.year)!;
   expect(target, "an unfiltered result with an event and a year").toBeTruthy();
 
-  // Keyboard: the filters follow the search box in tab order.
+  // Keyboard: the Filters button follows the search box in tab order, then its fields (category and prize first).
   await searchbox(page).focus();
   await page.keyboard.press("Tab");
+  await expect(toggle).toBeFocused();
+  for (let i = 0; i < 3 && !(await event.evaluate((e) => e === document.activeElement)); i++) await page.keyboard.press("Tab");
   await expect(event).toBeFocused();
 
   // 1. Pick an event: every result (and so every highlighted star) is from it; the query is kept.
