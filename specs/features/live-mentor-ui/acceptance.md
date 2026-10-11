@@ -73,3 +73,8 @@ After repairing a missing local pinned dependency, the full unit suite passed 58
 The production build passed; full lint and type checking are also required on the integration candidate.
 Full deletion UI acceptance (selected/unselected/last, failure and real voice), visual QA, and the previously
 outstanding real evidence -> confirmed save -> decision/share journey still block feature completion.
+
+Integration-only follow-up: this branch includes API448 at19280d6 and enables the named delete button for
+local testing against the dedicated TEST database. Type checking, scoped lint and60 combined mentor/idea
+unit tests pass. Selection also clears news cards, with live tool invalidation from mentor-quality454.
+This is not production approval or browser/voice acceptance; the UI feature branch keeps deletion disabled.

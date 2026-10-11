@@ -7,8 +7,9 @@ import { getState, setState, useAppState } from "@/lib/store";
 import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, afterDeletion, confirmsDeletion, resolveIdea, type IdeaIntent } from "./idea-management";
 import styles from "./ideas.module.css";
 
-// Enable only after the coordinated API's real database acceptance and integration.
-const DELETE_AVAILABLE = false;
+// Integration includes API448/19280d6 and its dedicated test-database receipt.
+// Production acceptance and the complete browser journey are still separate gates.
+const DELETE_AVAILABLE = true;
 
 export default function IdeaManager() {
   const active = useAppState((state) => state.activeIdeaVersionId);

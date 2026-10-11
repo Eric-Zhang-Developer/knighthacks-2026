@@ -72,7 +72,7 @@ export default function Mentor() {
   useEffect(() => {
     const selected = () => {
       selectionGeneration.current++; generation.current++; controller.current?.abort();
-      pendingSave.current = null; setProjects([]); setQuestion(null); setSaved(false);
+      pendingSave.current = null; setProjects([]); setNews(null); setQuestion(null); setSaved(false);
       initial.current = ""; answers.current = [];
       // A submitted save keeps the lock until its receipt; interpretation can be cancelled.
       if (controller.current) { lock.current = false; setBusy(false); controller.current = null; }
