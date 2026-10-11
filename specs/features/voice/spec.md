@@ -1,7 +1,7 @@
 ---
 name: Speak an idea with push-to-talk, with text as the fallback
-depends_on: [bootstrap]
-owns: [app/api/voice/, lib/voice/, components/voice/, tests/voice/, tests/e2e/voice/]
+depends_on: [bootstrap, guest-workspace]
+owns: [app/api/voice/, lib/voice/, db/schema/voice.ts, components/voice/, tests/voice/, tests/e2e/voice/]
 assignee: ""
 ---
 
@@ -21,6 +21,10 @@ idea-create.
 - The partial transcript is display-only; only the released utterance reaches `ideaDraft`.
 - Microphone denied or provider down -> a visible notice, and `ideaDraft` is untouched.
 - No raw audio is stored.
+- Token minting requires an existing workspace session and a same-origin request. Reserve at most 10
+  attempts per member session in a 60-second window in Postgres before contacting ElevenLabs; excess
+  requests return 429 with Retry-After. Provider failures consume their reservation. Missing configuration
+  returns 503 without reserving or contacting the provider. Database failure fails closed.
 
 ## Validation
 1. Hold to talk, say an idea -> partial text, then it lands in `ideaDraft` (the idea input shows it once
@@ -28,6 +32,8 @@ idea-create.
 2. Deny the mic -> the notice shows; `ideaDraft` is unchanged.
 3. `tests/e2e/voice/` covers 2 and the token route (200 with a token, and no key in the response); 1 is a live
    check written in the done note.
+4. Unauthenticated requests return 401 without a mint. Concurrent reservations on the real test database
+   admit exactly 10 attempts per session, reset after 60 seconds, and remain independent across sessions.
 
 ## Defaults
 This existing component is push-to-talk only. The user's October 10 clarification (#345) makes live spoken

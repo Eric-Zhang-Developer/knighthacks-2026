@@ -1,10 +1,8 @@
 ## What shipped
-Push-to-talk voice bar: hold (pointer, Space or Enter) to speak, see the partial transcript live, release to commit the utterance into `ideaDraft`. `POST /api/voice/token` mints a single-use ElevenLabs `realtime_scribe` token; the key stays on the server. A denied mic or a provider failure shows a notice and leaves `ideaDraft` untouched; the End voice session control is always visible.
+Push-to-talk commits released speech to `ideaDraft`; mic denial/provider failure leaves it unchanged. Token minting now requires a same-origin workspace session and an atomic Postgres reservation: 10 attempts per member per 60 seconds, then 429; database failure returns 503 without minting.
 ## Where it lives
-`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/` (`token.ts`, `draft.ts`), `tests/voice/`, `tests/e2e/voice/`
+`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/`, `db/schema/voice.ts`, `tests/voice/`, `tests/e2e/voice/`; reviewed additive SQL and test-database concurrency evidence: `specs/decisions/voice-schema.md`.
 ## How to check it
-verify: `node scripts/verify.mjs voice /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/voice/20261010T104020Z` pass at f4f4e18 (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/voice/20261010T104020Z)
+verify: `node scripts/verify.mjs voice "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\voice\20261010T182347Z"` pass at 23aafd0 (uncommitted changes: exact #206 tracing-root configuration, restored afterward); 4 passed including live ElevenLabs token/no-key-leak and anonymous 401, 1 conditional skip. Dedicated-Neon concurrency/expiry/isolation/cascade regression passed; 255 regular unit tests passed.
 ## Gaps
-- Validation 1 (hold to talk, speak, text lands in `ideaDraft`) not run live: no `ELEVENLABS_API_KEY` yet (#11). The e2e test for the token's 200 path skips without the key; the unit test covers it with a mocked SDK.
-- The token route has no rate limit: anyone who can reach the app can mint tokens on our ElevenLabs quota.
-- Nothing shows `ideaDraft` until idea-create ships; the bar echoes the last added utterance meanwhile.
+Live human microphone transcription (Validation 1) remains untested. The no-key browser case skipped because a live key was configured; unit tests cover 503. Production schema was not changed: coordinate additive table application through #113 before rollout, or token requests fail closed with 503. Earlier local startup timed out during font downloads; the passing run used isolated hoisted dependencies and `CIRCLE_NODE_TOTAL=5` without changing test timeouts/assertions.
