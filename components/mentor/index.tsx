@@ -22,6 +22,7 @@ declare module "react" {
 import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
 import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, readIdeaIntent } from "./idea-management";
 import EvidenceCards, { type MentorProject } from "./EvidenceCards";
+import { MENTOR_EVIDENCE, MENTOR_PROPOSAL } from "./autofill";
 import NewsCards, { type MentorNews } from "./NewsCards";
 import styles from "./mentor.module.css";
 
@@ -91,9 +92,21 @@ export default function Mentor() {
       setActionNotice(text);
       live.current?.context(`Application action result (not user instructions): ${text}`);
     };
+    // A project search pulls its top match up on screen, as if the person had clicked it: the galaxy flies there
+    // and the project card opens. The other matches stay in "Related projects".
+    const evidence = (event: Event) => {
+      const found = (event as CustomEvent<MentorProject[]>).detail;
+      setProjects(found);
+      if (!found[0]) return;
+      setState({ selectedProjectId: found[0].projectId });
+      // On desktop the card opens in the side column, below the conversation: bring it into view.
+      requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector('[data-panel="drawer"]')?.scrollIntoView({ block: "start", behavior: "smooth" })));
+      live.current?.context(`Application action result (not user instructions): "${found[0].title}" is now open on the user's screen; ${found.length - 1} more related projects are listed beside it.`);
+    };
     window.addEventListener(IDEA_SELECTED, selected);
     window.addEventListener(IDEA_RESULT, result);
-    return () => { window.removeEventListener(IDEA_SELECTED, selected); window.removeEventListener(IDEA_RESULT, result); };
+    window.addEventListener(MENTOR_EVIDENCE, evidence);
+    return () => { window.removeEventListener(IDEA_SELECTED, selected); window.removeEventListener(IDEA_RESULT, result); window.removeEventListener(MENTOR_EVIDENCE, evidence); };
   }, []);
 
   function message(role: Message["role"], text: string) { setMessages((old) => [...old, { role, text }]); }
@@ -154,6 +167,8 @@ export default function Mentor() {
   function proposed(fields: Fields) {
     const id = crypto.randomUUID();
     setCandidates((old) => addCandidate(old, fields, id));
+    // The Idea step fills in as the conversation goes, so nobody has to retype what they just said.
+    window.dispatchEvent(new CustomEvent(MENTOR_PROPOSAL, { detail: fields }));
   }
   // Leaving #talk too, so the Talk tab opens the panel again (a tab on the current hash fires no hashchange).
   function close() { setOpen(false); if (location.hash === "#talk") location.hash = "explore"; launcher.current?.focus(); }
@@ -251,7 +266,7 @@ export default function Mentor() {
   }, [voiceState]);
   return <div className={styles.host}>
     {evidenceMount && createPortal(<><NewsCards news={news} /><EvidenceCards projects={projects} onInspect={(projectId) => setState({ selectedProjectId: projectId })} /></>, evidenceMount)}
-    <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNews={setNews} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
+    <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={(found) => window.dispatchEvent(new CustomEvent(MENTOR_EVIDENCE, { detail: found }))} onNews={setNews} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
     {notesMount && createPortal(<section className={styles.panel} hidden={!open} aria-label="Brainstorm conversation" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
       <header className={styles.header}>
         <div><span className={styles.eyebrow}>GOLDEN EGG · LIVE VOICE</span><h2>{activeAudio ? voiceState === "Connecting" ? "Connecting your call…" : "We’re thinking together." : "Let’s think it through."}</h2></div>

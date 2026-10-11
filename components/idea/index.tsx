@@ -9,6 +9,7 @@ import { getState, setState, useAppState } from "@/lib/store";
 import { FIELDS, fromForm, hasText, toForm, type FieldName, type Fields, type Version } from "./fields";
 import IdeaManager from "@/components/mentor/IdeaManager";
 import { IDEA_INTENT, IDEA_SELECTED } from "@/components/mentor/idea-management";
+import { MENTOR_PROPOSAL, mergeDraft } from "@/components/mentor/autofill";
 import ProblemEvidence from "./ProblemEvidence";
 import ResearchSection from "./Research";
 import styles from "./idea.module.css";
@@ -49,18 +50,37 @@ function IdeaContent() {
   const [view, setView] = useState<View>({ step: "write" });
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
+  // Fields the person typed in themselves: a later proposal from the conversation never overwrites them.
+  const edited = useRef(new Set<FieldName>());
+  const [fromMentor, setFromMentor] = useState(false);
+  const current = useRef(view);
+  useEffect(() => { current.current = view; }, [view]);
   useEffect(() => {
     const epoch = generation;
     const receive = (event: Event) => {
       generation.current++;
       const version = (event as CustomEvent<Version | null>).detail;
       setView(version ? { step: "saved", version } : { step: "write" }); setError(null);
-      saveKey.current = null;
+      saveKey.current = null; edited.current.clear(); setFromMentor(false);
       setInterview({ text: "", answers: [], round: 0, fields: null });
+    };
+    // The conversation fills this step as it goes. A saved idea is left alone (the proposal stays a candidate card),
+    // and a save in flight is never disturbed.
+    const fill = (event: Event) => {
+      const now = current.current;
+      if (now.step === "saved" || now.step === "saving") return;
+      generation.current++; // a typed interpretation still running would otherwise land on top
+      saveKey.current = crypto.randomUUID();
+      setInterview({ text: "", answers: [], round: 0, fields: null });
+      setError(null); setFromMentor(true);
+      const form = mergeDraft(now.step === "edit" ? now.form : toForm({}), (event as CustomEvent<Fields>).detail, edited.current);
+      current.current = { step: "edit", form, failed: false };
+      setView(current.current);
     };
     window.addEventListener("mentor:saved", receive);
     window.addEventListener(IDEA_SELECTED, receive);
-    return () => { epoch.current++; window.removeEventListener("mentor:saved", receive); window.removeEventListener(IDEA_SELECTED, receive); };
+    window.addEventListener(MENTOR_PROPOSAL, fill);
+    return () => { epoch.current++; window.removeEventListener("mentor:saved", receive); window.removeEventListener(IDEA_SELECTED, receive); window.removeEventListener(MENTOR_PROPOSAL, fill); };
   }, []);
   // One key per preview, so retrying a save can't create a second idea.
   const saveKey = useRef<string | null>(null);
@@ -187,14 +207,22 @@ function IdeaContent() {
   if (view.step === "edit" || view.step === "saving") {
     const form = view.form;
     const busy = view.step === "saving";
-    const set = (name: FieldName, value: string) => view.step === "edit" && setView({ ...view, form: { ...form, [name]: value } });
+    const set = (name: FieldName, value: string) => {
+      if (view.step !== "edit") return;
+      edited.current.add(name);
+      setView({ ...view, form: { ...form, [name]: value } });
+    };
     return (
-      <section className={`ui-panel ${styles.idea}`} aria-label="Your idea">
-        <h2 className="ui-heading">Check the interpretation</h2>
+      <section className={`ui-panel ${styles.idea}`} aria-label="Your idea" data-from-conversation={fromMentor || undefined}>
+        <h2 className="ui-heading">{fromMentor ? "Your idea, from the conversation" : "Check the interpretation"}</h2>
         {view.step === "edit" && view.failed ? (
           <PanelState kind="failed" message="Couldn't interpret your idea. Your text is kept; fill in the fields yourself." />
         ) : (
-          <p className={styles.meta}>Nothing is saved until you press Save. Edit anything that&apos;s wrong.</p>
+          <p className={styles.meta} role={fromMentor ? "status" : undefined}>
+            {fromMentor
+              ? "Filled in as you talk. Edit anything; your own edits are kept. Nothing is saved until you press Save."
+              : <>Nothing is saved until you press Save. Edit anything that&apos;s wrong.</>}
+          </p>
         )}
         {interview.fields && (
           <Interview
@@ -214,7 +242,7 @@ function IdeaContent() {
             save(form);
           }}
         >
-          <details><summary>Edit details (optional)</summary>{FIELDS.map(({ name, label, long }) => (
+          <details open={fromMentor || undefined}><summary>Edit details (optional)</summary>{FIELDS.map(({ name, label, long }) => (
             <label key={name} className={styles.field}>
               <span>{label}</span>
               {long ? (
@@ -229,7 +257,7 @@ function IdeaContent() {
             <button type="submit" className={styles.primary} disabled={busy}>
               {busy ? "Saving…" : "Save"}
             </button>
-            <button type="button" className={styles.secondary} disabled={busy} onClick={() => setView({ step: "write" })}>
+            <button type="button" className={styles.secondary} disabled={busy} onClick={() => { edited.current.clear(); setFromMentor(false); setView({ step: "write" }); }}>
               Back
             </button>
           </div>
