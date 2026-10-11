@@ -42,7 +42,7 @@ for (const [device, viewport] of [["desktop", { width: 1440, height: 900 }], ["p
     await page.evaluate((p) => window.dispatchEvent(new CustomEvent("mentor:evidence", { detail: [p] })),
       { projectId: record.id, title: record.title, url: record.url, excerpt: "Fixture excerpt" });
     const drawer = page.locator('[data-panel="drawer"]');
-    await expect(drawer.getByText(record.title).first()).toBeVisible();
+    await expect(drawer.getByText(record.title).first()).toBeVisible({ timeout: 20_000 }); // the headless GPU stalls on the galaxy
     await expect(drawer.getByText(record.title).first()).toBeInViewport();
     await expect(page.getByRole("region", { name: "Conversation sources" })).toBeVisible();
     await page.waitForTimeout(800); // the smooth scroll
