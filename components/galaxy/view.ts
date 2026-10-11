@@ -1,10 +1,10 @@
 // The 3D galaxy's camera. An orbit around a target point: yaw, pitch and distance. Pure state and maths,
 // so the scene, the map buttons and the keys all drive the same object.
 //
-// Motion: a drag rotates 1:1 and a release keeps its angular velocity, decaying like a scroll view; zoom-to, fit and
-// fly-to are critically damped springs that start from wherever the camera is now, so any new input interrupts them.
-// When nobody has touched the map for a few seconds the camera drifts round the galaxy, easing in rather than jumping
-// to speed. With reduced motion every change is a jump and nothing drifts.
+// Motion, like a map: a drag moves across the galaxy with what's under the pointer staying under it, and a release
+// glides on; the wheel zooms toward the pointer; turning is a modifier-drag. Zoom-to, fit and fly-to are critically
+// damped springs from wherever the camera is now, so any new input interrupts them. Left alone for a while, the camera
+// drifts round whatever it's looking at. With reduced motion every change is a jump and nothing drifts or glides.
 
 export type Vec3 = [number, number, number];
 
@@ -12,8 +12,8 @@ export const FOV = 50; // vertical, degrees
 const SPRING_S = 0.7; // s, spring response
 const W = (2 * Math.PI) / SPRING_S;
 const AUTO_SPEED = (2 * Math.PI) / 105; // rad/s: one turn in 105 s
-const IDLE_RESUME = 3.5; // s without input before the drift starts again
-const RAD_PER_PX = 0.005;
+const IDLE_RESUME = 20; // s without input before the drift starts: long enough that it never fights someone exploring
+const RAD_PER_PX = 0.002; // a 300px drag turns about a third of a circle
 const PITCH_LIMIT = 1.35;
 const INERTIA_DECAY = 3.2; // per s
 
@@ -34,6 +34,7 @@ export class Orbit {
   private goal: Goal | null = null;
   private vDist = 0; // spring velocity of log(dist)
   private vTarget: Vec3 = [0, 0, 0];
+  private vPan: Vec3 = [0, 0, 0]; // release glide of the target, world units/s
   private vYaw = 0; // release inertia, rad/s
   private vPitch = 0;
   private idle = 0;
@@ -71,7 +72,7 @@ export class Orbit {
     return this.fitDist / this.dist;
   }
   get moving() {
-    return this.goal !== null || this.dragging || Math.abs(this.vYaw) + Math.abs(this.vPitch) > 1e-3;
+    return this.goal !== null || this.dragging || Math.abs(this.vYaw) + Math.abs(this.vPitch) > 1e-3 || Math.hypot(...this.vPan) > 1e-4;
   }
   private clampDist(d: number) {
     return Math.min(this.maxDist, Math.max(this.minDist, d));
@@ -87,6 +88,7 @@ export class Orbit {
     this.goal = null;
     this.vDist = this.vYaw = this.vPitch = 0;
     this.vTarget = [0, 0, 0];
+    this.vPan = [0, 0, 0];
     this.auto = 0;
   }
 
@@ -94,26 +96,67 @@ export class Orbit {
     this.yaw -= dxPx * RAD_PER_PX;
     this.pitch = Math.min(PITCH_LIMIT, Math.max(-PITCH_LIMIT, this.pitch + dyPx * RAD_PER_PX));
   }
-  // Right-drag or shift-drag: slide the target across the screen, so what's under the pointer follows it.
-  panBy(dxPx: number, dyPx: number, heightPx: number) {
-    if (this.held) return;
-    const k = (2 * this.dist * Math.tan((FOV * Math.PI) / 360)) / Math.max(heightPx, 1);
+  // The camera's axes: right and up on screen, and forward into it.
+  private basis() {
     const [sy, cy, sp, cp] = [Math.sin(this.yaw), Math.cos(this.yaw), Math.sin(this.pitch), Math.cos(this.pitch)];
     const right: Vec3 = [cy, 0, -sy];
     const up: Vec3 = [-sp * sy, cp, -sp * cy];
-    this.target = this.target.map((t, a) => t - (dxPx * right[a] - dyPx * up[a]) * k) as Vec3;
+    const forward: Vec3 = [-cp * sy, -sp, -cp * cy];
+    return { right, up, forward };
+  }
+  // How far in front of the camera a point is: the depth a drag or zoom should grab it at.
+  depthOf(p: ArrayLike<number>) {
+    const { forward } = this.basis();
+    const e = this.eye();
+    return Math.max(this.minDist * 0.5, (p[0] - e[0]) * forward[0] + (p[1] - e[1]) * forward[1] + (p[2] - e[2]) * forward[2]);
+  }
+  // World units per screen pixel at the target's depth.
+  private unitsPerPx(heightPx: number) {
+    return (2 * this.dist * Math.tan((FOV * Math.PI) / 360)) / Math.max(heightPx, 1);
+  }
+  private screenToWorld(dxPx: number, dyPx: number, heightPx: number): Vec3 {
+    const { right, up } = this.basis();
+    const k = this.unitsPerPx(heightPx);
+    return [0, 1, 2].map((a) => (dxPx * right[a] - dyPx * up[a]) * k) as Vec3;
+  }
+
+  // A drag: what's under the pointer stays under it, at its depth (the target's when nothing is grabbed). Held while
+  // a project is selected.
+  panBy(dxPx: number, dyPx: number, heightPx: number, depth = this.dist) {
+    if (this.held) return;
+    const d = this.screenToWorld(dxPx, dyPx, heightPx).map((v) => (v * depth) / this.dist) as Vec3;
+    this.target = this.target.map((t, a) => t - d[a]) as Vec3;
+  }
+  // Letting go of a drag: the map glides on and slows, like a scroll view.
+  releasePan(vxPx: number, vyPx: number, heightPx: number, depth = this.dist) {
+    if (this.reduced || this.held) return;
+    this.vPan = this.screenToWorld(-vxPx, -vyPx, heightPx).map((v) => (v * depth) / this.dist) as Vec3;
   }
   release(vxPx: number, vyPx: number) {
     if (this.reduced) return;
     this.vYaw = -vxPx * RAD_PER_PX;
     this.vPitch = vyPx * RAD_PER_PX;
   }
-  // Wheel and pinch: immediate, about the target.
-  dollyBy(factor: number) {
+  // Wheel and pinch: immediate, toward the point under the pointer (offset from the screen centre in pixels, at its
+  // depth), so whatever you point at stays put as it grows. Held on a selected project, it zooms on that project.
+  dollyBy(factor: number, at?: { dxPx: number; dyPx: number; heightPx: number; depth?: number }) {
     this.poke();
     this.goal = null;
     this.vDist = 0;
-    this.dist = this.clampDist(this.dist / factor);
+    this.vPan = [0, 0, 0];
+    const dist = this.clampDist(this.dist / factor);
+    if (at && !this.held) {
+      // The camera moves its share of the way toward that point, keeping its direction, so the point's direction
+      // from the camera (its place on screen) doesn't change; the target sits the new distance ahead.
+      const { forward } = this.basis();
+      const depth = at.depth ?? this.dist;
+      const off = this.screenToWorld(at.dxPx, at.dyPx, at.heightPx);
+      const toward = forward.map((f, a) => f * depth + (off[a] * depth) / this.dist);
+      const share = 1 - dist / this.dist;
+      const eye = this.eye();
+      this.target = eye.map((e, a) => e + toward[a] * share + forward[a] * dist) as Vec3;
+    }
+    this.dist = dist;
   }
 
   // Spring to a framing (map buttons, keyboard, fly-to). Reduced motion jumps.
@@ -137,6 +180,10 @@ export class Orbit {
   flyTo(p: Vec3) {
     this.animateTo({ target: p, dist: Math.min(this.dist, this.fitDist * 0.32) });
   }
+  // A category's cloud: framed whole, a little closer than the galaxy.
+  flyToCloud(p: Vec3) {
+    this.animateTo({ target: p, dist: this.fitDist * 0.45 });
+  }
 
   // Advance by dt seconds.
   step(dt: number) {
@@ -151,6 +198,8 @@ export class Orbit {
       const k = Math.exp(-dt * INERTIA_DECAY);
       this.vYaw *= k;
       this.vPitch *= k;
+      this.target = this.target.map((t, a) => t + this.vPan[a] * dt) as Vec3;
+      this.vPan = this.vPan.map((v) => v * k) as Vec3;
     }
     const g = this.goal;
     if (!g) return;

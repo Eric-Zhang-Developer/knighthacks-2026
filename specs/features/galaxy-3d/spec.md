@@ -16,10 +16,14 @@ Visual target: the person's reference video (a dark "data crawler": dense glowin
 monospace labels, a camera that follows the action) and the prototype's screenshots.
 
 ## Plan
-1. Perspective camera that orbits a target: drag turns it 1:1 and a release keeps spinning then slows; wheel and
-   pinch zoom with limits; after a few seconds idle it drifts round the galaxy (about once per 105 s), and any input
-   pauses the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the current
-   view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working.
+1. Perspective camera that moves like a map (person, 2026-10-10: "you can only zoom in on one singular point"): a
+   drag moves across the galaxy with what's under the pointer staying under it, and a release glides on and slows;
+   the wheel and pinch zoom toward the pointer, with limits; option-, ctrl- or cmd-drag turns it (about a third of a
+   circle per 300px). While a project is selected the camera holds on it: a drag circles it, a right-drag does
+   nothing, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
+   any input stops the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the
+   current view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working. A cloud's label is a
+   button that flies to that cloud.
 2. Two layouts of the same stars, `components/galaxy/layouts.ts`:
    - **By category** (default): one dense cloud per category key (`keyOf` in `lib/classes`, so "mixed" and "not
      enough text" get their own), arranged on a flattened disc with no overlaps. Inside a cloud each star keeps its
@@ -57,7 +61,11 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 3. Clicking "By meaning" sets `?layout=nebula`; a frame mid-flight has positions that equal neither layout, and
    within 2.5 s the position buffer equals the nebula layout (±1e-4). With `prefers-reduced-motion`, it equals it on
    the next frame.
-4. Dragging turns the camera: a star's screen position changes while the position buffer does not.
+4. Dragging moves the view, not the stars: a star's screen position follows the drag (±3 px when released still)
+   while the position buffer does not change. Wheel-zooming in over a point keeps the star nearest the pointer
+   within 8 px of where it was while the gap between two other stars grows. Clicking a cloud's label brings that
+   cloud's centre within 12 px of the map's centre. Unit (`tests/galaxy-3d/view.test.ts`): drag and zoom keep the
+   point under the pointer to 0.5 px through a real three.js camera; selected, nothing pans; the drift waits 20 s.
 5. Picking a project in the list puts its star at the map's centre (±6 px) within 1.5 s; "fit" brings at least
    97% of stars inside the map in either layout.
 6. `tests/e2e/galaxy-3d/` covers 2-5 with desktop and phone screenshots, and the galaxy, galaxy-history,

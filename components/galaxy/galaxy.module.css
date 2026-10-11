@@ -70,7 +70,7 @@
   background: linear-gradient(to top, transparent, var(--hue));
   opacity: 0.6;
 }
-.region > span {
+.region > button {
   position: absolute;
   bottom: 24px;
   left: 0;
@@ -88,7 +88,16 @@
   color: var(--paper);
   text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg), 0 0 2px var(--bg);
 }
-.region > span::before {
+.region > button {
+  border: 0;
+  pointer-events: auto; /* the layer lets drags through to the map; only the names take clicks */
+  cursor: pointer;
+  transition: color 150ms var(--md-sys-motion-easing-emphasized), transform 150ms var(--md-sys-motion-easing-emphasized);
+}
+.region > button:hover { color: var(--hue); }
+.region > button:active { transform: translateX(-50%) scale(0.97); }
+.region > button:focus-visible { outline: 2px solid var(--hue); outline-offset: 2px; }
+.region > button::before {
   content: "";
   align-self: center;
   width: 5px;
