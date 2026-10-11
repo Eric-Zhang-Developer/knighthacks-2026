@@ -12,16 +12,16 @@ const PAD = 16;
 
 // In replay, what isn't built yet recedes so the build reads as filling in (spec § The tour, Hierarchy). The snapshot
 // keeps every state's colour: the team reads "ready" as pickable.
-const NOT_YET = { fill: "#14110c", stroke: "#3a3328", text: "#6f6656" };
+const NOT_YET = { fill: "#09090b", stroke: "#2a2a30", text: "#5f5f68" };
 export const STATE: Record<State, { label: string; fill: string; stroke: string; text: string; dash?: string }> = {
-  done: { label: "built", fill: "#14301b", stroke: "#8fef9a", text: "#c9f7cf" },
-  flight: { label: "under construction", fill: "#3a2a0e", stroke: "#ffb547", text: "#ffe3b3" },
-  ready: { label: "ready to start", fill: "#14110c", stroke: "#f4ecdc", text: "#f4ecdc" },
-  blocked: { label: "blocked", fill: "#14110c", stroke: "#4a4338", text: "#8a806e", dash: "4 3" },
-  cut: { label: "on cut list", fill: "#14110c", stroke: "#e2674a", text: "#c96a55", dash: "2 4" },
-  backlog: { label: "backlog", fill: "#0c0a07", stroke: "#2c261c", text: "#857b6a", dash: "1 3" },
+  done: { label: "built", fill: "#0d2416", stroke: "#7ddc9c", text: "#cdeed8" },
+  flight: { label: "under construction", fill: "#2a2111", stroke: "#d6b37a", text: "#f3e2c2" },
+  ready: { label: "ready to start", fill: "#09090b", stroke: "#f5f1e6", text: "#f5f1e6" },
+  blocked: { label: "blocked", fill: "#09090b", stroke: "#3b3b43", text: "#8a8a93", dash: "4 3" },
+  cut: { label: "on cut list", fill: "#09090b", stroke: "#ff9a5c", text: "#d98a5c", dash: "2 4" },
+  backlog: { label: "backlog", fill: "#000000", stroke: "#1f1f24", text: "#7f7f88", dash: "1 3" },
   // An unsurveyed plot: without PR data it could be ready, blocked or under construction.
-  unknown: { label: "unknown: needs PR data", fill: "#0c0a07", stroke: "#958a78", text: "#958a78", dash: "7 3" },
+  unknown: { label: "unknown: needs PR data", fill: "#000000", stroke: "#a3a3ab", text: "#a3a3ab", dash: "7 3" },
 };
 
 /** The longest chain of unfinished features: the order work has to land in before the last one can start. */
@@ -146,7 +146,7 @@ export default function Graph({
         return {
           key: `${d}>${f.slug}`,
           path: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
-          stroke: critical.has(d) && critical.has(f.slug) ? "#ffb547" : flash?.has(d) ? "#8fef9a" : done ? "#3f7a4a" : "#3a3328",
+          stroke: critical.has(d) && critical.has(f.slug) ? "#d6b37a" : flash?.has(d) ? "#7ddc9c" : done ? "#2f5e3f" : "#2a2a30",
           critical: critical.has(d) && critical.has(f.slug),
           draw: flash?.has(d) ?? false, // d just landed: this unlock draws outward from it
           faded: lit !== null && !(lit.has(d) && lit.has(f.slug)),
@@ -218,7 +218,7 @@ export default function Graph({
                     width={W + 8}
                     height={H + 8}
                     rx={6}
-                    fill="#ff8a1f"
+                    fill="#ff3b30"
                     opacity={0.15 + f.heat * 0.35} // an accent, not fog: at most 0.5
                     filter="url(#heat)"
                   />
@@ -232,23 +232,23 @@ export default function Graph({
                   height={H}
                   rx={2}
                   fill={s.fill}
-                  stroke={critical.has(f.slug) && state !== "flight" ? "#ffb547" : s.stroke}
+                  stroke={critical.has(f.slug) && state !== "flight" ? "#d6b37a" : s.stroke}
                   strokeWidth={state === "flight" || critical.has(f.slug) ? 1.6 : 1}
                   strokeDasharray={s.dash}
                 />
                 <text x={p.x + 8} y={p.y + 19} fill={s.text} fontSize={13.5} fontWeight={500}>
                   {f.slug.length > 19 ? `${f.slug.slice(0, 18)}…` : f.slug}
                 </text>
-                <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#e2674a" : s.text} fontSize={11}>
+                <text x={p.x + 8} y={p.y + 35} fill={!shown && f.missed ? "#ff9a5c" : s.text} fontSize={11}>
                   {(sub || s.label).length > 22 ? `${(sub || s.label).slice(0, 21)}…` : sub || s.label}
                 </text>
-                {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c518" />}
+                {!shown && f.state === "done" && f.verified === false && <circle cx={p.x + W - 9} cy={p.y + 9} r={3} fill="#f5c46a" />}
                 {!shown && f.state === "flight" && f.pr && (
                   <circle
                     cx={p.x + W - 9}
                     cy={p.y + 9}
                     r={3}
-                    fill={f.pr.ci === "success" ? "#8fef9a" : f.pr.ci === "failure" ? "#e2674a" : "#ffb547"}
+                    fill={f.pr.ci === "success" ? "#7ddc9c" : f.pr.ci === "failure" ? "#ff9a5c" : "#d6b37a"}
                   />
                 )}
               </a>
@@ -267,15 +267,15 @@ export default function Graph({
           </span>
         ))}
         <span>
-          <i style={{ background: "#ff8a1f", filter: "blur(2px)" }} />
+          <i style={{ background: "#ff3b30", filter: "blur(2px)" }} />
           heat = PR activity, 3h before the snapshot
         </span>
         <span>
-          <i style={{ background: "transparent", borderTop: "2px dashed #ffb547", height: 0 }} />
+          <i style={{ background: "transparent", borderTop: "2px dashed #d6b37a", height: 0 }} />
           critical path
         </span>
         <span>
-          <i style={{ background: "#f5c518", borderRadius: "50%" }} />
+          <i style={{ background: "#f5c46a", borderRadius: "50%" }} />
           done, not verified
         </span>
       </div>
