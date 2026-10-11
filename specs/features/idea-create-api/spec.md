@@ -28,3 +28,23 @@ Backend half (user decision 2026-10-10: backend is Windows). Windows workers fir
 
 ## Defaults
 5 neighbors. Gemini model from `GEMINI_MODEL`.
+
+## Multiple ideas and explicit deletion (user request, 2026-10-11)
+- Reuse existing POST/GET for independent ideas; creating another must never overwrite the selected idea.
+- Add `DELETE /api/ideas/:ideaId`, requiring same-origin and an authenticated workspace. Validate UUIDs;
+  missing/foreign IDs both return 404. Delete only that workspace's exact idea with one atomic statement.
+  Return `{ideaId, deleted:true}` only after committed deletion. A repeated delete returns 404 and cannot
+  delete another idea. No provider call, embedding or schema change is needed.
+- Deletion removes the idea, all its versions and their foreign-key-cascaded dependent records. Versions
+  remain immutable while they exist. Other ideas and workspace-level team inputs remain unchanged.
+- Existing immutable decision snapshots are independent exports, not live versions: retain snapshots and
+  their shares. The confirmation must explicitly say these remain and expose existing share revocation.
+  This action is not a full workspace/privacy erasure. Do not silently rewrite historical snapshots.
+- Do not relax constraints to force deletion. Verify branched versions and dependent rows on the dedicated
+  test database; an unexpected dependent-reference failure must leave the whole operation unchanged.
+- Validation: two workspace ideas and a foreign workspace; deleting one removes every one of its versions,
+  list/restore excludes it, the other idea remains, foreign/malformed/unauthorized/cross-origin requests cannot
+  mutate, repeat returns 404, dependent records cascade, and pre-existing snapshots/shares retain their exact
+  exported content. Cover the route plus actual database behavior without live model calls.
+- Windows worker kiro-agent-1 owns this API follow-up. Coordinate frontend through live-mentor-ui; no second
+  schema, storage layer, idea list endpoint or framework.
