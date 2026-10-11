@@ -13,7 +13,7 @@ const columns = {
 const checks = {
   mentor_budgets: { mentor_budget_bound: "jsonb_typeof(events) = 'array' and jsonb_array_length(events) <= 12 and octet_length(events::text) <= 4096" },
   mentor_sessions: {
-    mentor_session_duration: "expires_at > created_at and expires_at <= created_at + interval '20 minutes'",
+    mentor_session_duration: "expires_at > created_at and expires_at <= created_at + interval '2 hours'",
     mentor_calls_bound: "jsonb_typeof(calls) = 'object' and octet_length(calls::text) <= 6291456",
     mentor_sources_bound: "jsonb_typeof(source_ids) = 'array' and jsonb_array_length(source_ids) <= 200 and octet_length(source_ids::text) <= 10000",
   },
@@ -27,7 +27,7 @@ const foreignKeys = {
 // literals and their order: a changed bound, OR, omitted clause, or different column must fail.
 function normalizedCheck(value) {
   return value.toLowerCase().replace(/^check\s*/i, "")
-    .replace(/interval\s*'20 minutes'|'(?:00:20:00|20 minutes)'::interval/g, "duration20minutes")
+    .replace(/interval\s*'2 hours'|'(?:02:00:00|2 hours)'::interval/g, "duration2hours")
     .replace(/::text/g, "").replace(/[\s()\"]/g, "");
 }
 function normalizedDefault(value) { return value?.replace(/[\s()]/g, "").toLowerCase() ?? null; }

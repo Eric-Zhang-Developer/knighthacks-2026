@@ -13,24 +13,21 @@ const stored = { digest, reservationId: "earlier-reservation", turnId: call.turn
 const queryAt = (index = 0) => new PgDialect().sqlToQuery(execute.mock.calls[index][0]);
 beforeEach(() => { vi.resetAllMocks(); });
 
-test("issuance reserves both sliding budgets and creates an expiring session in one atomic SQL statement", async () => {
+test("authenticated issuance creates an owned session without application quotas", async () => {
   execute.mockResolvedValue({ rows: [{ id: "reserved" }] });
   expect(await reserveSession(identity)).toMatch(/^[a-f0-9-]{36}$/);
   expect(execute).toHaveBeenCalledTimes(1);
   const query = queryAt();
-  expect(query.sql).toContain("on conflict (workspace_id) do update");
-  expect(query.sql).toContain("jsonb_array_elements(mentor_budgets.events)");
-  expect(query.sql).toContain("interval '1 hour')) < 12");
-  expect(query.sql).toContain("interval '10 minutes')) < 3");
-  expect(query.sql).toContain("interval '20 minutes'");
+  expect(query.sql).not.toMatch(/mentor_budgets|count\(\*\)/);
+  expect(query.sql).toContain("interval '2 hours'");
   expect(query.sql).toContain("insert into mentor_sessions");
   expect(query.sql).not.toMatch(/advisory|delete|conversation_token/i);
   expect(query.params).toContain(identity.workspaceId); expect(query.params).toContain(identity.memberId);
 });
 
-test("exhausted session issuance fails without refunding or a second write", async () => {
+test("unknown membership cannot create a session", async () => {
   execute.mockResolvedValue({ rows: [] });
-  await expect(reserveSession(identity)).rejects.toMatchObject({ status: 429 });
+  await expect(reserveSession(identity)).rejects.toMatchObject({ status: 404 });
   expect(execute).toHaveBeenCalledTimes(1);
 });
 
@@ -55,8 +52,7 @@ test("reservation winner runs once and concurrent identical pending redelivery d
   expect(query.sql).toContain("update mentor_sessions s");
   expect(query.sql).toContain("then s.calls else s.calls ||");
   expect(query.sql).toContain("s.ended_at is null and s.expires_at > clock_timestamp()");
-  expect(query.sql).toContain("jsonb_object_keys(s.calls)) < 40");
-  expect(query.sql).toContain(") < 8");
+  expect(query.sql).not.toMatch(/count\(\*\)|jsonb_object_keys/);
 });
 
 test("completed duplicates replay exact stored result while changed bodies conflict", async () => {
@@ -70,8 +66,8 @@ test.each([
   { rows: [], status: 404 },
   { rows: [{ endedAt: new Date(), expired: false }], status: 409 },
   { rows: [{ endedAt: null, expired: true }], status: 409 },
-  { rows: [{ endedAt: null, expired: false }], status: 429 },
-])("rejected reservation distinguishes owned exhausted/ended sessions from unknown sessions ($status)", async ({ rows, status }) => {
+  { rows: [{ endedAt: null, expired: false }], status: 409 },
+])("rejected reservation distinguishes owned changed/ended sessions from unknown sessions ($status)", async ({ rows, status }) => {
   execute.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows });
   await expect(reserveTool(identity, call)).rejects.toMatchObject({ status });
   expect(queryAt(1).params).toEqual([call.sessionId, identity.workspaceId, identity.memberId]);
