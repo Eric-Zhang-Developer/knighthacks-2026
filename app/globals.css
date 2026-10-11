@@ -1,29 +1,30 @@
 /*
- * Design system (specs/features/ui-redesign): the live-mentor shell's steel blue, carried to the whole app. A black
- * sky, navy glass panels with soft 20px corners, pill buttons in deep steel with a lighter steel edge, and one accent,
- * the pale blue of the voice bubble's light. Sentence-case labels, Plex Sans to read, Plex Mono for data. The Material
- * token names from design-refresh stay as aliases, so every panel that reads them takes the new values without
- * touching its files.
+ * Design system (specs/features/ui-redesign): the inside of an observatory dome at night. Pitch-black sky, solid black
+ * instrument plates with square corners, paper-white text, brass for the instrument's markings, and one accent: the red
+ * light observatories work under so eyes stay dark-adapted. Red is the opposite of the blue-white stars, so every
+ * control stands out from the map. Plex Sans to read and for headings, Plex Mono capitals for controls and markings.
+ * The Material token names from design-refresh stay as aliases, so every panel that reads them takes the new values
+ * without touching its files.
  */
 :root {
   /* Sky and surfaces, darkest to lightest. */
   --sky: #000000;
-  --surface-low: #0a0d14;
-  --surface: #0c1018;
-  --surface-high: #171e29;
-  --hairline: #2a3446;
-  --hairline-strong: #657894;
+  --surface-low: #050506;
+  --surface: #09090b;
+  --surface-high: #111114;
+  --hairline: #1f1f24;
+  --hairline-strong: #3b3b43;
 
   /* Text: three steps. */
-  --ink: #edf1f8;
-  --ink-2: #b1bdce;
+  --ink: #ece8de;
+  --ink-2: #a3a3ab;
 
   /* Markings and the one accent. */
   --brass-tone: #d6b37a;
-  --accent: #a4cbff;
-  --on-accent: #0c1018;
-  --control: #202d42; /* a pill button's fill */
-  --control-on: #30435f; /* pressed or current */
+  --accent: #ff3b30;
+  --on-accent: #000000; /* black on the red reads 5.9:1; white would read 3.5:1 */
+  --control: var(--surface-high); /* a button's fill */
+  --control-on: #2a0907; /* pressed or current: the accent, deep */
 
   /* Type: six sizes. 11 markings, 13 secondary, 15 body; serif 18 section titles, 22 panel headings, 30 display. */
   --text-xs: 11px;
@@ -34,11 +35,11 @@
   --display: 30px;
   --tracking-marks: 0.14em;
 
-  /* Shape: soft panels, rounded fields, pill buttons. */
-  --radius: 20px;
-  --radius-field: 12px;
-  --radius-sm: 12px;
-  --radius-round: 9999px;
+  /* Shape: square, like an instrument plate. The names stay so no panel changes; only true circles (50%) are round. */
+  --radius: 0;
+  --radius-field: 0;
+  --radius-sm: 0;
+  --radius-round: 0;
   --tracking-controls: 0.08em;
   --font-display: var(--font-sans);
 
@@ -50,34 +51,34 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Navy glass over the sky; solid under reduced transparency or more contrast. */
-  --material-thick: rgba(16, 20, 29, 0.91);
-  --material-blur: blur(18px);
+  /* Instruments are solid plates now, not frosted glass; the names stay for the panels that read them. */
+  --material-thick: var(--surface-low);
+  --material-blur: none;
   --glass: var(--material-thick);
   --glass-blur: var(--material-blur);
-  --lift: 0 10px 35px rgba(0, 0, 0, 0.53);
+  --lift: none;
 
   /* The tokens every panel already reads. Literal hex where tests/visual-polish checks contrast from this file. */
   --bg: #000000;
-  --panel: #0c1018;
+  --panel: #09090b;
   --panel-top: var(--surface);
-  --border: #2a3446;
-  --rule: rgba(42, 52, 70, 0.8);
-  --text: #edf1f8;
-  --paper: #ffffff;
-  --muted: #b1bdce;
+  --border: #1f1f24;
+  --rule: rgba(31, 31, 36, 0.8);
+  --text: #ece8de;
+  --paper: #f5f1e6;
+  --muted: #a3a3ab;
   --brass: var(--brass-tone);
-  --idea: #a4cbff; /* the one interactive accent in panels; the idea star on the canvas keeps its cyan (Scene.tsx) */
+  --idea: #ff3b30; /* the one interactive accent in panels; the idea star on the canvas keeps its cyan (Scene.tsx) */
   --history: #c9b6ff; /* revision history */
   --uncertain: #f5c46a; /* uncertainty */
   --live: #7ddc9c; /* current-event projects */
-  --failed: #ffb4ab; /* error */
+  --failed: #ff9a5c; /* error: orange plus a glyph, since red is the accent */
 
   /* design-refresh's Material roles, mapped onto the observatory. */
   --md-sys-color-primary: var(--accent);
   --md-sys-color-on-primary: var(--on-accent);
-  --md-sys-color-primary-container: #30435f;
-  --md-sys-color-on-primary-container: #ffffff;
+  --md-sys-color-primary-container: #3a0b08;
+  --md-sys-color-on-primary-container: #ffd9d6;
   --md-sys-color-secondary: var(--ink-2);
   --md-sys-color-on-secondary: var(--sky);
   --md-sys-color-secondary-container: var(--surface-high);
@@ -85,16 +86,16 @@
   --md-sys-color-tertiary: var(--brass-tone);
   --md-sys-color-on-tertiary: #2a1d05;
   --md-sys-color-error: var(--failed);
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #5c1414;
+  --md-sys-color-on-error: #000000;
+  --md-sys-color-error-container: #3a1a08;
   --md-sys-color-surface: var(--surface);
   --md-sys-color-surface-dim: var(--surface-low);
-  --md-sys-color-surface-bright: #202d42;
+  --md-sys-color-surface-bright: #1c1c21;
   --md-sys-color-surface-container-lowest: var(--sky);
   --md-sys-color-surface-container-low: var(--surface-low);
-  --md-sys-color-surface-container: #0c1018;
+  --md-sys-color-surface-container: #09090b;
   --md-sys-color-surface-container-high: var(--surface-high);
-  --md-sys-color-surface-container-highest: #202d42;
+  --md-sys-color-surface-container-highest: #18181d;
   --md-sys-color-on-surface: var(--ink);
   --md-sys-color-on-surface-variant: var(--ink-2);
   --md-sys-color-outline: var(--hairline-strong);
@@ -172,21 +173,24 @@ button::after {
 }
 button:not(:disabled):hover::after { opacity: 0.07; }
 button:not(:disabled):active::after { opacity: 0.12; }
-/* Action buttons in panels are steel pills (the live-mentor shell's buttons); rows in a list (projects, legend entries,
-   results, sparks) keep their list shape. :root lifts this above a panel's own rule. */
-:root .ui-panel button:not(li *),
+/* Action buttons in panels and the composer speak in the instrument's voice: mono capitals, spaced out. Rows in a list
+   (projects, legend entries, results, sparks) keep their sentence text. :root lifts this above a panel's own rule. */
+:root :is(.ui-panel, footer) button:not(li *),
 .ui-button,
+.ui-chip,
 form button[type="submit"] {
   border-radius: var(--radius-round);
-  border: 1px solid var(--hairline-strong);
-  background: var(--control);
-  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase;
 }
 /* A form's submit button is the panel's primary action: the accent, filled. */
 form button[type="submit"]:not(:disabled) {
-  background: var(--control-on);
-  color: var(--paper);
-  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
 }
 
 /* Fields: a well in the instrument, hairline edge, accent focus. */
@@ -208,7 +212,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; bord
 select {
   appearance: none;
   padding-right: calc(var(--space-5) + var(--space-1));
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b1bdce' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a3a3ab' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   text-overflow: ellipsis;
@@ -229,7 +233,7 @@ input[type="range"] { accent-color: var(--accent); }
   color: var(--text);
   white-space: nowrap;
 }
-.ui-button[data-variant="primary"] { background: var(--control-on); color: var(--paper); border-color: var(--accent); }
+.ui-button[data-variant="primary"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .ui-button[data-variant="quiet"] { background: none; border-color: transparent; color: var(--ink-2); }
 .ui-button[data-variant="icon"] { width: 40px; padding: 0; }
 .ui-field { width: 100%; min-height: 40px; padding: var(--space-2) var(--space-3); font: var(--md-sys-typescale-body-medium); }
@@ -244,7 +248,7 @@ input[type="range"] { accent-color: var(--accent); }
   background: none;
   color: var(--ink-2);
 }
-.ui-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--paper); background: var(--control-on); }
+.ui-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* An instrument marking: mono small caps in brass. */
 .ui-mark {
   font-family: var(--font-mono);
@@ -254,10 +258,21 @@ input[type="range"] { accent-color: var(--accent); }
   color: var(--brass);
 }
 
-/* A panel: navy glass with a hairline edge, like the live-mentor shell's panels. Solid --panel underneath (visual-polish
-   holds panels to it); the glass shows only where a surface opts into --material-thick. */
+/* A panel: an instrument plate. Solid (visual-polish holds panels to --panel), hairline edge, and a viewfinder's
+   corner ticks drawn in the background so no panel's own ::before or ::after is taken. */
 .ui-panel {
-  background: var(--panel);
+  --tick: var(--hairline-strong);
+  background:
+    linear-gradient(var(--tick), var(--tick)) left top / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) left top / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) right top / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) right top / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) left bottom / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) left bottom / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) right bottom / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) right bottom / 1px 10px,
+    var(--panel);
+  background-repeat: no-repeat;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
@@ -270,14 +285,13 @@ input[type="range"] { accent-color: var(--accent); }
   color: var(--paper);
 }
 
-/* The idea path: each panel that appears gets its step number, as an instrument marking above the title. The
-   selected project's sheet shares the column but isn't a step (#471). */
+/* The idea path: each panel that appears gets its step number, as an instrument marking above the title. */
 aside[aria-label="Idea and evidence"] .ui-panel {
   animation: rise 0.4s var(--md-sys-motion-easing-emphasized-decelerate) both;
 }
-aside[aria-label="Idea and evidence"] .ui-heading:not(.shell-sheet *)::before {
+aside[aria-label="Idea and evidence"] .ui-heading:not(.shell-sheet *)::before { /* the project sheet isn't a step (#471) */
   counter-increment: step;
-  content: "Step " counter(step);
+  content: "[ Step " counter(step) " ]";
   display: block;
   margin-bottom: var(--space-1);
   font-family: var(--font-mono);

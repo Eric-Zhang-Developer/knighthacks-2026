@@ -19,9 +19,9 @@ const mono = localFont({
 export const metadata: Metadata = {
   title: "Golden Egg",
   description: "A galaxy of hackathon projects that helps a team decide what to build.",
-  // Inline, so no /favicon.ico request 404s: a pale-blue four-point star on the night sky.
+  // Inline, so no /favicon.ico request 404s: a red four-point star on a black plate.
   icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c1018'/%3E%3Cpath d='M16 4l2.6 9.4L28 16l-9.4 2.6L16 28l-2.6-9.4L4 16l9.4-2.6z' fill='%23a4cbff'/%3E%3C/svg%3E",
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2309090b'/%3E%3Cpath d='M16 4l2.6 9.4L28 16l-9.4 2.6L16 28l-2.6-9.4L4 16l9.4-2.6z' fill='%23ff3b30'/%3E%3C/svg%3E",
   },
 };
 

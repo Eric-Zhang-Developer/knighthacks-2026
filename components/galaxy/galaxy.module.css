@@ -190,15 +190,18 @@
   border-radius: var(--radius-round);
   background: none;
   color: var(--muted);
-  font: var(--md-sys-typescale-label-large);
+  font: 500 var(--text-xs)/1 var(--font-mono);
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.2s var(--md-sys-motion-easing-emphasized), color 0.2s var(--md-sys-motion-easing-emphasized);
 }
 .layouts button:hover { color: var(--text); }
 .layouts button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--paper);
-  background: var(--control-on);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
@@ -290,8 +293,8 @@
    the voice bar's buttons, so it stays only for screen readers. */
 @media (max-width: 720px) {
   .layouts { left: auto; right: var(--space-3); transform: none; }
-  .layouts button { min-height: 44px; } /* a full tap target (#476) */
+  .layouts button { min-height: 44px; padding: 0 var(--space-2); letter-spacing: 0.04em; } /* a full tap target (#476); mono capitals run wide, so tighter */
   .galaxy .status { clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap; }
 }
 /* A 360px phone: the toggle and "Browse the map" share one row, so the toggle's buttons slim down (#476). */
-@media (max-width: 380px) { .layouts button { padding: 0 var(--space-3); } }
+@media (max-width: 380px) { .layouts button { padding: 0 var(--space-2); letter-spacing: 0.02em; } }

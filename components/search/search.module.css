@@ -3,7 +3,7 @@
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--panel);
   color: var(--text);
   font: inherit;
@@ -51,7 +51,7 @@
   max-width: 140px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--panel);
   color: var(--text);
   font: inherit;
@@ -68,9 +68,9 @@
   .filter select { width: 100%; max-width: none; }
 }
 .filterMenu { flex: none; position: relative; }
-.filterMenu summary { cursor: pointer; list-style: none; padding: 12px 16px; min-height: 44px; border: 1px solid #43454e; border-radius: 24px; color: #f4f4f6; background: #15171e; }
-.filterSheet { position: absolute; right: 0; top: calc(100% + 10px); width: min(320px, calc(100vw - 32px)); padding: 18px; display: grid; gap: 16px; background: #11131b; border: 1px solid #484b58; border-radius: 20px; box-shadow: 0 20px 60px #0009; max-height: 65dvh; overflow: auto; z-index: 30; }
-.filterSheet .filter { display: grid; gap: 6px; flex: none; width: 100%; max-width: none; color: #e5e7ef; }
+.filterMenu summary { cursor: pointer; list-style: none; padding: 12px 16px; min-height: 44px; border: 1px solid var(--hairline-strong); border-radius: var(--radius); color: var(--ink); background: var(--surface); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: var(--tracking-controls); text-transform: uppercase; }
+.filterSheet { position: absolute; right: 0; top: calc(100% + 10px); width: min(320px, calc(100vw - 32px)); padding: 18px; display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--hairline-strong); border-radius: var(--radius); box-shadow: 0 20px 60px #0009; max-height: 65dvh; overflow: auto; z-index: 30; }
+.filterSheet .filter { display: grid; gap: 6px; flex: none; width: 100%; max-width: none; color: var(--ink); }
 .filterSheet .filter select { width: 100%; max-width: none; min-height: 44px; }
-.filterSheet button { min-height: 44px; background: #222735; color: #f4f4f6; border: 1px solid #555c6e; }
+.filterSheet button { min-height: 44px; background: var(--surface-high); color: var(--ink); border: 1px solid var(--hairline-strong); }
 @media (max-width: 720px) { .bar { flex-wrap: nowrap; } .bar .input { flex: 1 1 0; } }
