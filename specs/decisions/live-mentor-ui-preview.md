@@ -67,3 +67,35 @@ the panel; the helper now checks the intended hidden-panel/hash outcome instead.
 `verify: node scripts/verify.mjs live-mentor-ui C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\live-mentor-ui\20261011T020216Z pass at e1f9fb7 (uncommitted changes)`.
 These use typed commands and mocked workspace/idea endpoints, not a real microphone, provider or database.
 Actual ASR, spoken acknowledgement timing and full zero-button journeys remain acceptance gaps behind #355/#357.
+
+## User correction: voice without a popup
+
+The launcher no longer opens a conversation panel: it starts the persistent SDK session directly, or toggles
+mute after connection. End remains beside it. Connecting gets a rotating ring, listening a slow pulse, and
+speaking a faster ring plus animated bars driven by SDK state (not measured amplitude). Reduced motion removes
+all of these animations, including pseudo-elements. No idle/failure animation pretends that an agent is speaking.
+
+Optional Type / transcript opens inline in the contextual rail, not a centered floating popup. Candidate cards
+render independently into the idea rail and remain available with the transcript closed. The call owner never
+remounts when either view closes or navigation changes. Compact dismissible failure notices remain near the
+bubble. Revealing the reviewed candidate preserves its bound pending confirmation; unrelated command navigation
+still cancels it. Bottom navigation now notifies the hash subscribers when it replaces the destination.
+
+The feature's own spec/Validation adds the human-requested popup-free behavior and motion checks; no real-audio
+acceptance was removed. First 390px production-build regression run passed all three tests:
+`verify: node scripts/verify.mjs live-mentor-ui C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\live-mentor-ui\20261011T021214Z pass at 769c0e5 (uncommitted changes)`.
+Fixtures verify permission denial, initial privacy, connecting animation/reduced motion, duplicate taps, End
+while permission is pending, dock/rail geometry, retained candidates and explicit save/cancel/replay behavior.
+They do not establish successful WebRTC audio, speaking callbacks, actual ASR or persisted database writes.
+
+Provider acceptance is still blocked: backend #355 is unmerged, and #357 records missing ElevenLabs convai_read
+permission/private-agent configuration. Local real workspace initialization is also unavailable. Keep #369
+draft, with no shipped note or production-acceptance claim. No Claude handoff, secret changes, new dependencies
+or simulated spoken replies were introduced. Graphify's AST-only refresh skips two SQL files because its SQL
+parser is unavailable; the modified TSX relationships are indexed without an API charge.
+
+Final rerun after the navigation/confirmation review passed all three phone tests:
+`verify: node scripts/verify.mjs live-mentor-ui C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\live-mentor-ui\20261011T021454Z pass at 769c0e5 (uncommitted changes)`.
+Lint and all 415 unit tests pass (two opt-in tests skipped); Next production build includes TypeScript checking.
+Phone screenshots were visually inspected: cards sit in the scrolling rail above the persistent bubble, and
+Decide has no voice popup. The map itself still has crowded category labels, outside this iteration's changes.

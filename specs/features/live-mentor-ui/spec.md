@@ -24,6 +24,11 @@ tests must assert preserved behavior through the new entry rather than require t
   on page load. The launcher stays reachable across Explore, Talk, Idea, Decide and Plan, including phone safe
   areas; navigation must not remount an active session or discard an unsaved draft. Closing the surface is
   distinct from ending the session: show a persistent active-state indicator and accessible End control.
+  A bubble tap must not open a popup or transcript. Keep transcript/typing an explicit optional control in
+  the contextual rail, and render candidate cards independently in the idea rail. During a connected call,
+  the bubble toggles mute; a separate persistent End control releases the session. Connecting, listening and
+  speaking have distinct state-driven animations (decorative, not claimed audio amplitude), disabled under
+  reduced motion. Denied/failed connections show a compact dismissible notice without opening the rail.
 - The side panel contains conversation outputs: proposed idea, sourced neighbors, risks/unknowns and next
   actions. Do not require a sequence of fields before brainstorming. Existing editable fields are optional
   refinement controls, and explicit confirmation still governs saves/revisions. Retain multiple distinct candidate
@@ -80,7 +85,7 @@ authorize out-of-order shipping, production schema/configuration changes or merg
 2. Show connecting/listening/thinking/speaking/ended/failed/permission-denied states truthfully. Mentor greets
    briefly, asks about the problem and user, listens naturally and asks one relevant follow-up at a time.
    Keep readable user/mentor transcript, mute and End session controls accessible. In this pinned SDK, the
-   explicit Stop control ends the conversation and is labelled Stop and end; do not invent an interrupt() hook
+   explicit End conversation control ends the conversation; do not invent an interrupt() hook
    or treat volume=0/sendUserActivity as proof of cancelled generation. Natural spoken interruption is separate.
 3. Natural interruption must stop the old speech and let the user correct the direction. End releases audio
    tracks and provider connection, aborts tool requests and marks the server session ended. Suppress old
@@ -129,6 +134,10 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    End releases it. Three distinct proposals yield three separately actionable cards; duplicate delivery adds
    none. Selecting one saves its exact fields once and retains the others and the live connection. More than
    three candidates are paginated without losing data. These fixtures are not a real ElevenLabs audio receipt.
+9. From phone Decide, one bubble tap preserves the destination and keeps the transcript closed; a delayed
+   microphone request displays connecting animation, duplicate taps do not re-request, End cancels, and
+   reduced-motion disables animation. Candidate cards remain reachable with the transcript closed. Check
+   the rail and voice dock do not overlap. Speaking animation still requires the real SDK speaking callback.
 
 ## Hands-free confirmation amendment (human request)
 

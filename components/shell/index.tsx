@@ -65,6 +65,7 @@ export default function Nav() {
             e.preventDefault();
             history.replaceState(history.state, "", `#${d.id}`); // switching destinations isn't a Back step
             setDest(d.id);
+            window.dispatchEvent(new Event("hashchange"));
             if (d.id === "talk") window.dispatchEvent(new Event("mentor:open"));
           }}
         >

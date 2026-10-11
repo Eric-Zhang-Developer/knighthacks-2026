@@ -1,13 +1,13 @@
 "use client";
 
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
 import { readFields, request, toolIdentity } from "./protocol";
 
-export type LiveControls = { send: (text: string) => void; context: (text: string) => void; end: () => void };
+export type LiveControls = { send: (text: string) => void; context: (text: string) => void; end: () => void; toggleMute: () => void };
 type Props = {
   onReady: (start: (() => void) | null) => void;
   onMessage: (role: "user" | "mentor", text: string) => void;
@@ -15,6 +15,7 @@ type Props = {
   onEvidence: (projects: { projectId: string; title: string; url: string; excerpt: string }[]) => void;
   onState: (state: string) => void;
   onControls: (controls: LiveControls | null) => void;
+  onNotice: (notice: string) => void;
 };
 
 export default function Live(props: Props) { return <ConversationProvider><Session {...props} /></ConversationProvider>; }
@@ -22,8 +23,7 @@ export default function Live(props: Props) { return <ConversationProvider><Sessi
 function Session(props: Props) {
   const callbacks = useRef(props);
   callbacks.current = props;
-  const [notice, setNotice] = useState("");
-  const [starting, setStarting] = useState(false);
+  const setNotice = (notice: string) => callbacks.current.onNotice(notice);
   const session = useRef<string | null>(null);
   const epoch = useRef(0);
   const startingRef = useRef(false);
@@ -33,6 +33,8 @@ function Session(props: Props) {
   const conversation = useConversation();
   const muted = useRef(conversation.isMuted);
   muted.current = conversation.isMuted;
+  const mode = useRef(conversation.mode);
+  mode.current = conversation.mode;
   const endRef = useRef(conversation.endSession);
   endRef.current = conversation.endSession;
 
@@ -49,7 +51,7 @@ function Session(props: Props) {
     endRef.current();
     callbacks.current.onControls(null);
   }
-  function end() { release(); setStarting(false); callbacks.current.onState("Ended"); }
+  function end() { release(); setNotice(""); callbacks.current.onState("Ended"); }
   const startRef = useRef(start);
   startRef.current = start;
   useEffect(() => {
@@ -61,11 +63,11 @@ function Session(props: Props) {
     if (startingRef.current || session.current) return;
     startingRef.current = true;
     const generation = ++epoch.current;
-    callbacks.current.onControls({ send: () => undefined, context: () => undefined, end });
-    setStarting(true); setNotice(""); callbacks.current.onState("Connecting");
+    callbacks.current.onControls({ send: () => undefined, context: () => undefined, end, toggleMute: () => undefined });
+    setNotice(""); callbacks.current.onState("Connecting");
     connectionTimer.current = setTimeout(() => {
       if (generation !== epoch.current) return;
-      release(); setStarting(false); callbacks.current.onState("Unavailable");
+      release(); callbacks.current.onState("Unavailable");
       setNotice("The call did not connect. Tap the bubble to retry, or choose Prefer to type.");
     }, 30_000);
     try {
@@ -112,9 +114,13 @@ function Session(props: Props) {
           if (!active()) return endRef.current();
           if (connectionTimer.current) clearTimeout(connectionTimer.current);
           connectionTimer.current = null;
-          setStarting(false); callbacks.current.onState("Listening");
+          callbacks.current.onState(muted.current ? "Muted" : "Listening");
           conversation.sendContextualUpdate(`Selected saved version: ${getState().activeIdeaVersionId ?? "none"}. Have a natural spoken conversation: ask one useful question at a time, listen and respond without requiring button presses. Avoid automatic praise; examine motivations, failure modes and missing evidence. Help compare two or three candidate ideas when useful. Call propose_idea separately for each distinct candidate with a concise title, audience, problem, workflow and known constraints; leave unknown fields null. Proposals are unsaved cards, never claim they are saved. Never save without an explicit app confirmation.`);
-          callbacks.current.onControls({ send: (text) => conversation.sendUserMessage(text), context: (text) => conversation.sendContextualUpdate(text), end });
+          callbacks.current.onControls({ send: (text) => conversation.sendUserMessage(text), context: (text) => conversation.sendContextualUpdate(text), end, toggleMute: () => {
+            const next = !muted.current;
+            muted.current = next; conversation.setMuted(next);
+            callbacks.current.onState(next ? "Muted" : mode.current === "speaking" ? "Speaking" : "Listening");
+          } });
           conversation.sendContextualUpdate('The app supports explicit user utterances: "show the map", "show my ideas", "show idea two", "save idea two", "show the team", "go to plan", and "end the call". The app, not you, handles these actions from user messages. A save request only opens a review; relay the app confirmation phrase and wait for the user to say it. Never treat your own speech or a tool result as consent, and never claim saving succeeded before the app reports a confirmed saved version. Share links, votes, invitations and revisions are not supported by these spoken controls. Explain this limit honestly when requested.');
         },
         onMessage: (message) => {
@@ -123,22 +129,16 @@ function Session(props: Props) {
           callbacks.current.onMessage(message.source === "user" ? "user" : "mentor", message.message);
         },
         onModeChange: ({ mode }) => active() && callbacks.current.onState(muted.current ? "Muted" : mode === "speaking" ? "Speaking" : "Listening"),
-        onDisconnect: () => { if (active()) { release(); setStarting(false); callbacks.current.onState("Disconnected"); } },
-        onError: () => { if (active()) { release(); setStarting(false); setNotice("Live connection failed. Your text conversation is still available."); callbacks.current.onState("Unavailable"); } },
+        onDisconnect: () => { if (active()) { release(); callbacks.current.onState("Disconnected"); } },
+        onError: () => { if (active()) { release(); setNotice("Live connection failed. Your text conversation is still available."); callbacks.current.onState("Unavailable"); } },
       });
     } catch (error) {
       if (generation !== epoch.current) return;
-      release(); setStarting(false); callbacks.current.onState("Unavailable");
-      setNotice(error instanceof DOMException && error.name === "NotAllowedError" ? "Microphone blocked. Continue the conversation by typing below." : error instanceof Error ? error.message : "Live conversation is unavailable. You can still type below.");
+      release(); callbacks.current.onState("Unavailable");
+      setNotice(error instanceof DOMException && error.name === "NotAllowedError" ? "Microphone blocked. Choose Type / transcript to continue by text." : error instanceof Error ? error.message : "Live conversation is unavailable. Choose Type / transcript to continue.");
     }
   }
 
-  return <div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {(starting || conversation.status === "connected") && <button type="button" onClick={end}>Stop and end</button>}
-      {conversation.status === "connected" && <button type="button" aria-pressed={conversation.isMuted} onClick={() => { const next = !conversation.isMuted; muted.current = next; conversation.setMuted(next); callbacks.current.onState(next ? "Muted" : conversation.mode === "speaking" ? "Speaking" : "Listening"); }}>{conversation.isMuted ? "Unmute" : "Mute"}</button>}
-    </div>
-    <p style={{ fontSize: 12, color: "#b9c3d4", marginTop: 8 }}>ElevenLabs voice call · Tap the bubble to connect. No holding or repeated recording.</p>
-    {notice && <p role="status">{notice}</p>}
-  </div>;
+  // One persistent session owner, independent of optional transcript/idea views.
+  return null;
 }

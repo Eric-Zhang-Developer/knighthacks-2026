@@ -15,6 +15,7 @@
 .composer { position: absolute; z-index: 10; bottom: 24px; left: 50%; transform: translateX(-50%); }
 .side { position: absolute; right: 20px; top: 92px; max-height: calc(100dvh - 210px); width: 350px; z-index: 3; overflow: auto; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
 .side :global(.ui-panel) { background: #121722; box-shadow: none; }
+.shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 310px); }
 .empty { color: #aeb7c9; padding: 20px; font-size: 14px; }
 .group { border-top: 1px solid #ffffff20; margin-top: 12px; }
 .group > summary { min-height: 48px; padding: 14px 8px; cursor: pointer; color: #d7e3f6; font-size: 14px; }
@@ -33,8 +34,10 @@
   .composer { position: fixed; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
   .side { display: none; inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
   .ideaPath, .decide, .plan { display: none; }
-  :global(html[data-dest="idea"]) .side, :global(html[data-dest="decide"]) .side, :global(html[data-dest="plan"]) .side { display: block; }
-  :global(html[data-dest="idea"]) .ideaPath, :global(html[data-dest="decide"]) .decide, :global(html[data-dest="plan"]) .plan { display: block; }
+  :global(html[data-dest="talk"]) .side, :global(html[data-dest="idea"]) .side, :global(html[data-dest="decide"]) .side, :global(html[data-dest="plan"]) .side { display: block; }
+  :global(html[data-dest="talk"]) .ideaPath, :global(html[data-dest="idea"]) .ideaPath, :global(html[data-dest="decide"]) .decide, :global(html[data-dest="plan"]) .plan { display: block; }
+  :global(html[data-dest="talk"]) .top, :global(html[data-dest="talk"]) .rail { display: none; }
+  .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 340px); }
   :global(html[data-dest="idea"]) .top, :global(html[data-dest="decide"]) .top, :global(html[data-dest="plan"]) .top,
   :global(html[data-dest="idea"]) .rail, :global(html[data-dest="decide"]) .rail, :global(html[data-dest="plan"]) .rail { display: none; }
 }

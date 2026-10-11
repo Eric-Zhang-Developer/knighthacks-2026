@@ -23,15 +23,52 @@ test("one tap requests microphone; mount/hash never listen; denial keeps typing 
   await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start live conversation", exact: true })).toHaveCount(0);
   await bubble.click();
-  await expect(page.getByText("Microphone blocked. Continue the conversation by typing below.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
+  await expect(page.getByText("Microphone blocked. Choose Type / transcript to continue by text.")).toBeVisible();
   expect(microphoneRequests).toBe(1);
+  await page.getByRole("button", { name: "Type / transcript", exact: true }).click();
   await page.getByRole("button", { name: "Prefer to type?" }).click();
   await page.getByRole("textbox", { name: "Message Uncharted" }).fill("Keep my idea while voice is unavailable.");
   await page.getByRole("button", { name: "Minimize conversation", exact: true }).click();
+  await page.getByRole("button", { name: "Type / transcript", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveValue("Keep my idea while voice is unavailable.");
+  await page.getByRole("link", { name: "Decide", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
   await page.getByRole("link", { name: "Talk", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveValue("Keep my idea while voice is unavailable.");
   expect(microphoneRequests).toBe(1);
   await page.screenshot({ path: test.info().outputPath("phone-voice-denied.png") });
+});
+
+test("connecting animates without a popup; duplicate taps and cancellation cannot open a session", async ({ page }) => {
+  let attempts = 0;
+  let sessions = 0;
+  await page.exposeFunction("recordPendingMicAttempt", () => { attempts++; });
+  await page.route("**/api/mentor/session", (route) => { sessions++; return route.fulfill({ status: 503, json: { error: "Fixture unavailable" } }); });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", { value: async () => {
+      await (window as unknown as { recordPendingMicAttempt: () => Promise<void> }).recordPendingMicAttempt();
+      return new Promise<MediaStream>(() => undefined);
+    } });
+  });
+  await page.goto("/#decide");
+  await page.getByRole("button", { name: "Start live voice conversation", exact: true }).click();
+  const bubble = page.getByRole("button", { name: "Connecting live conversation", exact: true });
+  await expect(bubble).toHaveAttribute("data-state", "connecting");
+  await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
+  await expect(page).toHaveURL(/#decide$/);
+  expect(await bubble.evaluate((node) => getComputedStyle(node, "::before").animationName)).not.toBe("none");
+  await bubble.click();
+  expect(attempts).toBe(1); expect(sessions).toBe(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await bubble.evaluate((node) => getComputedStyle(node, "::before").animationName)).toBe("none");
+  const rail = await page.getByRole("complementary", { name: "Idea and evidence" }).boundingBox();
+  const dock = await page.getByRole("contentinfo", { name: "Voice" }).boundingBox();
+  expect(rail && dock && rail.y + rail.height <= dock.y).toBeTruthy();
+  await page.getByRole("button", { name: "End conversation", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Start live voice conversation", exact: true })).toBeEnabled();
+  expect(sessions).toBe(0);
+  await page.screenshot({ path: test.info().outputPath("phone-popup-free-bubble.png") });
 });
 
 test("three proposals remain separate; only an explicit selected card is saved", async ({ page }) => {
@@ -89,6 +126,9 @@ test("three proposals remain separate; only an explicit selected card is saved",
   await page.getByRole("link", { name: "Talk", exact: true }).click();
   await expect(cards.getByRole("article")).toHaveCount(3);
   await page.getByRole("button", { name: "Hide typing", exact: true }).click();
+  await page.getByRole("button", { name: "Ideas · 3", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
+  await expect(cards).toBeVisible();
   await cards.getByRole("heading", { name: "Fixture direction 1" }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("phone-candidate-cards-fixtures.png") });
 });
