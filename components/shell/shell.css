@@ -78,56 +78,50 @@
     flex-direction: column;
     height: 100dvh;
     overflow: hidden;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
   }
   /* The workspace and invite belong with Explore and Decide; elsewhere the destination gets the whole screen. */
   html[data-dest="talk"] body > section[aria-label="Workspace"],
   html[data-dest="idea"] body > section[aria-label="Workspace"],
   html[data-dest="plan"] body > section[aria-label="Workspace"] { display: none; }
 
-  /* Material 3 navigation bar: icon over label, the active one in a pill indicator. */
+  /* A floating pill like the desktop nav (the person: smaller and rounder, like Apple's and Google's tab bars): the
+     same glass, icon over label, the current tab filled. */
   .shell-nav {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
     top: auto;
     width: auto;
-    border: 0;
-    border-radius: 0;
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    height: calc(80px + env(safe-area-inset-bottom));
-    padding: 12px 0 calc(16px + env(safe-area-inset-bottom));
-    background: var(--md-sys-color-surface-container);
+    height: 60px;
+    padding: 4px;
+    border: 1px solid #ffffff26;
+    border-radius: 9999px;
+    background: #10141de8;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px #0009;
   }
   .shell-nav a {
     display: grid;
     justify-items: center;
-    align-content: start;
-    gap: 4px;
-    min-height: 52px;
-    font: var(--md-sys-typescale-label-medium);
-    letter-spacing: 0.03em;
-    color: var(--md-sys-color-on-surface-variant);
+    align-content: center;
+    gap: 2px;
+    min-height: 50px;
+    border-radius: 9999px;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    color: #cbd5e5;
     text-decoration: none;
   }
-  .shell-nav-icon {
-    display: grid;
-    place-items: center;
-    width: 64px;
-    height: 32px;
-    border-radius: var(--md-sys-shape-corner-full);
-    transition: background-color 200ms var(--md-sys-motion-easing-emphasized);
-  }
-  .shell-nav-icon svg { width: 24px; height: 24px; fill: currentColor; }
-  .shell-nav a[aria-current="page"] { color: var(--md-sys-color-on-surface); }
-  .shell-nav a[aria-current="page"] .shell-nav-icon {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-  }
-  .shell-nav a:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: 12px; }
+  .shell-nav-icon { display: grid; place-items: center; }
+  .shell-nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
+  .shell-nav a[aria-current="page"] { color: #fff; background: #30435f; }
+  .shell-nav a:focus-visible { outline: 2px solid #dceaff; outline-offset: -2px; }
 
   /* The project sheet hangs from the top (the search, explainer and push-to-talk below stay reachable), with its
      handle at the bottom edge: drag up to dismiss. */

@@ -52,13 +52,13 @@ test("one tap requests microphone; mount/hash never listen; denial keeps typing 
   await expect(page.getByRole("button", { name: "Start live conversation", exact: true })).toHaveCount(0);
   await bubble.click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
-  await expect(page.getByText("Microphone blocked. Choose Type / transcript to continue by text.")).toBeVisible();
+  await expect(page.getByText("Microphone blocked. Open Talk to continue by text.")).toBeVisible();
   expect(microphoneRequests).toBe(1);
-  await page.getByRole("button", { name: "Type / transcript", exact: true }).click();
+  await page.getByRole("link", { name: "Talk", exact: true }).click();
   await page.getByRole("button", { name: "Prefer to type?" }).click();
   await page.getByRole("textbox", { name: "Message Uncharted" }).fill("Keep my idea while voice is unavailable.");
   await page.getByRole("button", { name: "Minimize conversation", exact: true }).click();
-  await page.getByRole("button", { name: "Type / transcript", exact: true }).click();
+  await page.getByRole("link", { name: "Talk", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveValue("Keep my idea while voice is unavailable.");
   await page.getByRole("link", { name: "Decide", exact: true }).click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
@@ -154,7 +154,7 @@ test("three proposals remain separate; only an explicit selected card is saved",
   await page.getByRole("link", { name: "Talk", exact: true }).click();
   await expect(cards.getByRole("article")).toHaveCount(3);
   await page.getByRole("button", { name: "Hide typing", exact: true }).click();
-  await page.getByRole("button", { name: "Ideas · 3", exact: true }).click();
+  await page.getByRole("link", { name: "Idea", exact: true }).click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
   await expect(cards).toBeVisible();
   await cards.getByRole("heading", { name: "Fixture direction 1" }).scrollIntoViewIfNeeded();

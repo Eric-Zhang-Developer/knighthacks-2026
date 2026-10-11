@@ -25,7 +25,11 @@ tests must assert preserved behavior through the new entry rather than require t
   areas; navigation must not remount an active session or discard an unsaved draft. Closing the surface is
   distinct from ending the session: show a persistent active-state indicator and accessible End control.
   A bubble tap must not open a popup or transcript. Keep transcript/typing an explicit optional control in
-  the contextual rail, and render candidate cards independently in the idea rail. During a connected call,
+  the contextual rail, and render candidate cards independently in the idea rail. The bubble stands alone in the
+  dock (the person, 2026-10-11: the "Ideas" and "Type / transcript" buttons beside it duplicated the Idea and Talk
+  tabs, "there is no need for them"); only an End control joins it during a call. Closing the Talk panel leaves
+  `#talk`, so the Talk tab always reopens it. On a phone the navigation is a floating glass pill like the desktop
+  one, and the map's layout toggle sits top right, clear of "Browse the map". During a connected call,
   the bubble toggles mute; a separate persistent End control releases the session. Connecting, listening and
   speaking have distinct state-driven animations (decorative, not claimed audio amplitude), disabled under
   reduced motion. Denied/failed connections show a compact dismissible notice without opening the rail.

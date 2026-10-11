@@ -159,7 +159,7 @@ function Session(props: Props) {
     } catch (error) {
       if (generation !== epoch.current) return;
       release(); callbacks.current.onState("Unavailable");
-      setNotice(error instanceof DOMException && error.name === "NotAllowedError" ? "Microphone blocked. Choose Type / transcript to continue by text." : error instanceof Error ? error.message : "Live conversation is unavailable. Choose Type / transcript to continue.");
+      setNotice(error instanceof DOMException && error.name === "NotAllowedError" ? "Microphone blocked. Open Talk to continue by text." : error instanceof Error ? error.message : "Live conversation is unavailable. Open Talk to continue by text.");
     }
   }
 
