@@ -29,9 +29,28 @@ test("type a query: results list; clear: list gone", async ({ page }) => {
   await expect(similar.getByRole("button").first()).toContainText(fixture[0].title);
   await page.screenshot({ path: test.info().outputPath("search-results.png") });
   await similar.getByRole("button").first().click();
+  // Picking a result folds the panel away (#457), so it no longer covers the map; the box brings it back.
+  const panel = page.getByLabel("Search results");
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Project" }).getByRole("heading")).toHaveText(fixture[0].title);
+  await box.click();
   await expect(similar.getByRole("button").first()).toHaveAttribute("aria-current", "true");
+  // A click on the map, or Escape, folds it too; with it folded, Escape clears the query.
+  const map = page.getByRole("main", { name: "Galaxy" });
+  const area = (await map.boundingBox())!;
+  await page.mouse.click(area.x + area.width * 0.6, area.y + area.height * 0.6); // below the panel, above the voice bar
+  await expect(panel).toHaveCount(0);
+  await box.click();
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(box).toHaveValue(fixture[0].title);
+  await page.keyboard.press("Escape");
+  await expect(box).toHaveValue("");
+  await box.fill(fixture[0].title);
+  await expect(panel).toBeVisible();
   await box.fill("");
-  await expect(page.getByLabel("Search results")).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
 });
 
 test("meaning search down: title matches with a notice, not an error page", async ({ page }) => {

@@ -29,6 +29,22 @@ export default function Search() {
   const keep = useMemo(() => (h: { id: string }) => matches(classData, h.id, classFilter), [classData, classFilter]);
   // The selection from before this search; undefined while no search is active.
   const saved = useRef<string | null | undefined>(undefined);
+  // The results panel folds away (query and highlights kept) on a pick, a click outside it, or Escape (#457).
+  const [open, setOpen] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
+  const shown = open && view.state !== "idle";
+
+  useEffect(() => {
+    if (!shown) return;
+    const away = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [shown]);
 
   useEffect(() => {
     loadStars().then((l) => l.state === "ready" && setStars(l.data.stars)); // no stars.json: no filters, search still works
@@ -80,7 +96,10 @@ export default function Search() {
         type="button"
         className={styles.item}
         aria-current={h.id === selectedId}
-        onClick={() => setState({ selectedProjectId: h.id })}
+        onClick={() => {
+          setState({ selectedProjectId: h.id });
+          setOpen(false);
+        }}
       >
         <span>{h.title}</span>
         <span className={styles.meta}>
@@ -94,7 +113,7 @@ export default function Search() {
   const textOnly = data ? data.textMatches.filter((t) => !data.results.some((r) => r.id === t.id)) : [];
 
   return (
-    <div className={styles.search} role="search">
+    <div className={styles.search} role="search" ref={root}>
       <div className={styles.bar}>
         <input
           type="search"
@@ -103,8 +122,14 @@ export default function Search() {
           placeholder="Search ideas and projects"
           maxLength={500}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Escape" && setQ("")}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          // The first Escape folds the results away; with them folded, Escape clears the query.
+          onKeyDown={(e) => e.key === "Escape" && (shown ? setOpen(false) : setQ(""))}
         />
         {stars.length > 0 && (
           <details className={styles.filterMenu}>
@@ -116,6 +141,7 @@ export default function Search() {
                 value={filters.event}
                 onChange={(e) => {
                   setFilters({ ...filters, event: e.target.value });
+                  setOpen(true);
                   setClassFilter({ event: e.target.value || null }); // prize marks then count only this event's prizes
                 }}
               >
@@ -127,7 +153,13 @@ export default function Search() {
             </label>
             <label className={styles.filter}>
               <span>Created year</span>
-              <select value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })}>
+              <select
+                value={filters.year}
+                onChange={(e) => {
+                  setFilters({ ...filters, year: e.target.value });
+                  setOpen(true);
+                }}
+              >
                 <option value="">Any year</option>
                 {options.years.map((y) => (
                   <option key={y} value={y}>{`created ${y}`}</option>
@@ -165,7 +197,7 @@ export default function Search() {
           </details>
         )}
       </div>
-      {view.state !== "idle" && (
+      {shown && (
         <div className={`ui-panel ${styles.panel}`} data-panel="search" aria-label="Search results" aria-live="polite">
           {view.state === "error" && <PanelState kind="failed" message="Search is unavailable right now." />}
           {data?.meaning === "unavailable" && (
