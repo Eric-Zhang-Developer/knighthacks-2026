@@ -62,7 +62,9 @@ tests must assert preserved behavior through the new entry rather than require t
   Replace the four cramped inline filter selects with a clearly labelled Filters disclosure/sheet, full-width
   readable fields, active-filter summary and Clear filters. Keep the search field directly reachable.
   Use a compact brand/header with a workspace menu for the identifier and cookie-persistence explanation;
-  keep an obvious teammate action without a permanent multi-line workspace banner. Remove the Hold to talk
+  keep an obvious teammate action without a permanent multi-line workspace banner. The Team control sits centred on
+  the header row, and on desktop a "How it was built" control to its left links to /foreman (person, 2026-10-11:
+  judges should find the build page without the URL). Remove the Hold to talk
   dictation bar from the shipped primary experience rather than showing it alongside the new bubble.
   These changes require a coordinated ownership amendment for search/workspace/discovery components before
   editing those features' files; do not conceal controls with broad CSS or delete their behavior/tests.
