@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dur, layers, type Feature, type State } from "@/lib/foreman/board";
 import styles from "./foreman.module.css";
 
@@ -95,10 +95,27 @@ export default function Graph({
   const stateOf = (f: Feature) => shown?.get(f.slug) ?? f.state;
   const [focus, setFocus] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const reveal = useRef(false);
+  useEffect(() => {
+    if (!picked || !reveal.current) return;
+    reveal.current = false;
+    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    document.querySelector(`[aria-label="Feature ${picked}"]`)?.scrollIntoView({ behavior, block: "center" });
+  }, [picked]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPicked(null);
+    // Story mode opens and closes the proof card (spec § Story mode), and brings it on screen once rendered.
+    const onOpen = (e: Event) => {
+      const slug = (e as CustomEvent<string | null>).detail;
+      reveal.current = slug !== null;
+      setPicked(slug);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("foreman:open", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("foreman:open", onOpen);
+    };
   }, []);
 
   const by = useMemo(() => new Map(features.map((f) => [f.slug, f])), [features]);
@@ -327,6 +344,11 @@ function FeatureCard({
         {f.pr && (
           <a href={f.pr.url} target="_blank" rel="noreferrer">
             open PR #{f.pr.number} ↗
+          </a>
+        )}
+        {f.builtBy && (
+          <a href={f.builtBy.url} target="_blank" rel="noreferrer">
+            built in PR #{f.builtBy.number} ↗
           </a>
         )}
         {f.state === "done" && (

@@ -1,5 +1,6 @@
 import { pace, type Board, type PR } from "./board";
 import { parseTitle, workerOf } from "./parse";
+import { clock } from "./time";
 
 // Series for the two charts (spec § Charts). Pure: snapshot in, points out, so the shapes are unit-tested.
 
@@ -141,4 +142,45 @@ export function chapters(board: Board, crew: Timeline | null): Chapter[] {
 /** Named workers with a PR open at `t`. A still-open bar ends at the snapshot, so it counts there too. */
 export function atWork(crew: Timeline, t: number): number {
   return crew.rows.filter((r) => r.bars.some((b) => b.start <= t && (t < b.end || b.state === "open"))).length;
+}
+
+// Story mode (spec § Story mode): the presenter's beats after the tour. Every number comes from the snapshot.
+export type Beat = { section: string; caption: string; open?: string };
+export function beats(board: Board, crew: Timeline | null): Beat[] {
+  if (!board.prsKnown || !crew) return [];
+  const { stats, features } = board;
+  const scheduled = features.filter((f) => f.milestone);
+  const built = scheduled.filter((f) => f.state === "done").length;
+  const since = stats.firstPrAt ? ` since ${clock(Date.parse(stats.firstPrAt))}` : "";
+  const dependents = (slug: string) => features.filter((x) => x.deps.includes(slug)).length;
+  // The proof click: the done feature most others waited on. reduce keeps the first on ties (graph order).
+  const proof = features
+    .filter((f) => f.state === "done" && f.builtBy) // the card links the PR that built it
+    .reduce<{ slug: string; n: number } | null>((best, f) => {
+      const n = dependents(f.slug);
+      return !best || n > best.n ? { slug: f.slug, n } : best;
+    }, null);
+  const asks = board.asks.filter((a) => a.kind !== "review").length;
+  const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+  return [
+    {
+      section: "graph",
+      caption: `${built}/${scheduled.length} features built, ${n(stats.merged, "PR")} merged, by ${n(stats.crew, "agent worker")}${since}. Space replays it.`,
+    },
+    ...(proof
+      ? [
+          {
+            section: "graph",
+            open: proof.slug,
+            caption: `${proof.slug}: ${n(proof.n, "feature")} ${proof.n === 1 ? "depends" : "depend"} on it. Its spec, the PR that built it, and how it was checked.`,
+          },
+        ]
+      : []),
+    {
+      section: "how",
+      caption: `The loop every agent runs, from AGENTS.md: ${n(stats.byKind.feature ?? 0, "feature PR")} merged through it. CI enforces the rules; plans wait for a person.`,
+    },
+    { section: "crew", caption: `One row per agent worker, every PR on it: up to ${crew.peak.n} PRs open at once.` },
+    { section: "ask", caption: `${n(asks, "thing")} the agents can't clear themselves: this is where people come in.` },
+  ];
 }

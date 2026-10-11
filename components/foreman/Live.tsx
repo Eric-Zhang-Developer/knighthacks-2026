@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { dur, pace, PACE_HOURS, STATE_TEXT, type Feature, type Milestone } from "@/lib/foreman/board";
+import type { Beat } from "@/lib/foreman/charts";
 import { clock, span } from "@/lib/foreman/time";
 import styles from "./foreman.module.css";
 
@@ -15,18 +16,19 @@ function useNow(initial: number) {
   return now;
 }
 
-// Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay.
+// Demo mode: keys 1–5 jump to the sections in pitch order, space plays or pauses the replay, and → / ← (or a
+// clicker's PageDown / PageUp) step through story mode's beats; Escape leaves it (spec § Story mode).
 const SECTIONS = ["graph", "ms", "ask", "how", "crew"]; // pitch order: the tour first (spec § The tour)
+const sectionOf = (id: string) => document.getElementById(id)?.closest("section");
 const jump = (id: string) =>
-  document
-    .getElementById(id)
-    ?.closest("section")
-    ?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  sectionOf(id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 
-export function DemoKeys() {
+export function DemoKeys({ beats }: { beats: Beat[] }) {
+  const [beat, setBeat] = useState(-1); // -1: story mode off
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Leave modified keys to the browser, and space on a focused control to that control.
+      // Leave modified keys to the browser, and keys on a focused control to that control.
       if (e.metaKey || e.ctrlKey || e.altKey || (e.target as Element).closest?.("input, textarea, select, button, a")) return;
       const i = Number(e.key) - 1;
       if (Number.isInteger(i) && i >= 0 && i < SECTIONS.length) {
@@ -36,15 +38,57 @@ export function DemoKeys() {
         e.preventDefault();
         jump("graph");
         window.dispatchEvent(new Event("foreman:replay"));
+      } else if (beats.length && (e.key === "ArrowRight" || e.key === "PageDown")) {
+        e.preventDefault();
+        setBeat((b) => Math.min(b + 1, beats.length - 1));
+      } else if (beats.length && (e.key === "ArrowLeft" || e.key === "PageUp")) {
+        e.preventDefault();
+        setBeat((b) => (b < 0 ? b : Math.max(b - 1, 0)));
+      } else if (e.key === "Escape") {
+        setBeat(-1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [beats.length]);
+
+  // Each beat: outline its section, open or close the proof card, and bring the beat into view.
+  useEffect(() => {
+    const b = beats[beat];
+    document.querySelectorAll("section[data-beat]").forEach((el) => el.removeAttribute("data-beat"));
+    window.dispatchEvent(new CustomEvent("foreman:open", { detail: b?.open ?? null }));
+    if (!b) return;
+    sectionOf(b.section)?.setAttribute("data-beat", "");
+    // A beat with a card: Graph opens it and scrolls to it once rendered. A statement, not `return jump()`:
+    // scrollIntoView returns a Promise in newer browsers, and React would call it as the effect's cleanup.
+    if (!b.open) jump(b.section);
+  }, [beat, beats]);
+
   return (
-    <span className={styles.keys} aria-hidden>
-      <kbd>1</kbd>–<kbd>5</kbd> sections · <kbd>space</kbd> replay
-    </span>
+    <>
+      <span className={styles.keys} aria-hidden>
+        <kbd>1</kbd>–<kbd>5</kbd> sections · <kbd>space</kbd> replay
+        {beats.length > 0 && (
+          <>
+            {" "}
+            · <kbd>→</kbd> story
+          </>
+        )}
+      </span>
+      {beat >= 0 && (
+        <div className={styles.story} role="status" data-testid="story">
+          <b className={styles.stencil}>
+            {beat + 1} / {beats.length}
+          </b>
+          <span key={beat} className={styles.captionText}>
+            {beats[beat].caption}
+          </span>
+          <span className={styles.storyKeys} aria-hidden>
+            <kbd>←</kbd> <kbd>→</kbd> · <kbd>esc</kbd>
+          </span>
+        </div>
+      )}
+    </>
   );
 }
 

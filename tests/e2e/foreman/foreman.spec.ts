@@ -157,6 +157,50 @@ test("demo keys: a number jumps to its section, space starts the replay", async 
   await expect(page.getByRole("button", { name: /resume/i })).toBeVisible();
 });
 
+test("story mode: → steps five beats in order, beat 2 opens the proof card, ← goes back, Escape leaves", async ({ page }) => {
+  test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no story");
+  await page.emulateMedia({ reducedMotion: "reduce" }); // instant scrolls, as in the demo-keys test
+  await page.goto("/foreman");
+  const story = page.getByTestId("story");
+  const card = page.locator('section[aria-label^="Feature "]');
+  const outlined = page.locator("section[data-beat]");
+  // Hydration can land after goto: retry the first press until story mode starts.
+  await expect(async () => {
+    await page.keyboard.press("ArrowRight");
+    await expect(story).toBeVisible({ timeout: 1000 });
+  }).toPass();
+
+  const order = ["graph", "graph", "how", "crew", "ask"];
+  let proof = "";
+  for (const [i, id] of order.entries()) {
+    if (i > 0) await page.keyboard.press(i % 2 ? "ArrowRight" : "PageDown"); // a clicker sends PageDown
+    await expect(story).toContainText(`${i + 1} / 5`);
+    await expect(outlined).toHaveCount(1);
+    await expect(outlined).toHaveAttribute("aria-labelledby", id);
+    if (i === 1) {
+      // The proof card: the feature the caption names, open and on screen.
+      proof = /(\S+):/.exec(await story.innerText())![1];
+      await expect(card).toHaveAttribute("aria-label", `Feature ${proof}`);
+      await expect(card).toBeInViewport();
+      await expect(card.getByRole("link", { name: /built in PR #\d+/ })).toBeVisible();
+    } else await expect(card).toHaveCount(0);
+    await page.screenshot({ path: test.info().outputPath(`foreman-story-${i + 1}.png`) });
+  }
+  await page.keyboard.press("ArrowRight"); // past the last beat: stays there
+  await expect(story).toContainText("5 / 5");
+
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowLeft");
+  await expect(story).toContainText("2 / 5");
+  await expect(card).toHaveAttribute("aria-label", `Feature ${proof}`);
+  await page.keyboard.press("PageUp");
+  await expect(story).toContainText("1 / 5");
+  await expect(card).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await expect(story).toHaveCount(0);
+  await expect(outlined).toHaveCount(0);
+});
+
 test("since you last looked: an earlier visit shows what merged after it; a reload right away doesn't", async ({ page }) => {
   test.skip(!headers.Authorization, "needs PR data: a build without GITHUB_TOKEN has no replay");
   const before = Date.parse("2026-10-10T09:00:00-04:00"); // Sat 09:00 EDT, before many merges
