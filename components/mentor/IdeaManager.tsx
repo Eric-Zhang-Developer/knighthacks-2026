@@ -30,10 +30,12 @@ export default function IdeaManager({ deletionAvailable = false }: { deletionAva
     setNotice(text);
     window.dispatchEvent(new CustomEvent(IDEA_RESULT, { detail: text }));
   }
-  function select(version: Version | null) {
+  // restoring: the first load putting back the saved idea, not a person choosing one. It leaves alone a project they
+  // picked while the list loaded; otherwise a search pick made in the first second is cleared by the restore.
+  function select(version: Version | null, restoring = false) {
     selectionEpoch.current++;
     setPending(null); setError("");
-    setState({ activeIdeaVersionId: version?.versionId ?? null, highlightedIds: version?.neighborIds ?? [], selectedProjectId: null, ideaDraft: "" });
+    setState({ activeIdeaVersionId: version?.versionId ?? null, highlightedIds: version?.neighborIds ?? [], ideaDraft: "", ...(restoring ? {} : { selectedProjectId: null }) });
     window.dispatchEvent(new CustomEvent(IDEA_SELECTED, { detail: version }));
   }
   function add() {
@@ -64,7 +66,7 @@ export default function IdeaManager({ deletionAvailable = false }: { deletionAva
         if (restore && selection === selectionEpoch.current && originalActive === getState().activeIdeaVersionId) {
           const version = versions.find((item) => item.versionId === originalActive) ?? latest(versions);
           // Do not discard a draft composed while the initial list was loading.
-          if (!getState().ideaDraft) select(version);
+          if (!getState().ideaDraft) select(version, true);
         }
       } catch (failure) {
         if (alive && token === requestEpoch.current) setError(failure instanceof Error ? failure.message : "Saved ideas could not load.");
