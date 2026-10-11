@@ -51,9 +51,13 @@ def test_resume_keeps_successful_batches_after_later_failure(tmp_path, monkeypat
     monkeypatch.setattr(run, "CACHE", tmp_path / "embeddings.npz")
     calls = []
 
+    later, failed = [run.embed_text(r) for r in RECORDS[run.BATCH:]], []
+
+    # Batches run concurrently, so the failing one is named by its texts, not by call order.
     def fail_second_batch(texts):
         calls.append(texts)
-        if len(calls) == 2:
+        if texts == later and not failed:
+            failed.append(texts)
             raise TimeoutError("test provider outage")
         return np.full((len(texts), 1024), 1 / 32, dtype=np.float32)
 

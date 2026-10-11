@@ -11,6 +11,14 @@ for is Best Overall (and Best AI). Each milestone keeps a working demo, so the a
 safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLAN.md` §2.
 
 ## Milestones
+- **Primary experience, live mentor** (human clarification, Sat Oct 10, #345): realistic two-way spoken
+  brainstorming grounded in actual project evidence, user goals and relevant judging criteria. Start -> talk ->
+  contextual spoken follow-up -> inspect evidence -> refine -> confirm -> save, with natural interruption and a
+  complete text fallback. This supersedes push-to-talk-only as the product's voice goal. Windows owns the
+  authenticated session/grounded tool API; the user's latest explicit reassignment gives conversation UI and
+  seamless idea/evidence integration to Windows worker codex-conversation-ui. Mac retains unrelated frontend work.
+  The old cut short-read-back features do not satisfy it. Prioritize this ahead of optional expansion while
+  preserving existing tests, schema/deployment coordination and the fixed freeze/hard stop.
 - **safe-demo** (no deadline; picked first): the bootstrap feature, then a galaxy of real projects you can explore and
   search, where every star opens its source page (F01, F19, a short F20 explainer).
 - **core** (no deadline; picked after safe-demo): type or speak an idea, see it become a star with neighbor evidence cards, run one
@@ -18,7 +26,7 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   after: voice is the Wow factor, so it is core work, not an add-on.
 - **submission**, ships Sun 10:45: branches, comparison, a private team vote, a decision snapshot, and a share link
   with a QR code (F25, F16, F29, F32, F10). Then the add-ons, last in order: deploy the same app on Vultr, and a
-  GoDaddy domain. Freeze from Sun 06:00; fixes and docs only from 09:00. Humans submit to Devpost by 09:45
+  GoDaddy domain. Freeze from Sun 08:30; fixes and docs only from 09:00. Humans submit to Devpost by 09:45
   (hard deadline 10:00). Final code push: 11:00.
 - **submission, second wave** (added Sat 12:15 once the first wave was done): a live run of every AI route
   (live-smoke), the rubric and sponsor overlay (F11), strongest alternative (F26), prove it in ten minutes (F27),
@@ -80,6 +88,23 @@ graph, a replay of the build) for the team and the judges. It's in the final mil
 competes for pick order.
 
 Human work beside the agents: Figma frames (for the Figma track), the demo video, and Devpost.
+
+## Corpus goal (person, Sat 18:10)
+More real projects make every answer better: closer neighbours, fewer "nothing like it" gaps, stronger evidence.
+The goal is **every hackathon project on Devpost**; the person would be happy with **100,000**. Devpost lists
+13,862 ended hackathons (its API, Sat 18:05). The total project count isn't known yet; the gallery walk will
+measure it.
+- **Tonight, full records (#262):** title, tagline, description and technologies from each project page, at 2
+  requests per second until Sun 03:00, then one release with the 2D layout (`galaxy-2d`), so the map is re-laid
+  out once, not twice. Projected 45–55k; the release prints the real count.
+- **Stretch, summary records:** every gallery page already lists ~24 projects (title, tagline, winner badge;
+  `summaries.jsonl`, #310), so a gallery-only pass covers far more projects per request than project pages.
+  They become stars marked `summary` (no description, which stays unknown), with full records where we have them.
+  This needs embedding fast enough (local `bge-m3` if it passes the parity check in `corpus-embed`), a `detail`
+  column, a "summary only" label wherever a record is shown or quoted, and a star file that loads quickly at 100k+.
+  Specs follow once the embedding speed is measured; nothing here is scheduled yet.
+- **Rules that don't bend for size:** every star links to its source page, nothing is filled in, the fetch keeps
+  the 429 backoff and the 403 stop, and one machine fetches.
 
 ## Not doing
 - The V3 plan's process layer: the cross-machine coordinator, `automation/state` branch, supervisors and automated

@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import EraBoard from "@/components/era";
+import { loadStars } from "@/components/galaxy/stars";
 import { summarize } from "./summary";
 import styles from "./explainer.module.css";
 
 export default function Explainer() {
   const [summary, setSummary] = useState<ReturnType<typeof summarize> | null>(null);
+  const [corpus, setCorpus] = useState<{ version: string; stars: { id: string; year?: number | null }[] } | null>(null);
 
   useEffect(() => {
-    fetch("/corpus/stars.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => Array.isArray(json?.stars) && setSummary(summarize(json.stars)))
-      .catch(() => {});
+    loadStars().then((l) => {
+      if (l.state !== "ready") return;
+      setSummary(summarize(l.data.stars));
+      setCorpus({ version: l.data.corpus_version, stars: l.data.stars });
+    });
   }, []);
 
   // No corpus: the galaxy already says so, and there is nothing to explain.
@@ -41,6 +45,7 @@ export default function Explainer() {
           </li>
         ))}
       </ul>
+      {corpus && <EraBoard stars={corpus.stars} corpusVersion={corpus.version} />}
     </details>
   );
 }

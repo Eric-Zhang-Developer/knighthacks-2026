@@ -1,0 +1,137 @@
+/* Global on purpose: these rules size <body> and the workspace badge (layout.tsx), outside the page's module, and
+   style the shell's own small components. */
+.shell-nav { display: none; }
+
+/* The step index: sticky at the top of the contextual rail, Material filter chips; the current step is filled. */
+.shell-steps {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  scrollbar-width: none;
+}
+.shell-steps a {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small);
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  text-decoration: none;
+}
+.shell-steps a:hover { background: rgba(196, 198, 208, 0.08); }
+.shell-steps a[aria-current="step"] {
+  border-color: transparent;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Starter sparks under the Idea card: suggestion chips, one tap fills the draft. */
+.shell-starters { margin-top: var(--space-3); padding: 0 var(--space-1); }
+.shell-starters p { font: var(--md-sys-typescale-body-medium); color: var(--muted); margin-bottom: var(--space-2); }
+.shell-starters ul { list-style: none; display: grid; gap: var(--space-2); }
+.shell-starters button {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small);
+  background: none;
+  color: var(--text);
+  font: var(--md-sys-typescale-body-medium);
+  text-align: left;
+}
+
+/* The open project: a plain slot on desktop; on the phone, a sheet (below). */
+.shell-sheet-handle { display: none; }
+
+@media (max-width: 720px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  /* The workspace and invite belong with Explore and Decide; elsewhere the destination gets the whole screen. */
+  html[data-dest="talk"] body > section[aria-label="Workspace"],
+  html[data-dest="idea"] body > section[aria-label="Workspace"],
+  html[data-dest="plan"] body > section[aria-label="Workspace"] { display: none; }
+
+  /* Material 3 navigation bar: icon over label, the active one in a pill indicator. */
+  .shell-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: calc(80px + env(safe-area-inset-bottom));
+    padding: 12px 0 calc(16px + env(safe-area-inset-bottom));
+    background: var(--md-sys-color-surface-container);
+  }
+  .shell-nav a {
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 4px;
+    min-height: 52px;
+    font: var(--md-sys-typescale-label-medium);
+    letter-spacing: 0.03em;
+    color: var(--md-sys-color-on-surface-variant);
+    text-decoration: none;
+  }
+  .shell-nav-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 32px;
+    border-radius: var(--md-sys-shape-corner-full);
+    transition: background-color 200ms var(--md-sys-motion-easing-emphasized);
+  }
+  .shell-nav-icon svg { width: 24px; height: 24px; fill: currentColor; }
+  .shell-nav a[aria-current="page"] { color: var(--md-sys-color-on-surface); }
+  .shell-nav a[aria-current="page"] .shell-nav-icon {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+  .shell-nav a:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: 12px; }
+
+  /* The project sheet hangs from the top (the search, explainer and push-to-talk below stay reachable), with its
+     handle at the bottom edge: drag up to dismiss. */
+  .shell-sheet[data-open] {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    max-height: 62dvh;
+    border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large);
+    background: var(--md-sys-color-surface-container-low);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    animation: sheet-in 320ms var(--md-sys-motion-easing-emphasized-decelerate) both;
+  }
+  .shell-sheet[data-open] > :first-child { overflow-y: auto; min-height: 0; flex: 1; }
+  .shell-sheet[data-open] .shell-sheet-handle {
+    display: grid;
+    place-items: center;
+    flex: none;
+    height: 28px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .shell-sheet-handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.6; }
+}
+@keyframes sheet-in {
+  from { transform: translateY(-100%); }
+  to { transform: none; }
+}

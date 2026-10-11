@@ -10,6 +10,9 @@ const COL = 34; // gap between columns
 const ROW = 12; // gap between rows
 const PAD = 16;
 
+// In replay, what isn't built yet recedes so the build reads as filling in (spec § The tour, Hierarchy). The snapshot
+// keeps every state's colour: the team reads "ready" as pickable.
+const NOT_YET = { fill: "#14110c", stroke: "#3a3328", text: "#6f6656" };
 export const STATE: Record<State, { label: string; fill: string; stroke: string; text: string; dash?: string }> = {
   done: { label: "built", fill: "#14301b", stroke: "#8fef9a", text: "#c9f7cf" },
   flight: { label: "under construction", fill: "#3a2a0e", stroke: "#ffb547", text: "#ffe3b3" },
@@ -79,10 +82,12 @@ export default function Graph({
   features,
   repo,
   shown,
+  flash,
 }: {
   features: Feature[];
   repo: string;
   shown?: Map<string, State>;
+  flash?: Set<string>; // features that just landed in the replay
 }) {
   const { pos, width, height } = useMemo(() => layout(features), [features]);
   const live = useMemo(() => criticalPath(features), [features]);
@@ -122,8 +127,9 @@ export default function Graph({
         return {
           key: `${d}>${f.slug}`,
           path: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
-          stroke: critical.has(d) && critical.has(f.slug) ? "#ffb547" : done ? "#3f7a4a" : "#3a3328",
+          stroke: critical.has(d) && critical.has(f.slug) ? "#ffb547" : flash?.has(d) ? "#8fef9a" : done ? "#3f7a4a" : "#3a3328",
           critical: critical.has(d) && critical.has(f.slug),
+          draw: flash?.has(d) ?? false, // d just landed: this unlock draws outward from it
           faded: lit !== null && !(lit.has(d) && lit.has(f.slug)),
         };
       }),
@@ -146,13 +152,14 @@ export default function Graph({
               stroke={e.stroke}
               strokeWidth={e.critical ? 2 : 1.2}
               strokeDasharray={e.critical ? "6 4" : undefined}
-              className={e.faded ? styles.faded : undefined}
+              pathLength={e.draw ? 1 : undefined}
+              className={`${styles.edge} ${e.faded ? styles.faded : ""} ${e.draw ? styles.draw : ""}`}
             />
           ))}
           {features.map((f) => {
             const p = pos.get(f.slug)!;
             const state = stateOf(f);
-            const s = STATE[state];
+            const s = shown && (state === "ready" || state === "blocked") ? { ...STATE[state], ...NOT_YET, dash: undefined } : STATE[state];
             const sub = shown
               ? ""
               : f.missed
@@ -167,7 +174,7 @@ export default function Graph({
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""}`}
+                className={`${styles.node} ${lit && !lit.has(f.slug) ? styles.faded : ""} ${picked === f.slug ? styles.picked : ""} ${flash?.has(f.slug) ? styles.flash : ""}`}
                 // A plain click opens the card in place; cmd/ctrl/shift-click still opens GitHub.
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -185,8 +192,19 @@ export default function Graph({
               >
                 <title>{`${f.slug} — ${s.label}${f.missed ? ` · missed ${f.milestone}` : ""}\n${f.name}${f.buildMin !== null ? `\nBuilt in ${dur(f.buildMin)}, first PR to merge` : ""}${f.gap ? `\nGap: ${f.gap}` : ""}`}</title>
                 {!shown && f.heat > 0.05 && (
-                  <rect x={p.x - 4} y={p.y - 4} width={W + 8} height={H + 8} rx={6} fill="#ff8a1f" opacity={0.25 + f.heat * 0.6} filter="url(#heat)" />
+                  <rect
+                    className={styles.fadeIn}
+                    x={p.x - 4}
+                    y={p.y - 4}
+                    width={W + 8}
+                    height={H + 8}
+                    rx={6}
+                    fill="#ff8a1f"
+                    opacity={0.15 + f.heat * 0.35} // an accent, not fog: at most 0.5
+                    filter="url(#heat)"
+                  />
                 )}
+                {flash?.has(f.slug) && <rect className={styles.ring} x={p.x} y={p.y} width={W} height={H} rx={2} aria-hidden />}
                 <rect
                   className={`box ${state === "flight" ? styles.pulse : ""}`}
                   x={p.x}

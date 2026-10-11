@@ -1,0 +1,8 @@
+## What shipped
+`POST /api/scorecard/:versionId` scores a saved idea version on the event's five criteria (Originality, Technical Understanding, Functionality, Design, Wow Factor), each on its own: a 1–5 score, points for and against, and a label; no total, no win chance. Points cite only the version's top-three evidence cards (generated if missing, as snapshots do) and are supported only when they cite one; originality points without a neighbour are dropped; a criterion missing a point either way is `null` with "evidence is insufficient". Insert-only; `GET` returns the newest.
+## Where it lives
+`app/api/scorecard/`, `lib/scorecard/` (contract, service), `db/schema/scorecard.ts`, `tests/idea-scorecard-api/`, `tests/e2e/idea-scorecard-api/`; test-branch SQL and grounding rules in `specs/decisions/idea-scorecard-api-schema.md`.
+## How to check it
+verify: `node scripts/verify.mjs idea-scorecard-api .git/agent-evidence/idea-scorecard-api/20261010T210906Z` pass at 7a5eda0 (Mac; Neon test branch; real save and neighbours; evidence and scorecard fixtures; rows kept).
+## Gaps
+Live run (Validation 2), 2026-10-10 22:5xZ at 146b4cb on the test database with the spare Gemini key (#297, #328): POST 200 in 67 s (evidence for the neighbours, then the scorecard), GET returned the same card. Originality 2 (supported), Functionality 2, Wow Factor 1; the model gave Technical Understanding and Design no score, so they read "evidence is insufficient". Validation 1 asks for a 1-5 score on each, which held with stubs but not live for those two. Both supported points cite a real neighbour (Meal Mate, HackPilot, Code Connections). 67 s is slow for a demo click. Production table comes through db-sync; production AI still needs the spare key set in Vercel (#297).

@@ -47,3 +47,54 @@
 }
 .list button:hover { background: var(--border); }
 .list button[aria-pressed="true"] { background: var(--border); font-weight: 600; }
+
+/* Region names over compact category clusters; positioned each frame by Scene.tsx. */
+.regions { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.region {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--paper);
+  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg);
+  white-space: nowrap;
+  visibility: hidden;
+}
+.region small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+
+/* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
+.railControls { display: contents; }
+
+/* Keyboard focus on the map itself (for + - 0) shows as an inset ring, not a box around the page. */
+.galaxy:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+
+/* Zoom in / out / whole map: small icon buttons stacked at the map's bottom-right, above the count. */
+.mapControls {
+  position: absolute;
+  bottom: 40px;
+  right: 12px;
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.mapControls button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.mapControls button + button { border-top: 1px solid var(--border); }
+.mapControls button:hover { background: var(--rule); }
+.mapControls button:active { transform: scale(0.94); }
+.mapControls svg { width: 20px; height: 20px; fill: currentColor; }
+@media (max-width: 720px) { .mapControls button { width: 44px; height: 44px; } }

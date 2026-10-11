@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
+import { isAbsolute, join } from "node:path";
 import { neon } from "@neondatabase/serverless";
 import { expect, test } from "@playwright/test";
 
@@ -9,6 +10,8 @@ test("read a frozen snapshot anonymously without access to its workspace, then r
   test.setTimeout(150_000);
   expect(Boolean(process.env.TEST_DATABASE_URL)).toBe(true);
   expect(process.env.DATABASE_URL === process.env.TEST_DATABASE_URL, "App and verifier must use the dedicated test branch").toBe(true);
+  const stub = process.env.AI_STUB_DIR;
+  expect(Boolean(stub) && isAbsolute(stub!), "Start the server with a fresh absolute AI_STUB_DIR and AI_STUB_ALLOW=1").toBe(true);
   if (!baseURL) throw new Error("Verifier URL required");
   const sql = neon(process.env.TEST_DATABASE_URL!);
   async function query<T>(operation: PromiseLike<T>): Promise<T> {
@@ -34,6 +37,13 @@ test("read a frozen snapshot anonymously without access to its workspace, then r
     } });
     expect(idea.status(), "Requires real HF embeddings").toBe(201);
     const version = await idea.json();
+    // Snapshot creation fills missing evidence (#181); fixture only generation, keeping real neighbors and persistence.
+    expect(version.neighborIds.length, "Exercise snapshot evidence generation for real neighbors").toBeGreaterThan(0);
+    for (const id of version.neighborIds) {
+      await writeFile(join(stub!, `evidence-${id}.json`), JSON.stringify({
+        overlaps: [], differences: [], uncertainty: { text: "Not stated on the page", label: "unverified", sourceIds: [] },
+      }));
+    }
     const frozenResponse = await owner.post("/api/snapshots", { headers, data: { versionId: version.versionId } });
     expect(frozenResponse.status()).toBe(201);
     const frozen = await frozenResponse.json(), request = { snapshotId: frozen.snapshotId };
@@ -84,7 +94,7 @@ test("read a frozen snapshot anonymously without access to its workspace, then r
     expect(Boolean(gone.headers()["set-cookie"])).toBe(false);
     const finalRows = await query(sql`select revoked_at from shares where snapshot_id = ${frozen.snapshotId}::uuid`);
     expect(finalRows.every((row) => row.revoked_at !== null)).toBe(true);
-    const report = JSON.stringify({ mode: "real-neon-and-hugging-face-no-generation", retainedWorkspace: workspaceId,
+    const report = JSON.stringify({ mode: "real-neon-and-hugging-face-fixture-evidence", evidenceFixtureCount: version.neighborIds.length, retainedWorkspace: workspaceId,
       snapshotId: frozen.snapshotId, shareCount: stored.length, onlyHashesStored: true, anonymousReadStatus: 200,
       noWorkspaceAccess: true, noCookiesSet: true, foreignRevokeStatus: 404, ownerRevokeStatus: 204,
       subsequentReadStatus: 410, retainedSharesRevoked: true }, null, 2);

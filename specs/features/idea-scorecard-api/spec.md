@@ -29,3 +29,7 @@ and see why it's good, why it's bad, and a score.
 
 ## Defaults
 When evidence is thin, the score is null with "evidence is insufficient", not a guess.
+Response and `GET`: `{"id", "versionId", "criteria": [{"criterion", "score": 1-5 | null, "for": [Claim],
+"against": [Claim], "label": "supported" | "inferred", "note": string | null}], "sources": [{"projectId", "title",
+"url"}], "createdAt"}`, criteria in rubric order. Sources are the version's top-three evidence cards; grounding rules
+are in `specs/decisions/idea-scorecard-api-schema.md`.

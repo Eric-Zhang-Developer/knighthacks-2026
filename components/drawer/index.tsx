@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { ProjectEvent } from "@/db/schema/corpus";
 import { setState, useAppState } from "@/lib/store";
-import { PanelState } from "@/components/ui";
+import { ClaimBadge, PanelState } from "@/components/ui";
+import { keyOf, useClasses } from "@/lib/classes";
 import styles from "./drawer.module.css";
 
 type Project = {
@@ -80,11 +81,51 @@ export default function Drawer() {
         <dd>{p.date ? (/^\d{4}-\d{2}-\d{2}T/.test(p.date) ? p.date.slice(0, 10) : p.date) : <Unknown what="date" />}</dd>
         <dt>Built with</dt>
         <dd>{p.technologies.length ? p.technologies.join(", ") : <Unknown what="technologies" />}</dd>
+        <Classified id={p.id} />
       </dl>
       {p.description ? <p className={styles.excerpt}>{excerpt(p.description)}</p> : <Unknown what="description" />}
       <a className={styles.source} href={p.url} target="_blank" rel="noopener noreferrer">
         Source: {p.url}
       </a>
     </section>
+  );
+}
+
+const PLACE = ["1st", "2nd", "3rd"];
+
+// The project's inferred category (a model's reading of its text, so labelled inferred) and every prize with its event,
+// kind, place and sponsor. Nothing shows until classes.json is loaded for this corpus.
+function Classified({ id }: { id: string }) {
+  const load = useClasses((s) => s.load);
+  if (load.state !== "ready") return null;
+  const c = load.data.projects[id];
+  if (!c) return null;
+  const key = keyOf(c);
+  const label = load.data.domains.find((d) => d.id === key)?.label ?? (key === "mixed" ? "Mixed" : "Not enough text to say");
+  return (
+    <>
+      <dt>Category</dt>
+      <dd data-category={key}>
+        <ClaimBadge label="inferred" /> {label}
+        {c.status === "mixed" && c.runner_up && ` (or ${load.data.domains.find((d) => d.id === c.runner_up)?.label ?? c.runner_up})`}
+      </dd>
+      <dt>Prizes</dt>
+      <dd>
+        {c.prizes.length ? (
+          <ul className={styles.prizes} aria-label="Prizes">
+            {c.prizes.map((z, i) => (
+              <li key={i} data-kind={z.kind}>
+                {z.text}
+                <span className={styles.prizeMeta}>
+                  {[z.event ?? "event unknown", z.kind, z.place ? PLACE[z.place - 1] : null, z.sponsor].filter(Boolean).join(" · ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className={styles.unknown}>None listed</span>
+        )}
+      </dd>
+    </>
   );
 }

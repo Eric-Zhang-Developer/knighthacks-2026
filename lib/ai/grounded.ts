@@ -1,7 +1,7 @@
 import "next/dist/compiled/server-only";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import { AiError, fixture, type AiPrompt } from "./generate";
+import { AiError, fixture, geminiKeys, type AiPrompt } from "./generate";
 
 const grounding = z.object({
   text: z.string().min(1), model: z.string().min(1),
@@ -16,16 +16,19 @@ export async function groundedSearch(prompt: AiPrompt): Promise<Grounded> {
     try { raw = JSON.parse(await fixture(process.env.AI_STUB_DIR, typeof prompt === "string" ? undefined : prompt.stubKey)); }
     catch (error) { if (error instanceof AiError) throw error; throw new AiError("INVALID_OUTPUT"); }
   } else {
-    const key = process.env.GEMINI_API_KEY?.trim(), model = process.env.GEMINI_MODEL?.trim();
-    if (!key || !model) throw new AiError("NOT_CONFIGURED");
-    try {
-      const client = new GoogleGenAI({ apiKey: key, vertexai: false, httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } } });
-      const response = await client.models.generateContent({ model, contents: text, config: { tools: [{ googleSearch: {} }] } });
-      const metadata = response.candidates?.[0]?.groundingMetadata;
-      raw = { text: response.text, model,
-        groundingChunks: (metadata?.groundingChunks ?? []).map((c) => ({ uri: c.web?.uri ?? "", title: c.web?.title ?? "" })),
-        groundingSupports: (metadata?.groundingSupports ?? []).map((s) => ({ text: s.segment?.text ?? "", chunkIndices: s.groundingChunkIndices ?? [] })) };
-    } catch { throw new AiError("PROVIDER_ERROR"); }
+    const keys = geminiKeys(), model = process.env.GEMINI_MODEL?.trim();
+    if (!keys.length || !model) throw new AiError("NOT_CONFIGURED");
+    for (const [i, key] of keys.entries()) {
+      try {
+        const client = new GoogleGenAI({ apiKey: key, vertexai: false, httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } } });
+        const response = await client.models.generateContent({ model, contents: text, config: { tools: [{ googleSearch: {} }] } });
+        const metadata = response.candidates?.[0]?.groundingMetadata;
+        raw = { text: response.text, model,
+          groundingChunks: (metadata?.groundingChunks ?? []).map((c) => ({ uri: c.web?.uri ?? "", title: c.web?.title ?? "" })),
+          groundingSupports: (metadata?.groundingSupports ?? []).map((s) => ({ text: s.segment?.text ?? "", chunkIndices: s.groundingChunkIndices ?? [] })) };
+        break;
+      } catch { if (i === keys.length - 1) throw new AiError("PROVIDER_ERROR"); } // spent credits: try the spare key
+    }
   }
   const result = grounding.safeParse(raw);
   if (!result.success) throw new AiError("INVALID_OUTPUT");

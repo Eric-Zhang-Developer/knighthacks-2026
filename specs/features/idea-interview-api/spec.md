@@ -29,3 +29,6 @@ the assistant keeps asking questions so it never misunderstands the idea.
 
 ## Defaults
 3 rounds maximum. If unsure, ask about `problem` first.
+Rounds are counted by answers: nine answers (three rounds of three) end the interview with `done: true` and no model
+call, because the route stores nothing between calls. The model may return up to six questions; the server keeps the
+first per field, at most three, and `done` is true exactly when no questions are returned.

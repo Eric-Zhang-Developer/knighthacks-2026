@@ -19,6 +19,6 @@ GitHub issue #269 is the current Mac/Windows coordination channel. #212 and plan
 - Mac/Claude: galaxy styling #281, category UI, interview UI and approved shell work; own frontend paths exclusively.
 - Coordinator: design review, evidence/log checks and cross-machine handoffs. Total local workers must obey the repo cap of three.
 
-Record claim, PR, commit, validation result and next dependency in #269. Preserve human merge gates for plan PRs. Sunday 2026-10-11 milestones are evaluated in America/New_York: freeze 06:00, report window 09:00, hard stop 10:45. Follow actual gate scripts rather than interpreting this note as an exemption.
+Record claim, PR, commit, validation result and next dependency in #269. Preserve human merge gates for plan PRs. Sunday 2026-10-11 milestones are evaluated in America/New_York: freeze 08:30, report window 09:00, hard stop 10:45. Follow actual gate scripts rather than interpreting this note as an exemption.
 
 Acceptance: complete typed journey, microphone-denied fallback, real source-backed results, reload persistence and share flow; desktop/phone screenshots paired with geometry, keyboard, contrast and functional checks. Distinguish CI, fixture verification, live provider verification and production verification.

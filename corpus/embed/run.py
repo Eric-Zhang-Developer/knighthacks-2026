@@ -11,6 +11,7 @@ The table is replaced as a whole: after a load it holds exactly this run's recor
 import argparse
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 import sys
 import time
 from datetime import date
@@ -24,8 +25,13 @@ CACHE = ROOT / "corpus" / "data" / "embeddings.npz"
 STARS = ROOT / "public" / "corpus" / "stars.json"
 MAX_CHARS = 2000  # the opening of a description (inspiration, what it does) carries the meaning; cost grows with length
 BATCH = 16
+# Batches in flight at once. The provider call is mostly waiting, so overlap is nearly free: on 96 fixture texts,
+# serial batches embedded 2.1 records/s and six in flight 5.5/s, while the 5 rps fetch adds ~2.75 records/s.
+WORKERS = 6
 REQUEST_TIMEOUT = 60  # seconds without a provider response, per attempt
 SEED = 42
+GROUP_SIZE, GROUPS_MAX = 140, 200  # about 140 projects per system: 60 systems at 8,409
+SPREAD, TIGHTEN = 3.0, 0.3  # systems sit 3x further apart; each shrinks to under a third of its UMAP size
 
 
 def load_env() -> None:
@@ -70,24 +76,54 @@ def cached_embeddings(records: list[dict]) -> np.ndarray:
             cache = dict(zip(z["hashes"].tolist(), z["vectors"]))
     todo = [r for r in records if r["content_hash"] not in cache]
     print(f"embed: {len(records) - len(todo)} cached, {len(todo)} to embed", flush=True)
-    for start in range(0, len(todo), BATCH):
-        batch = todo[start:start + BATCH]
-        for r, v in zip(batch, embed([embed_text(r) for r in batch])):
-            cache[r["content_hash"]] = v
+    batches = [todo[i:i + BATCH] for i in range(0, len(todo), BATCH)]
+    for g in range(0, len(batches), WORKERS):
+        group = batches[g:g + WORKERS]
+        with ThreadPoolExecutor(len(group)) as pool:
+            futures = [pool.submit(embed, [embed_text(r) for r in b]) for b in group]
+        # Every batch that finished is kept, in order, even if another in its group failed; then the failure surfaces.
+        failure = None
+        for b, f in zip(group, futures):
+            try:
+                for r, v in zip(b, f.result()):
+                    cache[r["content_hash"]] = v
+            except Exception as e:
+                failure = failure or e
         CACHE.parent.mkdir(parents=True, exist_ok=True)
         checkpoint = CACHE.with_suffix(".tmp.npz")
         np.savez(checkpoint, hashes=np.array(list(cache)), vectors=np.stack(list(cache.values())))
         checkpoint.replace(CACHE)
-        print(f"embed: checkpointed {min(start + BATCH, len(todo))}/{len(todo)} new records", flush=True)
+        print(f"embed: checkpointed {min((g + len(group)) * BATCH, len(todo))}/{len(todo)} new records", flush=True)
+        if failure:
+            raise failure
     return np.stack([cache[r["content_hash"]] for r in records])
 
 
+def systems(vectors: np.ndarray, xyz: np.ndarray) -> np.ndarray:
+    """Group by meaning, then spread the groups apart and tighten each one, so the galaxy reads as star systems.
+
+    Plain UMAP of this corpus is one continuous cloud: hackathon projects form a continuum, and no UMAP setting
+    separated it (min_dist 0-0.1, n_neighbors 15-80 tried on the 8,409 corpus). Groups come from k-means on the
+    embeddings, not from 3D position, so a system is projects with similar descriptions.
+    """
+    from sklearn.cluster import KMeans
+
+    k = max(1, min(GROUPS_MAX, len(vectors) // GROUP_SIZE))
+    if k == 1:
+        return xyz
+    label = KMeans(k, n_init=3, random_state=SEED).fit_predict(vectors)
+    centre = np.stack([xyz[label == i].mean(0) for i in range(k)])[label]
+    # ponytail: spread and tighten are tuned by eye on the 8,409 corpus; re-render the top view after a big release.
+    return SPREAD * centre + TIGHTEN * (xyz - centre)
+
+
 def project(vectors: np.ndarray) -> np.ndarray:
-    """UMAP to 3D with cosine distance and a fixed seed, scaled into a unit cube centred on 0."""
+    """UMAP to 3D with cosine distance and a fixed seed, grouped into systems, scaled into a unit cube centred on 0."""
     import umap
 
     n = len(vectors)
     xyz = umap.UMAP(n_components=3, metric="cosine", n_neighbors=min(15, n - 1), random_state=SEED).fit_transform(vectors)
+    xyz = systems(vectors, xyz)
     xyz = xyz - (xyz.max(0) + xyz.min(0)) / 2
     return xyz / max(float(np.ptp(xyz, axis=0).max()), 1e-9)
 
