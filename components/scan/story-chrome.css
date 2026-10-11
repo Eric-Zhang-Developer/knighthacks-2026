@@ -1,0 +1,13 @@
+/* Chrome fade: while the story plays, everything but the map, Fred's dock, the project sheet and this stage steps
+   back. Stable hooks only (aria-labels, roles, the shell's global class). Global, not a module: these are other
+   features' elements, and a module selector must contain one of its own classes. */
+.shell-nav, details[aria-label="Workspace"], header[aria-label="Search"], main[aria-label="Galaxy"] > details,
+[role="group"][aria-label="Arrange stars"], [role="group"][aria-label="Map controls"], main[aria-label="Galaxy"] p[role="status"] {
+  transition: opacity .4s ease;
+}
+html[data-story] .shell-nav, html[data-story] details[aria-label="Workspace"],
+html[data-story] header[aria-label="Search"], html[data-story] main[aria-label="Galaxy"] > details,
+html[data-story] [role="group"][aria-label="Arrange stars"], html[data-story] [role="group"][aria-label="Map controls"],
+html[data-story] main[aria-label="Galaxy"] p[role="status"] {
+  opacity: 0; pointer-events: none;
+}
