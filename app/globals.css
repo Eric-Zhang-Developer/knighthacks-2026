@@ -1,26 +1,28 @@
 /*
- * Design system (specs/features/ui-redesign): an observatory instrument laid over the night sky. Near-black sky,
- * paper-white text, brass for the instrument's markings (counts, step labels, annotations) and one interactive accent,
- * the idea star's cyan. Engraved serif headings, Plex Sans to read, Plex Mono for data. The Material token names from
- * design-refresh stay as aliases, so every panel that reads them takes the new values without touching its files.
+ * Design system (specs/features/ui-redesign): the inside of an observatory dome at night. Pitch-black sky, solid black
+ * instrument plates with square corners, paper-white text, brass for the instrument's markings, and one accent: the red
+ * light observatories work under so eyes stay dark-adapted. Red is the opposite of the blue-white stars, so every
+ * control stands out from the map. Plex Sans to read and for headings, Plex Mono capitals for controls and markings.
+ * The Material token names from design-refresh stay as aliases, so every panel that reads them takes the new values
+ * without touching its files.
  */
 :root {
   /* Sky and surfaces, darkest to lightest. */
-  --sky: #04060b;
-  --surface-low: #090c13;
-  --surface: #0d1119;
-  --surface-high: #151b26;
-  --hairline: #232b3a;
-  --hairline-strong: #4a5366;
+  --sky: #000000;
+  --surface-low: #050506;
+  --surface: #09090b;
+  --surface-high: #111114;
+  --hairline: #1f1f24;
+  --hairline-strong: #3b3b43;
 
   /* Text: three steps. */
   --ink: #ece8de;
-  --ink-2: #a4acbc;
+  --ink-2: #a3a3ab;
 
   /* Markings and the one accent. */
   --brass-tone: #d6b37a;
-  --accent: #4fd6e8;
-  --on-accent: #00262d;
+  --accent: #ff3b30;
+  --on-accent: #000000; /* black on the red reads 5.9:1; white would read 3.5:1 */
 
   /* Type: six sizes. 11 markings, 13 secondary, 15 body; serif 18 section titles, 22 panel headings, 30 display. */
   --text-xs: 11px;
@@ -31,11 +33,13 @@
   --display: 30px;
   --tracking-marks: 0.14em;
 
-  /* Shape: panels, fields, and round controls (buttons and chips are pills). */
-  --radius: 16px;
-  --radius-field: 10px;
-  --radius-sm: 10px;
-  --radius-round: 9999px;
+  /* Shape: square, like an instrument plate. The names stay so no panel changes; only true circles (50%) are round. */
+  --radius: 0;
+  --radius-field: 0;
+  --radius-sm: 0;
+  --radius-round: 0;
+  --tracking-controls: 0.08em;
+  --font-display: var(--font-sans);
 
   /* Space: a 4px scale. */
   --space-1: 4px;
@@ -45,51 +49,51 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Instruments over the sky: translucent, blurred; solid under reduced transparency or more contrast. */
-  --material-thick: rgba(9, 12, 19, 0.7);
-  --material-blur: blur(22px) saturate(140%);
+  /* Instruments are solid plates now, not frosted glass; the names stay for the panels that read them. */
+  --material-thick: var(--surface-low);
+  --material-blur: none;
   --glass: var(--material-thick);
   --glass-blur: var(--material-blur);
-  --lift: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --lift: none;
 
   /* The tokens every panel already reads. Literal hex where tests/visual-polish checks contrast from this file. */
-  --bg: #04060b;
-  --panel: #0d1119;
+  --bg: #000000;
+  --panel: #09090b;
   --panel-top: var(--surface);
-  --border: #232b3a;
-  --rule: rgba(35, 43, 58, 0.8);
+  --border: #1f1f24;
+  --rule: rgba(31, 31, 36, 0.8);
   --text: #ece8de;
   --paper: #f5f1e6;
-  --muted: #a4acbc;
+  --muted: #a3a3ab;
   --brass: var(--brass-tone);
-  --idea: #4fd6e8; /* the idea star, and the one interactive accent */
+  --idea: #ff3b30; /* the one interactive accent in panels; the idea star on the canvas keeps its cyan (Scene.tsx) */
   --history: #c9b6ff; /* revision history */
   --uncertain: #f5c46a; /* uncertainty */
   --live: #7ddc9c; /* current-event projects */
-  --failed: #ffb4ab; /* error */
+  --failed: #ff9a5c; /* error: orange plus a glyph, since red is the accent */
 
   /* design-refresh's Material roles, mapped onto the observatory. */
   --md-sys-color-primary: var(--accent);
   --md-sys-color-on-primary: var(--on-accent);
-  --md-sys-color-primary-container: #0f3a42;
-  --md-sys-color-on-primary-container: #c9f4fa;
+  --md-sys-color-primary-container: #3a0b08;
+  --md-sys-color-on-primary-container: #ffd9d6;
   --md-sys-color-secondary: var(--ink-2);
   --md-sys-color-on-secondary: var(--sky);
   --md-sys-color-secondary-container: var(--surface-high);
   --md-sys-color-on-secondary-container: var(--ink);
   --md-sys-color-tertiary: var(--brass-tone);
   --md-sys-color-on-tertiary: #2a1d05;
-  --md-sys-color-error: #ffb4ab;
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #5c1414;
+  --md-sys-color-error: var(--failed);
+  --md-sys-color-on-error: #000000;
+  --md-sys-color-error-container: #3a1a08;
   --md-sys-color-surface: var(--surface);
   --md-sys-color-surface-dim: var(--surface-low);
-  --md-sys-color-surface-bright: #1e2532;
+  --md-sys-color-surface-bright: #1c1c21;
   --md-sys-color-surface-container-lowest: var(--sky);
   --md-sys-color-surface-container-low: var(--surface-low);
-  --md-sys-color-surface-container: #0d1119;
+  --md-sys-color-surface-container: #09090b;
   --md-sys-color-surface-container-high: var(--surface-high);
-  --md-sys-color-surface-container-highest: #1b2230;
+  --md-sys-color-surface-container-highest: #18181d;
   --md-sys-color-on-surface: var(--ink);
   --md-sys-color-on-surface-variant: var(--ink-2);
   --md-sys-color-outline: var(--hairline-strong);
@@ -130,7 +134,7 @@ body {
 }
 
 a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-::selection { background: rgba(79, 214, 232, 0.28); }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
 
 /* Scrollbars: thin and dark, so no panel shows a bright system bar against the sky. */
 * { scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent; }
@@ -144,7 +148,7 @@ select,
 input,
 textarea { font-family: inherit; color: inherit; }
 
-/* Buttons: pills that answer on pointer-down. A panel's own class sets its size; colour and state come from here. */
+/* Buttons: square plates that answer on pointer-down. A panel's own class sets its size; colour and state come from here. */
 button {
   position: relative;
   border-radius: var(--radius-round);
@@ -167,15 +171,24 @@ button::after {
 }
 button:not(:disabled):hover::after { opacity: 0.07; }
 button:not(:disabled):active::after { opacity: 0.12; }
-/* Action buttons in panels and the composer are pills over each panel's own corner; rows in a list (projects,
-   legend entries, results, sparks) keep their list shape. :root lifts this above a panel's single-class rule. */
-:root :is(.ui-panel, footer) button:not(li *) { border-radius: var(--radius-round); }
+/* Action buttons in panels and the composer speak in the instrument's voice: mono capitals, spaced out. Rows in a list
+   (projects, legend entries, results, sparks) keep their sentence text. :root lifts this above a panel's own rule. */
+:root :is(.ui-panel, footer) button:not(li *),
+.ui-button,
+.ui-chip,
+form button[type="submit"] {
+  border-radius: var(--radius-round);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-controls);
+  text-transform: uppercase;
+}
 /* A form's submit button is the panel's primary action: the accent, filled. */
 form button[type="submit"]:not(:disabled) {
   background: var(--accent);
   color: var(--on-accent);
   border-color: transparent;
-  font-weight: 600;
 }
 
 /* Fields: a well in the instrument, hairline edge, accent focus. */
@@ -187,6 +200,8 @@ select {
   border: 1px solid var(--hairline);
   color: var(--text);
 }
+/* Fields are square everywhere, including stylesheets that set their own corner (search's 8px). */
+:root :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), textarea, select) { border-radius: var(--radius-field); }
 input::placeholder,
 textarea::placeholder { color: var(--ink-2); opacity: 0.8; }
 textarea:focus-visible,
@@ -195,7 +210,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; bord
 select {
   appearance: none;
   padding-right: calc(var(--space-5) + var(--space-1));
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4acbc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a3a3ab' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   text-overflow: ellipsis;
@@ -212,12 +227,11 @@ input[type="range"] { accent-color: var(--accent); }
   padding: 0 var(--space-4);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-round);
-  background: rgba(255, 255, 255, 0.03);
+  background: none;
   color: var(--text);
-  font: var(--md-sys-typescale-label-large);
   white-space: nowrap;
 }
-.ui-button[data-variant="primary"] { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.ui-button[data-variant="primary"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .ui-button[data-variant="quiet"] { background: none; border-color: transparent; color: var(--ink-2); }
 .ui-button[data-variant="icon"] { width: 40px; padding: 0; }
 .ui-field { width: 100%; min-height: 40px; padding: var(--space-2) var(--space-3); font: var(--md-sys-typescale-body-medium); }
@@ -231,9 +245,8 @@ input[type="range"] { accent-color: var(--accent); }
   border-radius: var(--radius-round);
   background: none;
   color: var(--ink-2);
-  font: var(--md-sys-typescale-label-large);
 }
-.ui-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: rgba(79, 214, 232, 0.1); }
+.ui-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* An instrument marking: mono small caps in brass. */
 .ui-mark {
   font-family: var(--font-mono);
@@ -243,17 +256,30 @@ input[type="range"] { accent-color: var(--accent); }
   color: var(--brass);
 }
 
-/* A panel: an instrument plate. Solid (visual-polish holds panels to --panel), hairline edge. */
+/* A panel: an instrument plate. Solid (visual-polish holds panels to --panel), hairline edge, and a viewfinder's
+   corner ticks drawn in the background so no panel's own ::before or ::after is taken. */
 .ui-panel {
-  background: var(--panel);
+  --tick: var(--hairline-strong);
+  background:
+    linear-gradient(var(--tick), var(--tick)) left top / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) left top / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) right top / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) right top / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) left bottom / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) left bottom / 1px 10px,
+    linear-gradient(var(--tick), var(--tick)) right bottom / 10px 1px,
+    linear-gradient(var(--tick), var(--tick)) right bottom / 1px 10px,
+    var(--panel);
+  background-repeat: no-repeat;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
 }
 .ui-heading {
   font: var(--md-sys-typescale-title-large);
-  font-size: var(--heading);
-  letter-spacing: 0;
+  font-size: var(--title);
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--paper);
 }
 
@@ -263,7 +289,7 @@ aside[aria-label="Idea and evidence"] .ui-panel {
 }
 aside[aria-label="Idea and evidence"] .ui-heading::before {
   counter-increment: step;
-  content: "Step " counter(step);
+  content: "[ Step " counter(step) " ]";
   display: block;
   margin-bottom: var(--space-1);
   font-family: var(--font-mono);
@@ -274,7 +300,7 @@ aside[aria-label="Idea and evidence"] .ui-heading::before {
   color: var(--brass);
 }
 
-/* Push-to-talk floats over the chart as a pill: a solid plate like every panel, lifted by its shadow. */
+/* Push-to-talk floats over the chart: a solid plate like every panel. */
 footer[aria-label="Voice"] .ui-panel {
   border-radius: var(--radius-round);
   padding-left: var(--space-5);

@@ -26,12 +26,16 @@ export async function createAlternative(workspaceId: string, versionId: string) 
   // Search orders pgvector cosine distance ascending; creation saves that order.
   const projectId = Array.isArray(version.neighborIds) ? version.neighborIds[0] : null;
   if (typeof projectId !== "string" || !/^[a-f0-9]{40}$/.test(projectId)) throw new AlternativeError(503, "Saved alternative is unavailable. Please retry.");
-  const result = await db().execute(sql`select "title", "url", "description", "tagline" from "projects" where "id" = ${projectId} and "corpus_version" = ${String(version.corpusVersion)}`);
+  // Project ids are stable hashes of their source URL. Corpus releases replace project rows, while saved idea
+  // versions intentionally retain their original corpusVersion and neighbour ids. Use the current source row and
+  // persist its excerpt snapshot rather than making every older saved idea permanently unavailable.
+  const result = await db().execute(sql`select "title", "url", "description", "tagline", "corpus_version" as "corpusVersion" from "projects" where "id" = ${projectId}`);
   const project = result.rows[0];
   if (!project || typeof project.title !== "string" || !project.title.trim() || typeof project.url !== "string" || !/^https?:\/\//.test(project.url)) throw new AlternativeError(503, "Alternative source record is unavailable. Please retry.");
   const text = [project.description, project.tagline, project.title].find((value) => typeof value === "string" && value.trim()) as string;
   const excerpt = text.slice(0, 6000), workflow = typeof version.workflow === "string" ? version.workflow : "";
-  const data: Alternative = { versionId, projectId, url: project.url, title: project.title, points: [], missingWorkflow: !workflow.trim() };
+  const data: Alternative = { versionId, projectId, url: project.url, title: project.title, points: [], missingWorkflow: !workflow.trim(),
+    savedCorpusVersion: String(version.corpusVersion), sourceCorpusVersion: String(project.corpusVersion) };
   if (!data.missingWorkflow) {
     try {
       const output = await generate({ schema: comparisonSchema(workflow), prompt: { stubKey: `alternative-${projectId}`, text:
