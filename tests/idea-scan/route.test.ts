@@ -41,18 +41,19 @@ test("the stored neighbours with their cosine similarity, closest first, and the
   results = [
     [{ neighborIds: ["a", "b", "c"], corpusVersion: "2026-10-10-8409" }],
     [
-      { id: "b", title: "B", url: "https://devpost.com/software/b", similarity: "0.71" },
-      { id: "a", title: "A", url: "https://devpost.com/software/a", similarity: 0.83 },
-      { id: "c", title: "C", url: "https://devpost.com/software/c", similarity: 0.76 },
+      { id: "b", title: "B", url: "https://devpost.com/software/b", similarity: "0.71", corpusVersion: "2026-10-11-57301" },
+      { id: "a", title: "A", url: "https://devpost.com/software/a", similarity: 0.83, corpusVersion: "2026-10-11-57301" },
+      { id: "c", title: "C", url: "https://devpost.com/software/c", similarity: 0.76, corpusVersion: "2026-10-11-57301" },
     ],
-    [{ n: 8409 }],
+    [{ n: 0 }],
   ];
   const res = await get(V);
   expect(res.status).toBe(200);
   const body = await res.json();
-  expect(body.searched).toBe(8409);
+  expect(body.searched).toBeNull();
+  expect(body.corpusVersion).toBe("2026-10-10-8409");
   expect(body.neighbors.map((n: { id: string }) => n.id)).toEqual(["a", "c", "b"]);
-  expect(body.neighbors[2]).toEqual({ id: "b", title: "B", url: "https://devpost.com/software/b", similarity: 0.71 });
+  expect(body.neighbors[2]).toEqual({ id: "b", title: "B", url: "https://devpost.com/software/b", similarity: 0.71, corpusVersion: "2026-10-11-57301" });
   expect(queries[0]).toContain("workspace_id"); // scoped to the caller's workspace
   expect(queries[1]).toContain("<=>"); // cosine distance in pgvector, never 3D distance
 });

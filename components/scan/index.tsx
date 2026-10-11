@@ -17,14 +17,15 @@ function Readout(props: {
   status: Status;
   active: boolean; // an idea with neighbours is showing
   rows: ScanRow[];
-  searched: number;
+  searched: number | null;
+  sourceUpdated: boolean;
   similarity: "loading" | "ready" | "unavailable";
   survey: Survey | null;
   total: number;
   onSelect: (id: string) => void;
   onReplay: () => void;
 }) {
-  const { status, active, rows, searched, similarity, survey, total, onSelect, onReplay } = props;
+  const { status, active, rows, searched, sourceUpdated, similarity, survey, total, onSelect, onReplay } = props;
 
   if (status.intro === "play" && survey) {
     const m = survey.clouds.length;
@@ -83,10 +84,11 @@ function Readout(props: {
       </ol>
       <div className={styles.foot}>
         <p className={styles.ledger} aria-live="polite">
-          {fmt(searched)} projects searched · {landed} nearest linked ·{" "}
+          {searched === null ? "saved corpus size unavailable" : `${fmt(searched)} projects searched`} · {landed} nearest linked ·{" "}
           {similarity === "unavailable" ? "similarity unavailable" : closest === null ? "closest …" : `closest ${closest.toFixed(2)}`} ·{" "}
           <strong>0 invented</strong>
         </p>
+        {sourceUpdated && <p className={styles.ledger}>Saved neighbors are unchanged; similarity uses the current corpus.</p>}
         <button type="button" className={styles.replay} onClick={onReplay} disabled={scanning} aria-label="Replay the scan">
           <svg viewBox="0 0 24 24" aria-hidden>
             <path d="M12 5a7 7 0 1 1-6.6 4.7l1.9.6A5 5 0 1 0 12 7v3L7.5 6 12 2z" />

@@ -341,6 +341,7 @@ export default function Galaxy() {
         active={Boolean(activeIdea && neighbors && neighbors.length > 0)}
         rows={scanRows}
         searched={scan.state === "ready" ? scan.searched : stars.length}
+        sourceUpdated={scan.state === "ready" && scan.neighbors.some((neighbor) => neighbor.corpusVersion !== scan.corpusVersion)}
         similarity={scan.state}
         survey={survey}
         total={stars.length}
@@ -505,14 +506,14 @@ async function neighborsOf(versionId: string): Promise<string[] | null> {
 }
 
 // The scan's similarity for a version's neighbours (specs/features/idea-scan); a failure is shown, never filled in.
-type ScanLoad = { state: "loading" } | { state: "unavailable" } | { state: "ready"; searched: number; neighbors: { id: string; similarity: number }[] };
+type ScanLoad = { state: "loading" } | { state: "unavailable" } | { state: "ready"; corpusVersion: string; searched: number | null; neighbors: { id: string; similarity: number; corpusVersion: string }[] };
 async function scanOf(versionId: string): Promise<ScanLoad> {
   if (!(await initWorkspace()).ok) return { state: "unavailable" };
   try {
     const r = await fetch(`/api/scan/${versionId}`);
     if (!r.ok) return { state: "unavailable" };
-    const body = (await r.json()) as { searched: number; neighbors: { id: string; similarity: number }[] };
-    return { state: "ready", searched: body.searched, neighbors: body.neighbors };
+    const body = (await r.json()) as { corpusVersion: string; searched: number | null; neighbors: { id: string; similarity: number; corpusVersion: string }[] };
+    return { state: "ready", corpusVersion: body.corpusVersion, searched: body.searched, neighbors: body.neighbors };
   } catch {
     return { state: "unavailable" };
   }
