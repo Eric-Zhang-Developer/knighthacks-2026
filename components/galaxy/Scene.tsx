@@ -310,7 +310,7 @@ export type StarCanvas = HTMLCanvasElement & { starPositions?: ArrayLike<number>
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // What the scan is drawing this frame, set by <ScanDriver> before any other frame callback reads it; null = at rest.
-type Live = { frame: Frame | null; intro: boolean; focused: boolean };
+type Live = { frame: Frame | null; intro: boolean; focused: boolean; story: boolean };
 const REST_WARM = new Float32Array(SLOTS);
 const REST_LAND = new Float32Array(ARCS).fill(99);
 // At rest the idea focus is the same dim the scan settles into, so the hand-over from scan to rest is seamless.
@@ -490,8 +490,8 @@ function Sky({ view }: { view: Orbit }) {
 export type Hover = { index: number; x: number; y: number } | null;
 
 // Pointer, wheel and pinch input, and the camera: every frame the perspective camera is set from the orbit.
-function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (h: Hover) => void; onPick: (index: number) => void; director?: Director }) {
-  const { view, morph, visible, onHover, onPick, director } = props;
+function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (h: Hover) => void; onPick: (index: number) => void; director?: Director; onGrab?: () => boolean }) {
+  const { view, morph, visible, onHover, onPick, director, onGrab } = props;
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const dom = useThree((s) => s.gl.domElement);
   const size = useThree((s) => s.size);
@@ -569,7 +569,8 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       }
       view.interrupt();
       view.dragging = true;
-      director?.skip(performance.now() / 1000); // grabbing the map ends a scan or intro where it would have ended
+      // Grabbing the map ends a scan or intro where it would have ended; during the story it pauses the story instead.
+      if (!onGrab?.()) director?.skip(performance.now() / 1000);
     };
     const onMove = (e: PointerEvent) => {
       const p = local(e);
@@ -617,7 +618,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
     const onLeave = () => onHover(null);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault(); // the map zooms; the page doesn't scroll
-      director?.skip(performance.now() / 1000);
+      if (!onGrab?.()) director?.skip(performance.now() / 1000);
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       const r = dom.getBoundingClientRect();
       const q = local(e);
@@ -642,7 +643,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       dom.removeEventListener("wheel", onWheel);
       dom.removeEventListener("contextmenu", onContext);
     };
-  }, [view, morph, visible, dom, camera, onHover, onPick, director]);
+  }, [view, morph, visible, dom, camera, onHover, onPick, director, onGrab]);
   return null;
 }
 
@@ -777,10 +778,13 @@ function Pulse({ at, colour, view }: { at: () => Vec3 | null; colour: readonly n
 }
 
 type IdeaStar = { x: number; y: number; z: number; versionId: string };
+export type StoryScene = { idea: Idea | null; glow: () => number };
+// The story's idea is never saved: one star, placed among the twins each frame like the active idea.
+const STORY_STAR: IdeaStar[] = [{ x: 0, y: 0, z: 0, versionId: "story" }];
 
 // Idea stars: cyan, larger than any project. The active one sits where its neighbours are in the current layout;
 // the rest keep their stored position (only their neighbours would place them in another layout).
-function Ideas({ ideas, active, idea, morph, view }: { ideas: IdeaStar[]; active: string | null; idea: Idea | null; morph: Morph; view: Orbit }) {
+function Ideas({ ideas, active, idea, morph, view, glow }: { ideas: IdeaStar[]; active: string | null; idea: Idea | null; morph: Morph; view: Orbit; glow?: () => number }) {
   const dpr = useThree((s) => s.viewport.dpr);
   const built = useMemo(() => {
     const g = new THREE.BufferGeometry();
@@ -795,6 +799,13 @@ function Ideas({ ideas, active, idea, morph, view }: { ideas: IdeaStar[]; active
     built.m.uniforms.uPixelRatio.value = dpr;
     built.m.uniforms.uAtten.value = view.fitDist;
     built.m.uniforms.uTwinkle.value = 0;
+    if (glow) {
+      // Light is added, so fading the colour fades the star.
+      const c = built.g.getAttribute("color") as THREE.BufferAttribute;
+      const g = glow();
+      for (let j = 0; j < ideas.length; j++) c.setXYZ(j, IDEA_RGB[0] * g, IDEA_RGB[1] * g, IDEA_RGB[2] * g);
+      c.needsUpdate = true;
+    }
     const k = ideas.findIndex((s) => s.versionId === active);
     if (k < 0 || !idea) return;
     const attr = built.g.getAttribute("position") as THREE.BufferAttribute;
@@ -951,7 +962,7 @@ function ScanDriver({ director, live, idea, morph, view }: { director: Director;
       view.dist = view.fitDist * 0.55;
     } else if (director.introCamera === "end") view.fit();
     director.introCamera = null;
-    if (live.intro) {
+    if (live.intro && !director.paused) {
       view.poke();
       view.dist += (view.fitDist - view.dist) * (1 - Math.exp(-dt * 0.5));
       view.yaw += dt * 0.08;
@@ -1114,9 +1125,15 @@ export default function Scene(props: {
   // While the project list is open and can't list every star: its rows, the projects nearest the middle of the view.
   nearby?: (ids: number[], zoomed: boolean) => void;
   nearbyHold?: () => boolean;
+  // The story (specs/features/idea-scan, Plan 5), while it plays: its own idea star in place of the saved ones (null
+  // in the sky and after the turn), how bright that star is now, and a grab of the map, which pauses it.
+  story?: StoryScene | null;
+  onGrab?: () => boolean;
 }) {
-  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, idea, regions, labelLayer, titles, nameLayer, director, cats, tagLayer, nearby, nearbyHold } = props;
-  const live = useMemo((): Live => ({ frame: null, intro: false, focused: false }), []);
+  const { ids, positions, visible, view, onHover, onPick, colourAt, ringAt, dimAt, regions, labelLayer, titles, nameLayer, director, cats, tagLayer, nearby, nearbyHold, story, onGrab } = props;
+  const idea = story ? story.idea : props.idea;
+  const live = useMemo((): Live => ({ frame: null, intro: false, focused: false, story: false }), []);
+  useEffect(() => void (live.story = Boolean(story)), [live, story]);
   // Idea focus: the neighbours keep their colour and every other star dims, drawn by the star shader (uFade).
   useEffect(() => void (live.focused = Boolean(idea?.lines && idea.neighbours.length > 0)), [live, idea]);
   const arcs = useMemo(() => idea?.neighbours ?? [], [idea]);
@@ -1135,9 +1152,9 @@ export default function Scene(props: {
     if (selected >= 0) director?.skip(performance.now() / 1000);
     // Where the star ends up, so a layout switch while selected follows it to its new place.
     if (selected >= 0) view.flyTo([positions[3 * selected], positions[3 * selected + 1], positions[3 * selected + 2]]);
-    else if (hadSelection.current) view.fit();
+    else if (hadSelection.current && !live.story) view.fit(); // the story frames its own beats
     hadSelection.current = selected >= 0;
-  }, [selected, positions, morph, view, director]);
+  }, [selected, positions, morph, view, director, live]);
 
   const corpusStyle = useMemo(() => {
     const highlighted = new Set(highlightedIds);
@@ -1151,7 +1168,7 @@ export default function Scene(props: {
     };
   }, [ids, visible, selectedId, highlightedIds, colourAt, ringAt, dimAt]);
 
-  const ideaPoint = useMemo(() => (idea ? () => ideaAt(idea, morph) : null), [idea, morph]);
+  const ideaPoint = useMemo(() => (idea ? () => (story && story.glow() < 0.5 ? null : ideaAt(idea, morph)) : null), [idea, morph, story]);
   const selectedPoint = useMemo(
     () => () => (selected >= 0 && morph.current.length ? ([morph.current[3 * selected], morph.current[3 * selected + 1], morph.current[3 * selected + 2]] as Vec3) : null),
     [selected, morph],
@@ -1160,11 +1177,13 @@ export default function Scene(props: {
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.005, far: 100, position: [0, 0, 2] }} aria-hidden>
       {director && <ScanDriver director={director} live={live} idea={idea ?? null} morph={morph} view={view} />}
-      <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} director={director} />
+      <Rig view={view} morph={morph} visible={visible} onHover={onHover} onPick={onPick} director={director} onGrab={onGrab} />
       <Composite view={view} />
       <Sky view={view} />
       <Stars positions={positions} morph={morph} styleAt={corpusStyle} view={view} cats={cats} arcs={arcs} live={live} />
-      {ideaStars.length > 0 && <Ideas ideas={ideaStars} active={activeIdea} idea={idea ?? null} morph={morph} view={view} />}
+      {story
+        ? story.idea && <Ideas ideas={STORY_STAR} active={STORY_STAR[0].versionId} idea={story.idea} morph={morph} view={view} glow={story.glow} />
+        : ideaStars.length > 0 && <Ideas ideas={ideaStars} active={activeIdea} idea={idea ?? null} morph={morph} view={view} />}
       {idea && idea.lines && idea.neighbours.length > 0 && <Tentacles idea={idea} morph={morph} view={view} live={live} />}
       {idea && idea.lines && idea.neighbours.length > 0 && <Rings idea={idea} morph={morph} live={live} />}
       {idea && idea.neighbours.length > 0 && <Tags idea={idea} layer={tagLayer ?? null} morph={morph} live={live} />}
