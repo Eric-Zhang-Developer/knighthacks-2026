@@ -431,7 +431,13 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
     const pointers = new Map<number, { x: number; y: number }>();
     let down = { x: 0, y: 0 };
     let moved = false;
-    let panning = false;
+    let turning = false; // a modifier-drag turns the camera; a plain drag moves across the map
+    let grab = 0; // the depth of what the drag picked up
+    // The depth of the star under a screen point, or the target's when there's none.
+    const depthAt = (p: { x: number; y: number }) => {
+      const i = pick(p);
+      return i >= 0 ? view.depthOf(morph.current.subarray(3 * i, 3 * i + 3)) : view.dist;
+    };
     let trail: { x: number; y: number; t: number }[] = [];
 
     const onDown = (e: PointerEvent) => {
@@ -441,7 +447,9 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       if (pointers.size === 1) {
         down = p;
         moved = false;
-        panning = e.button === 2 || e.button === 1 || e.shiftKey;
+        // Selected, the camera holds on the project: a plain drag circles it, and a right-drag does nothing.
+        turning = e.altKey || e.ctrlKey || e.metaKey || (view.held && e.button === 0);
+        grab = depthAt(p);
         trail = [{ ...p, t: e.timeStamp }];
       }
       view.interrupt();
@@ -463,11 +471,12 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
         // Pinch: zoom by the change in finger spread.
         const other = [...pointers.values()].find((q) => q !== prev)!;
         const spread = Math.hypot(prev.x - other.x, prev.y - other.y);
-        if (spread > 0) view.dollyBy(Math.hypot(p.x - other.x, p.y - other.y) / spread);
-      } else if (panning) {
-        view.panBy(p.x - prev.x, p.y - prev.y, dom.getBoundingClientRect().height);
+        const r = dom.getBoundingClientRect();
+        const mid = { dxPx: (p.x + other.x) / 2 - r.width / 2, dyPx: (p.y + other.y) / 2 - r.height / 2, heightPx: r.height };
+        if (spread > 0) view.dollyBy(Math.hypot(p.x - other.x, p.y - other.y) / spread, mid);
       } else {
-        view.rotateBy(p.x - prev.x, p.y - prev.y);
+        if (turning) view.rotateBy(p.x - prev.x, p.y - prev.y);
+        else view.panBy(p.x - prev.x, p.y - prev.y, dom.getBoundingClientRect().height, grab);
         trail.push({ ...p, t: e.timeStamp });
         if (trail.length > 6) trail.shift();
       }
@@ -480,17 +489,22 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       if (pointers.size > 0) return;
       view.dragging = false;
       if (!moved) return onPick(pick(p)); // a click: select the star under the pointer, or clear on empty space
-      if (wasPinch || panning) return;
-      // Hand the drag's velocity to the spin, from the last ~100 ms of movement.
+      if (wasPinch) return;
+      // Hand the drag's velocity to the glide or the spin, from the last ~100 ms of movement.
       const first = trail.find((s) => e.timeStamp - s.t < 100);
       const dt = first ? (e.timeStamp - first.t) / 1000 : 0;
-      if (first && dt > 0) view.release((p.x - first.x) / dt, (p.y - first.y) / dt);
+      if (!first || dt <= 0) return;
+      const [vx, vy] = [(p.x - first.x) / dt, (p.y - first.y) / dt];
+      if (turning) view.release(vx, vy);
+      else view.releasePan(vx, vy, dom.getBoundingClientRect().height, grab);
     };
     const onLeave = () => onHover(null);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault(); // the map zooms; the page doesn't scroll
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-      view.dollyBy(Math.exp(-px * WHEEL_ZOOM));
+      const r = dom.getBoundingClientRect();
+      const q = local(e);
+      view.dollyBy(Math.exp(-px * WHEEL_ZOOM), { dxPx: q.x - r.width / 2, dyPx: q.y - r.height / 2, heightPx: r.height, depth: depthAt(q) });
     };
     const onContext = (e: Event) => e.preventDefault();
 
