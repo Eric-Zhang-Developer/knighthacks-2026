@@ -23,6 +23,14 @@ export async function listIdeas(workspaceId: string) {
     where i.workspace_id = ${workspaceId}::uuid order by i.id, v.created_at desc, v.id desc`);
   return result.rows.map(publicVersion);
 }
+export async function deleteIdea(workspaceId: string, ideaId: string) {
+  // Authorization and deletion are one statement: cascade constraints remove versions
+  // and their dependents atomically. Independent immutable snapshot exports remain.
+  const result = await db().execute(sql`delete from ideas
+    where id = ${ideaId}::uuid and workspace_id = ${workspaceId}::uuid returning id`);
+  if (!result.rows[0]) throw new IdeaError(404, "Idea not found");
+  return { ideaId: String(result.rows[0].id), deleted: true as const };
+}
 export async function createIdea(workspaceId: string, key: string, fields: IdeaFields) {
   const previous = await existing(workspaceId, key);
   if (previous) return { version: previous, created: false };
