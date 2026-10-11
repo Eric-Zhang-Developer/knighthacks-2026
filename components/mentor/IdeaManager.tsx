@@ -19,6 +19,7 @@ export default function IdeaManager({ deletionAvailable = false }: { deletionAva
   const [busy, setBusy] = useState(false);
   const requestEpoch = useRef(0);
   const selectionEpoch = useRef(0);
+  const previousActive = useRef(active);
   const deleting = useRef(false);
   const mounted = useRef(false);
   const chooser = useRef<HTMLSelectElement>(null);
@@ -77,7 +78,13 @@ export default function IdeaManager({ deletionAvailable = false }: { deletionAva
   }, []);
 
   useEffect(() => { if (pending) cancel.current?.focus(); }, [pending]);
-  useEffect(() => { setPending(null); selectionEpoch.current++; }, [active]);
+  useEffect(() => {
+    // Mount is not a user selection. Invalidating here on the first effect run
+    // makes the in-flight initial restore stale before its list can arrive.
+    if (previousActive.current === active) return;
+    previousActive.current = active;
+    setPending(null); selectionEpoch.current++;
+  }, [active]);
   useEffect(() => {
     const intent = (event: Event) => {
       const command = (event as CustomEvent<IdeaIntent>).detail;
