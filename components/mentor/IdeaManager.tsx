@@ -38,7 +38,7 @@ export default function IdeaManager({ deletionAvailable = false }: { deletionAva
   function add() {
     select(null);
     location.hash = "idea";
-    report("Starting another idea. Existing saved ideas are kept; nothing new has been saved. Ask which problem the user wants to explore next.");
+    report("Starting another idea. Your saved ideas are kept; nothing new has been saved.");
   }
 
   useEffect(() => {

@@ -23,6 +23,7 @@ for (const width of [390, 1440]) {
     await confirm.getByRole("button", { name: "Cancel", exact: true }).click();
     expect(deletes).toBe(0);
     await page.getByRole("button", { name: "+ Add idea", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Saved ideas", exact: true }).getByRole("status")).toHaveText("Starting another idea. Your saved ideas are kept; nothing new has been saved.");
     await expect(picker).toHaveValue("");
     await expect(page.getByRole("heading", { name: "Start with a conversation" })).toBeVisible();
     await picker.selectOption(b.ideaId);
