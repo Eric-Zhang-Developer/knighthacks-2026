@@ -26,7 +26,10 @@ test("type a query: results list; clear: list gone", async ({ page }) => {
   const box = page.getByRole("searchbox", { name: "Search projects" });
   await box.fill(fixture[0].title);
   const similar = page.getByRole("list", { name: "Similar projects" });
-  await expect(similar.getByRole("button").first()).toContainText(fixture[0].title);
+  // The first search after load embeds the query cold while the page paints the galaxy: measured at ~4.2 s from
+  // request to results on a quiet machine (#486), past expect's 5 s default under any load. Meaning, not speed, is
+  // what this checks.
+  await expect(similar.getByRole("button").first()).toContainText(fixture[0].title, { timeout: 20_000 });
   await page.screenshot({ path: test.info().outputPath("search-results.png") });
   await similar.getByRole("button").first().click();
   // Picking a result folds the panel away (#457); a click on the box brings it back with that result marked.
