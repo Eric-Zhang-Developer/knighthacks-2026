@@ -1,4 +1,4 @@
-# Failure point: unapproved Gemini spend on production's key (2026-10-11)
+# Incident: unapproved Gemini spend on production's key (2026-10-11)
 
 ## What happened
 - **03:40 EDT.** The planner (Mac Claude session) started bulk labelling with `corpus/classify/run.py --labels-only`
