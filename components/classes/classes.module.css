@@ -31,7 +31,7 @@
 }
 :root .entries .entry { border-radius: var(--radius-field); }
 .entry:hover { background: var(--rule); }
-.entry[aria-pressed="true"] { border-color: rgba(79, 214, 232, 0.45); background: rgba(79, 214, 232, 0.08); }
+.entry[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .swatch { width: 8px; height: 8px; border-radius: 50%; justify-self: center; box-shadow: 0 0 6px currentColor; }
 .ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--brass); justify-self: center; }
 .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
