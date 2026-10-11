@@ -99,3 +99,28 @@ Final rerun after the navigation/confirmation review passed all three phone test
 Lint and all 415 unit tests pass (two opt-in tests skipped); Next production build includes TypeScript checking.
 Phone screenshots were visually inspected: cards sit in the scrolling rail above the persistent bubble, and
 Decide has no voice popup. The map itself still has crowded category labels, outside this iteration's changes.
+
+## Live provider unblocked locally (2026-10-11)
+
+After the human enabled ElevenAgents Write and Voices Read on the existing key, a fresh agent-list request
+returned HTTP 200 (previously 401 / convai_read). Created one managed private agent using the backend's checked-in
+tool/configuration definition: `agent_9401m4msvd0gepf81fg1c96pjnsk`, Gemini `gemini-2.5-flash`, Sarah voice
+`EXAVITQu4vr4xnSDxMaL`. Read-back confirmed auth enabled, max duration 1200, record_voice=false, retention_days=0,
+delete_transcript_and_pii=true, delete_audio=true, zero_retention_mode=false, and the exact get_context,
+find_projects/propose_idea tool allowlist. Zero-day deletion is not the Enterprise Zero Retention Mode guarantee.
+The operator prompt incorporates the canonical no-reflexive-praise behavior and the UI's explicit two-step
+spoken save confirmation; provider tools still cannot write ideas. No unrelated agent was updated.
+
+A local-only integration checkout at `C:/Users/kirol/.codex/worktrees/live-voice-integration/Knighthack` combines
+UI 5fd97d7 and backend 9df58df, without merging either draft PR to main. Dependencies reuse the existing install.
+The local runner `.git/agent-tools/run-mentor-preview.cjs` loads secrets in memory from the root local environment,
+requires a distinct TEST_DATABASE_URL and uses that as DATABASE_URL. It sets the nonsecret agent ID explicitly.
+No production schema, production configuration, key value, or stored provider capability changed or was printed.
+The read-only isolated schema checker passed. Real local HTTP checks returned workspace 201, mentor session 200
+with transport=webrtc and a nonempty token (discarded), and end-session 200. Cold compilation plus issuance took
+30441 ms; that is not an audio-response latency measurement. The route is now warm on localhost:3107.
+
+Browser automation rejected binding the localhost tab under its URL security policy. No alternate browser or
+automation bypass was attempted. Human was asked to refresh, tap the bubble, allow the microphone and confirm
+the audible greeting. Successful speech playback, interruption, grounded dialogue and full save/share acceptance
+remain unverified until that check. Do not turn HTTP token success into a claim that a person heard speech.
