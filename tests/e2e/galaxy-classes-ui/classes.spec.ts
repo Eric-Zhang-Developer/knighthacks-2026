@@ -46,6 +46,8 @@ test("categories colour, filter and ring the galaxy, and an idea focuses on its 
   expect([200, 204]).toContain((await page.request.get("/api/classes")).status());
   await page.route("**/api/classes", (r) => r.fulfill({ json: fixture() }));
   await page.goto("/");
+  // Since #369 the legend and project list live in the collapsed "Browse the map" rail.
+  await page.locator("summary", { hasText: "Browse the map" }).click();
   await expect(galaxy(page)).toHaveAttribute("data-classes", "ready", { timeout: 30_000 });
   const total = Number(await galaxy(page).getAttribute("data-star-count"));
 
@@ -77,8 +79,9 @@ test("categories colour, filter and ring the galaxy, and an idea focuses on its 
   await expectListed(page, winnerCount);
   // A listed winner (1st place or a sponsor prize in the fixture) shows its prize in the drawer.
   const row = listed(page).getByRole("button").first();
-  const title = (await row.innerText()).split("\n")[0];
-  const first = corpus.stars.find((p) => p.title === title)!;
+  // By ID, not title: titles repeat in the grown corpus, and find() by title picked another project's event.
+  const id = await row.getAttribute("data-id");
+  const first = corpus.stars.find((p) => p.id === id)!;
   await row.click();
   const prizes = page.getByRole("region", { name: "Project" }).getByRole("list", { name: "Prizes" });
   await expect(prizes).toContainText(/1st Place Overall|Best Use of Neon/);
@@ -88,13 +91,20 @@ test("categories colour, filter and ring the galaxy, and an idea focuses on its 
   await page.getByRole("region", { name: "Project" }).getByRole("button", { name: /Close/ }).click();
 
   // 4. Idea focus: one line per stored neighbour, every other star dimmed; clearing the focus restores the map.
+  // Since #369 the draft form sits behind the Idea destination and a "Write a standalone draft" disclosure.
+  await page.getByRole("navigation", { name: "Destinations" }).getByRole("link", { name: "Idea" }).click();
+  await page.locator("summary", { hasText: "Write a standalone draft" }).click();
   await page.getByRole("textbox", { name: "Describe your idea" }).fill("Help hackathon teammates plan shared meals.");
   await page.getByRole("region", { name: "Your idea" }).getByRole("button", { name: "Interpret" }).click();
   await page.getByRole("region", { name: "Your idea" }).getByRole("button", { name: "Save" }).click({ timeout: 60_000 });
   await expect(page.getByRole("region", { name: "Your idea" })).toHaveAttribute("data-version-id", /.+/, { timeout: 60_000 });
   const [latest] = (await (await page.request.get("/api/ideas")).json()) as { neighborIds: string[] }[];
-  await expect(galaxy(page)).toHaveAttribute("data-line-count", String(latest.neighborIds.length), { timeout: 30_000 });
-  await expect(galaxy(page)).toHaveAttribute("data-dimmed-count", String(total - latest.neighborIds.length));
+  // Lines run only to neighbours on the map: a summary-only neighbour (#405) is a gallery card, not a star.
+  const stars = new Set(corpus.stars.map((p) => p.id));
+  const onMap = latest.neighborIds.filter((id) => stars.has(id)).length;
+  expect(onMap).toBeGreaterThan(0);
+  await expect(galaxy(page)).toHaveAttribute("data-line-count", String(onMap), { timeout: 30_000 });
+  await expect(galaxy(page)).toHaveAttribute("data-dimmed-count", String(total - onMap));
   await page.screenshot({ path: info.outputPath("focus.png") });
   await legend(page).getByRole("button", { name: "Show the whole map" }).click();
   await expect(galaxy(page)).toHaveAttribute("data-line-count", "0");

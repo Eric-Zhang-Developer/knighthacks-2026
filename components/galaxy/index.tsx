@@ -468,7 +468,7 @@ const ProjectList = memo(function ProjectList(props: {
             const s = stars[i];
             return (
               <li key={s.id}>
-                <button type="button" aria-pressed={s.id === selectedId} onClick={() => setState({ selectedProjectId: s.id })}>
+                <button type="button" data-id={s.id} aria-pressed={s.id === selectedId} onClick={() => setState({ selectedProjectId: s.id })}>
                   {s.title}
                   <Meta event={s.event} year={s.year} />
                   <Category data={data} id={s.id} />
