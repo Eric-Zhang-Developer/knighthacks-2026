@@ -6,15 +6,20 @@ import { createPortal } from "react-dom";
 import Legend from "@/components/classes";
 import History from "@/components/history";
 import Readout, { type ScanRow, type Survey } from "@/components/scan";
-import { Director, type Status } from "@/components/scan/director";
+import { Director, SCAN, type Status } from "@/components/scan/director";
+import { BEAT_AT, findTwins, Story, TWIN_AT, type Beat, type StoryState } from "@/components/scan/story";
+import StoryOverlay from "@/components/scan/StoryOverlay";
 import { initWorkspace } from "@/components/workspace/api";
 import { colourOf, compactRegions, keyOf, loadClasses, matches, MIXED, setFocus, UNCLEAR, useClasses, wins, type ClassesFile } from "@/lib/classes";
 import { setState, useAppState } from "@/lib/store";
 import { layoutOf, type LayoutName } from "./layouts";
-import type { Hover, Idea } from "./Scene";
+import type { Hover, Idea, StoryScene } from "./Scene";
 import { createdLabel, loadStars, NAME_MAX, revealMask, shortTitle, yearsOf, type Star, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
-import { Orbit } from "./view";
+import { Orbit, type Vec3 } from "./view";
+
+// The story's scan is keyed apart from any saved idea's version id, so it never counts as one's scan.
+const STORY_KEY = "story";
 
 // WebGL only exists in the browser.
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
@@ -241,6 +246,128 @@ export default function Galaxy() {
     playIntro();
   }, [survey, playIntro]);
 
+  // The story (Plan 5): one clock for the map (here) and the overlay. Each beat is driven from its start whenever the
+  // beat changes or the presenter steps, so a step back or forward always lands on the same picture.
+  const story = useMemo(() => new Story(), []);
+  const twins = useMemo(() => findTwins(stars), [stars]);
+  const [beat, setBeat] = useState<Beat | null>(null);
+  const run = useRef({ beat: null as Beat | null, prev: story.state(0), saved: null as Status | null });
+  const drive = useCallback(
+    (b: Beat, s: StoryState, now: number) => {
+      const from = now - (s.t - BEAT_AT[b]); // the beat's start on the wall clock
+      const last = twins.at(-1);
+      director.halt();
+      setState({ selectedProjectId: b === "proof" && last ? last.id : null });
+      if (b === "sky") {
+        view.fit();
+        if (survey) director.startIntro(survey.clouds.map((c) => c.slot), from);
+      } else if (b === "egg") director.needsFraming = true; // the scene frames the story's idea and the twins
+      else if (b === "twins") {
+        // Twin k lands at TWIN_AT[k] (its chime); the arcs reach out from the beat's start.
+        const pace = { reachAt: TWIN_AT[0] - BEAT_AT.twins - SCAN.reach, gap: TWIN_AT[1] - TWIN_AT[0] };
+        director.startScan(STORY_KEY, twins.map((t) => cats?.[t.index] ?? -1), from, pace);
+      } else if (b === "turn") view.fit();
+      if (s.paused) director.pause(now);
+    },
+    [twins, director, view, survey, cats],
+  );
+  // Presenter state on every start, pause, step and stop; the beat itself moves on with time, read each frame.
+  useEffect(() => {
+    const sync = (now: number, force: boolean) => {
+      const s = story.state(now);
+      if (s.beat && (force || s.beat !== run.current.beat)) drive(s.beat, s, now);
+      if (s.beat !== run.current.beat) setBeat((run.current.beat = s.beat));
+    };
+    const off = story.subscribe((s) => {
+      const now = performance.now() / 1000;
+      const was = run.current.prev;
+      run.current.prev = s;
+      if (!s.playing) {
+        if (!was.playing) return;
+        // The end, or Escape: everything as it was before the story, nothing selected, the whole map.
+        director.halt(run.current.saved ?? undefined);
+        setState({ selectedProjectId: null });
+        view.fit();
+        setBeat((run.current.beat = null));
+        return;
+      }
+      if (!was.playing) {
+        director.skip(now); // a scan or intro already playing ends settled, and that is what the story hands back
+        run.current.saved = director.status;
+      } else if (was.paused !== s.paused) return void (s.paused ? director.pause(now) : director.resume(now));
+      sync(now, true);
+    });
+    let raf = 0;
+    const frame = () => {
+      const now = performance.now() / 1000;
+      story.tick(now);
+      if (story.state(now).playing) {
+        view.poke(); // no drift under the story, paused or not
+        sync(now, false);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => (off(), cancelAnimationFrame(raf));
+  }, [story, drive, director, view]);
+  // ponytail: cast because story.ts types `twins` as the literal 3 (its default is TWINS.length, `as const`); drop it
+  // once play() declares `twins: number`.
+  const playStory = useCallback(() => story.play(performance.now() / 1000, twins.length as 3), [story, twins.length]);
+  const storyAsked = useRef(false);
+  useEffect(() => {
+    if (storyAsked.current || load.state !== "ready" || classes.state === "loading" || !new URLSearchParams(location.search).has("story")) return;
+    storyAsked.current = true;
+    playStory();
+  }, [load.state, classes.state, playStory]);
+  // Presenter keys while it plays: Space pauses, the arrows step a beat, Escape ends it. Caught first, so they never
+  // also scroll the page, press a focused button or reach another key handler; typing in a field is left alone.
+  const storyOn = beat !== null;
+  useEffect(() => {
+    if (!storyOn) return;
+    const keys: Record<string, (now: number) => void> = {
+      " ": (now) => story.toggle(now),
+      ArrowRight: (now) => story.step(now, 1),
+      ArrowLeft: (now) => story.step(now, -1),
+      Escape: (now) => story.stop(now),
+    };
+    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    const catches = (e: KeyboardEvent) => {
+      if (!keys[e.key] || typing(e.target)) return false;
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    };
+    const down = (e: KeyboardEvent) => catches(e) && !e.repeat && keys[e.key](performance.now() / 1000);
+    window.addEventListener("keydown", down, true);
+    window.addEventListener("keyup", catches, true);
+    return () => {
+      window.removeEventListener("keydown", down, true);
+      window.removeEventListener("keyup", catches, true);
+    };
+  }, [storyOn, story]);
+  // A grab of the map pauses the story rather than skipping it.
+  const onGrab = useCallback(() => {
+    const now = performance.now() / 1000;
+    const s = story.state(now);
+    if (!s.playing) return false;
+    if (!s.paused) story.toggle(now);
+    return true;
+  }, [story]);
+  // The story's idea: never saved, placed among the twins; it appears in the egg beat, reaches them in the twins beat
+  // and fades in the turn.
+  const storyScene = useMemo((): StoryScene | null => {
+    if (!beat) return null;
+    if (beat === "sky" || twins.length === 0) return { idea: null, glow: () => 0 };
+    const neighbours = twins.map((t) => t.index);
+    const own = [0, 1, 2].map((k) => neighbours.reduce((sum, i) => sum + positions[3 * i + k], 0) / neighbours.length) as Vec3;
+    const t = () => story.state(performance.now() / 1000).t;
+    const clamp = (x: number) => Math.min(1, Math.max(0, x));
+    return {
+      idea: { neighbours, own, lines: beat === "twins" || beat === "proof" },
+      glow: beat === "turn" ? () => clamp(1 - (t() - BEAT_AT.turn) / 1.5) : () => clamp((t() - BEAT_AT.egg) / 0.6),
+    };
+  }, [beat, twins, positions, story]);
+
   // A wheel over a name zooms the map, as it would a hair to the side.
   const passWheel = useCallback((e: React.WheelEvent) => {
     e.currentTarget.parentElement?.querySelector("canvas")?.dispatchEvent(new WheelEvent("wheel", e.nativeEvent));
@@ -271,6 +398,7 @@ export default function Galaxy() {
       data-dimmed-count={dimmed}
       data-scan={scanStatus.key === activeIdea && activeIdea ? scanStatus.scan : "idle"}
       data-intro={scanStatus.intro}
+      data-story={beat ?? "idle"}
       tabIndex={0}
       aria-label="Star map. Drag to move across it, right-drag or option-drag to turn it, scroll or pinch to zoom where you point; plus, minus and 0 keys zoom in, out and fit."
       onKeyDown={(e) => {
@@ -299,10 +427,19 @@ export default function Galaxy() {
         tagLayer={tagLayer}
         nearby={listOpen && listMode !== "all" ? onNearby : undefined}
         nearbyHold={nearbyHold}
+        story={storyScene}
+        onGrab={onGrab}
       />
       {/* The scan's tags: each neighbour's real similarity and title, placed beside its star by the scene. */}
       <div ref={setTagLayer} className={styles.tags} role="group" aria-label="Nearest projects to your idea" onWheel={passWheel}>
-        {scanRows.slice(0, 8).map((r) => (
+        {/* In the story, the twins: title, then event · year (no similarity: the story's idea was never embedded). */}
+        {storyOn && twins.map((t) => (
+          <button key={t.id} type="button" aria-label={`Select ${t.title}`} onClick={() => setState({ selectedProjectId: t.id })}>
+            <span>{shortTitle(t.title)}</span>
+            <small>{[t.event, t.year].filter((v) => v != null).join(" · ")}</small>
+          </button>
+        ))}
+        {!storyOn && scanRows.slice(0, 8).map((r) => (
           <button key={r.id} type="button" aria-label={`Select ${r.title}${r.similarity === null ? "" : `, similarity ${r.similarity.toFixed(2)}`}`} onClick={() => setState({ selectedProjectId: r.id })}>
             {r.similarity !== null && <b>{r.similarity.toFixed(2)}</b>}
             <span>{shortTitle(r.title)}</span>
@@ -348,7 +485,7 @@ export default function Galaxy() {
         <button type="button" aria-label="Zoom out" onClick={() => view.zoomBy(1 / 1.6)}>
           <svg viewBox="0 0 24 24" aria-hidden><path d="M5 11h14v2H5z" /></svg>
         </button>
-        <button type="button" aria-label="Run the intro" onClick={playIntro} disabled={!survey}>
+        <button type="button" aria-label="Play the story" onClick={playStory}>
           <svg viewBox="0 0 24 24" aria-hidden><path d="M8 5.5v13l10.5-6.5z" /></svg>
         </button>
         <button type="button" aria-label="Show the whole map" onClick={() => view.fit()}>
@@ -357,7 +494,8 @@ export default function Galaxy() {
           </svg>
         </button>
       </div>
-      <Readout
+      {/* The story shows its own counter in the sky; the survey log would say the same thing twice. */}
+      {!storyOn && <Readout
         status={scanStatus}
         // Only once this idea's own scan has started: the frame between a new idea arriving and its scan starting showed
         // the previous scan's "done" over the new neighbours (#458).
@@ -370,7 +508,8 @@ export default function Galaxy() {
         total={stars.length}
         onSelect={(id) => setState({ selectedProjectId: id })}
         onReplay={() => activeIdea && playScan(activeIdea)}
-      />
+      />}
+      <StoryOverlay story={story} total={stars.length} twins={twins} />
       {hover && hovered && (
         <div role="tooltip" className={styles.tooltip} style={{ left: hover.x + 12, top: hover.y + 12 }}>
           <strong>{hovered.title}</strong>

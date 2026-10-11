@@ -283,6 +283,9 @@
 .tags > button:focus-visible { outline: 1px solid var(--idea); outline-offset: 2px; }
 .tags b { color: var(--idea); font-weight: 600; font-variant-numeric: tabular-nums; }
 .tags span { color: var(--paper); }
+.tags small { color: color-mix(in srgb, var(--paper) 60%, transparent); font-size: inherit; } /* the story's twins: event · year */
+/* While the story plays the map carries it: the layout toggle and the corner count step back. */
+.galaxy:not([data-story="idle"]) :is(.layouts, .status) { opacity: 0.15; transition: opacity 400ms; }
 .tags > button[data-side="left"][data-on] { animation-name: tag-in-left; } /* types out from the star's side */
 @keyframes tag-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -20px 0 -20px); } }
 @keyframes tag-in-left { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 -20px 0 -20px); } }
