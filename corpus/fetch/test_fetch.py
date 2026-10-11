@@ -202,7 +202,7 @@ def test_second_429_or_any_403_stops_the_run():
 
 def test_rps_above_the_ceiling_is_refused():
     with pytest.raises(SystemExit):
-        run.main(["fetch", "--rps", "6"])
+        run.main(["fetch", "--rps", "9"])
 
 
 def test_release_still_parses_the_stop_line(tmp_path, monkeypatch, capsys):

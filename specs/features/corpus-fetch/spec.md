@@ -33,8 +33,8 @@ assignee: ""
   URL/ID and content hashes, chooses the newest project text, and retains event memberships, known dates, prizes,
   and source observations. Optional `--summaries` preserves memberships found when a detail fetch was skipped.
   Summary-only records stay separate: no description is invented. One release owner publishes the combined data.
-- At most `--rps` requests per second: default 2, ceiling 5 (raised from 1, then 2, on 2026-10-10, person's call:
-  Devpost publishes no limit and robots.txt sets no crawl delay). `--workers` (1–5, default 1) keeps that many project
+- At most `--rps` requests per second: default 2, ceiling 8 (raised from 1, then 2, then 5, on 2026-10-10, person's call:
+  Devpost publishes no limit and robots.txt sets no crawl delay). `--workers` (1–8, default 1) keeps that many project
   pages in flight, because one page takes ~1 s and a single request in flight caps the rate at ~1/s; pacing and the
   backoff are shared by every worker, and records are written in gallery order. The first 429 waits `Retry-After` (else 60 s, at most 300 s) and drops to 1 per
   second for the rest of the run; a second 429 (one sent after the backoff began) or any 403 stops the run. Stop a source on a repeated page. One retry
