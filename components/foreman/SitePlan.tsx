@@ -69,6 +69,12 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
     const win = (full / CRUISE_MS) * FLASH_MS;
     return new Set(features.filter((f) => f.doneAt && Date.parse(f.doneAt) <= t && Date.parse(f.doneAt) > t - win).map((f) => f.slug));
   }, [features, t, full]);
+  // Every other PR on a feature (fixes, perf, refactors) pulses its node too, so ongoing work shows, not just the first merge.
+  const pulse = useMemo(() => {
+    if (t === null) return undefined;
+    const win = (full / CRUISE_MS) * FLASH_MS;
+    return new Set(replay.filter((r) => r.slug && Date.parse(r.at) <= t && Date.parse(r.at) > t - win).map((r) => r.slug!));
+  }, [replay, t, full]);
 
   const buckets = useMemo(() => {
     const n = Math.max(1, Math.ceil((now - first) / BUCKET));
@@ -174,7 +180,7 @@ export default function SitePlan({ features, replay, repo, start, now, crew, cha
         )}
       </div>
       )}
-      <Graph features={features} repo={repo} shown={shown} flash={flash} />
+      <Graph features={features} repo={repo} shown={shown} flash={flash} pulse={pulse} />
     </>
   );
 }

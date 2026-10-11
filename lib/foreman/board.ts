@@ -68,6 +68,7 @@ export type Feature = {
   gap: string;
   shipped: string; // first line of the done note
   fixes: number;
+  prs: number; // merged PRs scoped to this feature, of any kind: how much work it took
   heat: number; // 0..1, PR activity on this feature in the HEAT_HOURS before the snapshot
   doneAt: string | null; // when its feat PR merged (null if done some other way)
   builtBy: { number: number; url: string } | null; // that merged feat PR, the card's proof (spec § Story mode)
@@ -220,6 +221,7 @@ export function buildBoard(raw: Raw, now: number): Board {
         gap: note ? firstGap(note) : "",
         shipped: note ? firstLine(note) : "",
         fixes: fixes.get(slug) ?? 0,
+        prs: titled.filter((p) => p.mergedAt && p.t?.scope === slug).length,
         heat: (heatRaw.get(slug) ?? 0) / maxHeat,
         doneAt: note ? (merged.at(-1) ?? null) : null,
         builtBy: note && last ? { number: last.number, url: last.url } : null,
