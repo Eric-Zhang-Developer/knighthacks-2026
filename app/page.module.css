@@ -18,11 +18,11 @@
   position: relative;
   height: 100dvh;
   overflow: hidden;
-  /* The chart, edge to edge, centred on the canvas: a faint graticule and nebula behind the stars. */
+  /* The chart, edge to edge, centred on the canvas: a faint nebula behind the stars. No rings: the galaxy turns in
+     3D, and a flat pattern behind it wouldn't turn with it. */
   background:
     radial-gradient(ellipse 45% 50% at var(--cx) var(--cy), rgba(79, 214, 232, 0.1), transparent 70%),
     radial-gradient(ellipse 30% 30% at calc(var(--cx) + 12%) calc(var(--cy) - 14%), rgba(173, 198, 255, 0.08), transparent 70%),
-    repeating-radial-gradient(circle at var(--cx) var(--cy), transparent 0 119px, var(--graticule) 119px 120px),
     var(--bg);
 }
 

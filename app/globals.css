@@ -66,7 +66,6 @@
   --panel-top: var(--md-sys-color-surface-container);
   --border: var(--md-sys-color-outline-variant);
   --rule: rgba(68, 71, 79, 0.6);
-  --graticule: rgba(173, 198, 255, 0.06);
   --text: #e3e2e9; /* on-surface */
   --paper: #f1f0f7;
   --muted: #acafb9;

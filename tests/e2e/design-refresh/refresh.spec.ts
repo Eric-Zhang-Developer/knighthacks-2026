@@ -169,3 +169,13 @@ test("a failed panel is a calm hiccup: readable words, the glyph in the error co
   expect(s.retry).toBe("9999px");
   await state.screenshot({ path: info.outputPath("failed-state.png") });
 });
+
+// The galaxy turns in 3D (galaxy-3d), so a flat ring pattern painted behind it no longer lines up with anything.
+test("no flat rings painted behind the galaxy", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("canvas")).toBeVisible();
+  const ringed = await page.evaluate(() =>
+    [...document.querySelectorAll("*")].some((e) => getComputedStyle(e).backgroundImage.includes("repeating-radial-gradient")),
+  );
+  expect(ringed).toBe(false);
+});
