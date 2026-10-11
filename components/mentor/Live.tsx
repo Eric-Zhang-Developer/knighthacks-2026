@@ -21,6 +21,12 @@ type Props = {
   onNotice: (notice: string) => void;
 };
 
+export function supersedeTools(turn: { current: number }, requests: Set<AbortController>) {
+  turn.current++;
+  for (const controller of requests) controller.abort();
+  requests.clear();
+}
+
 export default function Live(props: Props) { return <ConversationProvider><Session {...props} /></ConversationProvider>; }
 
 function Session(props: Props) {
@@ -58,8 +64,10 @@ function Session(props: Props) {
   const startRef = useRef(start);
   startRef.current = start;
   useEffect(() => {
+    const selected = () => supersedeTools(turn, requests.current);
+    window.addEventListener("idea:selected", selected);
     callbacks.current.onReady(() => { void startRef.current(); });
-    return () => { callbacks.current.onReady(null); release(); };
+    return () => { window.removeEventListener("idea:selected", selected); callbacks.current.onReady(null); release(); };
   }, []);
 
   async function start() {
