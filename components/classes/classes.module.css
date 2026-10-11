@@ -1,8 +1,17 @@
-/* The legend: the universe's three totals as instrument readouts, then one row per category. Rows never overflow the
-   rail: the label truncates, the count stays whole and right-aligned. */
-.legend { padding: var(--space-3); display: grid; gap: var(--space-3); font-size: var(--text-sm); max-height: 46vh; overflow: hidden auto; grid-template-columns: minmax(0, 1fr); }
-/* Columns sized to their words, spread across the row: "Categories" is the widest readout and fits the 224px rail. */
-.universe { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: var(--space-1); margin: 0; padding: 0 var(--space-1); }
+/* The legend: the universe's totals as instrument readouts, then one row per category. Names wrap rather than truncate
+   (#462); the count stays whole and right-aligned. The panel keeps its 46vh cap so the rest of the rail keeps its room;
+   its contents scroll inside, under a --space-5 fade that is the scroll cue. The fade lands on as much bottom padding once
+   scrolled to the end, so the footnote is never left faded or cut. */
+.legend { padding: var(--space-3) var(--space-3) 0; display: grid; font-size: var(--text-sm); grid-template-columns: minmax(0, 1fr); }
+.scroll {
+  display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr);
+  max-height: calc(46vh - var(--space-3) - 2px); overflow-y: auto; overscroll-behavior: contain; padding-bottom: var(--space-5);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-5)), transparent);
+}
+/* Three readouts don't fit side by side in the 224px rail (they touched, and "Categories" ran past the padding): the
+   project total gets its own row, events and categories share the next, each label over its value. */
+.universe { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-3); margin: 0; padding: 0 var(--space-1); }
+.universe > div:first-child { grid-column: 1 / -1; }
 .universe dt {
   white-space: nowrap;
   font-family: var(--font-mono);
@@ -34,7 +43,11 @@
 .entry[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .swatch { width: 8px; height: 8px; border-radius: 50%; justify-self: center; box-shadow: 0 0 6px currentColor; }
 .ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--brass); justify-self: center; }
-.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label { overflow-wrap: anywhere; line-height: 1.25; }
+/* The prize toggle sits outside the list, where the panel's action-button rule (mono caps) would otherwise reach it. */
+:root .legend .entry { font: inherit; letter-spacing: normal; text-transform: none; }
+/* "Not enough text" shares Mixed's grey on the map; in the key it's a hollow ring so the two rows are told apart. */
+.swatch.hollow { background: none !important; border: 1.5px solid currentColor; box-shadow: none; box-sizing: border-box; }
 .count { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 .reset { justify-self: start; min-height: 32px; border: 1px solid var(--border); background: none; color: var(--text); padding: 0 var(--space-3); font: inherit; font-size: var(--text-sm); cursor: pointer; }
 .muted { margin: 0; color: var(--muted); font-size: var(--text-sm); }

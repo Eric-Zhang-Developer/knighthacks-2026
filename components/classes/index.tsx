@@ -38,54 +38,56 @@ export default function Legend(props: { ids: string[]; shown: (i: number) => boo
 
   return (
     <section className={`ui-panel ${styles.legend}`} aria-label="Categories">
-      <dl className={styles.universe} aria-label="Universe">
-        <div>
-          <dt>Projects</dt>
-          <dd>{ids.length.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Events</dt>
-          <dd>{events.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Categories</dt>
-          <dd>{data.domains.filter((d) => byKey.get(d.id)).length}</dd>
-        </div>
-      </dl>
-      <ul className={styles.entries}>
-        {entries.map((e) => (
-          <li key={e.key}>
-            <button
-              type="button"
-              className={styles.entry}
-              aria-pressed={filter.key === e.key}
-              data-key={e.key}
-              onClick={() => setClassFilter({ key: filter.key === e.key ? null : e.key })}
-            >
-              <span className={styles.swatch} style={{ background: rgb(e.colour) }} aria-hidden />
-              <span className={styles.label}>{e.label}</span>
-              <span className={styles.count}>{byKey.get(e.key)!.toLocaleString()}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className={styles.entry}
-        aria-pressed={filter.prize === "win"}
-        onClick={() => setClassFilter({ prize: filter.prize === "win" ? "" : "win" })}
-      >
-        <span className={styles.ring} aria-hidden />
-        <span className={styles.label}>Prize winners</span>
-        <span className={styles.count}>{prizes.toLocaleString()}</span>
-      </button>
-      {filtered && (
-        <button type="button" className={styles.reset} onClick={() => setClassFilter({ key: null, prize: "" })}>
-          Reset
+      <div className={styles.scroll}>
+        <dl className={styles.universe} aria-label="Universe">
+          <div>
+            <dt>Projects</dt>
+            <dd>{ids.length.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Events</dt>
+            <dd>{events.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Categories</dt>
+            <dd>{data.domains.filter((d) => byKey.get(d.id)).length}</dd>
+          </div>
+        </dl>
+        <ul className={styles.entries}>
+          {entries.map((e) => (
+            <li key={e.key}>
+              <button
+                type="button"
+                className={styles.entry}
+                aria-pressed={filter.key === e.key}
+                data-key={e.key}
+                onClick={() => setClassFilter({ key: filter.key === e.key ? null : e.key })}
+              >
+                <span className={e.key === UNCLEAR ? `${styles.swatch} ${styles.hollow}` : styles.swatch} style={{ background: rgb(e.colour), color: rgb(e.colour) }} aria-hidden />
+                <span className={styles.label}>{e.label}</span>
+                <span className={styles.count}>{byKey.get(e.key)!.toLocaleString()}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className={styles.entry}
+          aria-pressed={filter.prize === "win"}
+          onClick={() => setClassFilter({ prize: filter.prize === "win" ? "" : "win" })}
+        >
+          <span className={styles.ring} aria-hidden />
+          <span className={styles.label}>Prize winners</span>
+          <span className={styles.count}>{prizes.toLocaleString()}</span>
         </button>
-      )}
-      {focusToggle}
-      <p className={styles.muted}>Categories are inferred by a model from each project&apos;s own text.</p>
+        {filtered && (
+          <button type="button" className={styles.reset} onClick={() => setClassFilter({ key: null, prize: "" })}>
+            Reset
+          </button>
+        )}
+        {focusToggle}
+        <p className={styles.muted}>Categories are inferred by a model from each project&apos;s own text.</p>
+      </div>
     </section>
   );
 }
