@@ -58,6 +58,7 @@ def test_fetch_dedupes_across_galleries_and_resumes(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(run, "OUT", tmp_path / "projects.jsonl")
     monkeypatch.setattr(run, "REJECTED", tmp_path / "rejected.jsonl")
     monkeypatch.setattr(run, "SUMMARIES", tmp_path / "summaries.jsonl")
+    monkeypatch.setattr(run, "PROGRESS", tmp_path / "progress.jsonl")
     sources = tmp_path / "sources.jsonl"
     sources.write_text("".join(json.dumps({"name": n, "url": f"https://{n}.devpost.com", "dates": None,
                                            "gallery": f"https://{n}.devpost.com/project-gallery"}) + "\n" for n in ("a", "b")))
@@ -94,7 +95,7 @@ def test_card_without_tagline_or_badge_stays_empty():
 
 
 def _sources(tmp_path, monkeypatch, names=("a",)):
-    for name in ("DATA", "OUT", "REJECTED", "SUMMARIES"):
+    for name in ("DATA", "OUT", "REJECTED", "SUMMARIES", "PROGRESS"):
         monkeypatch.setattr(run, name, tmp_path if name == "DATA" else tmp_path / f"{name.lower()}.jsonl")
     src = tmp_path / "sources.jsonl"
     src.write_text("".join(json.dumps({"name": n, "url": f"https://{n}.devpost.com", "dates": "Oct 1 - 2, 2025",
@@ -263,7 +264,7 @@ def test_no_request_after_the_deadline_even_when_pacing_crosses_it():
 
 def test_workers_overlap_project_pages_and_write_in_page_order(tmp_path, monkeypatch):
     for name, path in (("DATA", tmp_path), ("OUT", tmp_path / "projects.jsonl"), ("REJECTED", tmp_path / "rejected.jsonl"),
-                       ("SUMMARIES", tmp_path / "summaries.jsonl")):
+                       ("SUMMARIES", tmp_path / "summaries.jsonl"), ("PROGRESS", tmp_path / "progress.jsonl")):
         monkeypatch.setattr(run, name, path)
     sources = tmp_path / "sources.jsonl"
     sources.write_text(json.dumps({"name": "a", "url": "https://a.devpost.com", "dates": None,
@@ -295,3 +296,66 @@ def test_a_429_already_in_flight_when_the_backoff_began_is_not_a_second_429():
     f = run.Fetcher(sleep=c.sleep, clock=c, opener=opener([429, 200]))
     f.backed_off, f.backoff_started = True, c.t + 1000  # another worker's 429 started the backoff after we sent
     assert f.get(URL) == "ok"
+
+
+def _paged(fetched, pages=2, stop_on=None):
+    """Source a's gallery has `pages` pages of one distinct project each; page `stop_on` raises Stop mid-page."""
+    class Fake:
+        def get(self, url):
+            fetched.append(url)
+            if "/software/" in url:
+                if stop_on and url.endswith(f"p{stop_on}"):
+                    raise run.Stop("403")
+                return PROJECT
+            n = int(url.rsplit("page=", 1)[1])
+            return f'<a href="https://devpost.com/software/p{n}">x</a>' if n <= pages else ""
+    return Fake()
+
+
+def test_a_rerun_skips_gallery_pages_already_handled(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch, names=("a", "b"))
+    fetched = []
+    args = type("A", (), {"limit": 0, "deadline": None})
+    run.fetch(args, _paged(fetched))
+    assert len([u for u in fetched if "/software/" in u]) == 2  # p1, p2 (both sources list the same two)
+    fetched.clear()
+    run.fetch(args, _paged(fetched))
+    assert fetched == []  # both sources complete: not one gallery request
+    fetched.clear()
+    run.fetch(type("A", (), {"limit": 0, "deadline": None, "rewalk": True}), _paged(fetched))
+    assert any("page=1" in u for u in fetched) and not [u for u in fetched if "/software/" in u]
+
+
+def test_a_stop_mid_page_redoes_that_page_and_not_the_ones_before(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+    fetched = []
+    args = type("A", (), {"limit": 0, "deadline": None})
+    run.fetch(args, _paged(fetched, pages=3, stop_on=2))  # page 1 handled; page 2's project page gets a 403
+    fetched.clear()
+    run.fetch(args, _paged(fetched, pages=3))
+    assert fetched[0].endswith("page=2")  # resumes at the page that was cut short, not page 1
+    assert [u for u in fetched if "/software/" in u] == ["https://devpost.com/software/p2", "https://devpost.com/software/p3"]
+
+
+def test_a_limit_cut_page_is_redone(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+
+    class Fake:
+        def get(self, url):
+            return PROJECT if "/software/" in url else GALLERY if url.endswith("page=1") else ""
+
+    run.fetch(type("A", (), {"limit": 1, "deadline": None}), Fake())  # 1 of the page's 24 projects
+    assert not (tmp_path / "progress.jsonl").read_text()
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake())
+    assert len((tmp_path / "out.jsonl").read_text().splitlines()) == 24
+
+
+def test_gallery_only_progress_does_not_let_a_full_run_skip_projects(tmp_path, monkeypatch):
+    _sources(tmp_path, monkeypatch)
+    fetched = []
+    run.fetch(type("A", (), {"limit": 0, "deadline": None, "gallery_only": True}), _paged(fetched))
+    fetched.clear()
+    run.fetch(type("A", (), {"limit": 0, "deadline": None, "gallery_only": True}), _paged(fetched))
+    assert fetched == []  # gallery-only rerun skips it
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), _paged(fetched))
+    assert [u for u in fetched if "/software/" in u] == ["https://devpost.com/software/p1", "https://devpost.com/software/p2"]

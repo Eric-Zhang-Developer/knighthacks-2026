@@ -2,7 +2,7 @@
 
   python corpus/fetch/run.py discover [--pages 20] [--min-registrations 200] [--search TEXT]
                                                          add ended hackathons to sources.jsonl
-  python corpus/fetch/run.py fetch [--limit N] [--deadline ISO] [--rps 2] [--workers 1] [--gallery-only]
+  python corpus/fetch/run.py fetch [--limit N] [--deadline ISO] [--rps 2] [--workers 1] [--gallery-only] [--rewalk]
                                                          walk galleries, fetch project pages
 
 Every gallery page's cards (title, tagline, winner badge) also go to corpus/data/summaries.jsonl, one line per
@@ -10,7 +10,8 @@ project per event, at no extra request. --gallery-only stops there: ~24 projects
 
 Polite by construction: at most --rps requests per second (default 2, at most 5; --workers pages in flight), one retry, and every source is on
 devpost.com. The first 429 waits as asked (Retry-After, else 60 s) and drops to 1 request per second for the rest
-of the run; a second 429, or any 403, stops the run. Rerunning resumes: work already written is skipped.
+of the run; a second 429, or any 403, stops the run. Rerunning resumes: work already written is skipped, and so are
+gallery pages already handled (corpus/data/progress.jsonl), so a restart doesn't re-walk them. --rewalk ignores it.
 """
 
 import argparse
@@ -34,6 +35,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE.parent / "data"
 SOURCES = HERE / "sources.jsonl"  # committed: which galleries we read, and why
 OUT, REJECTED, SUMMARIES = DATA / "projects.jsonl", DATA / "rejected.jsonl", DATA / "summaries.jsonl"
+PROGRESS = DATA / "progress.jsonl"  # one line per gallery page fully handled: where a rerun picks up
 # Standard crawler UA format (like Googlebot's); Devpost's CDN refuses urllib's default bare headers.
 UA = "Mozilla/5.0 (compatible; uncharted-knighthacks-research; +https://github.com/Eric-Zhang-Developer/knighthacks-2026)"
 HEADERS = {"User-Agent": UA, "Accept": "*/*"}
@@ -165,6 +167,14 @@ def fetch(args, f: Fetcher) -> int:
     done = {r["url"] for r in read_jsonl(OUT)} | {r["url"] for r in read_jsonl(REJECTED)}
     have_summary = {(r["url"], r["event"]["url"]) for r in read_jsonl(SUMMARIES)}
     gallery_only = getattr(args, "gallery_only", False)
+    # A gallery-only page wrote its cards but not its projects, so it only lets another gallery-only run skip it.
+    walked: dict[str, int] = {}
+    complete: set[str] = set()
+    for r in [] if getattr(args, "rewalk", False) else read_jsonl(PROGRESS):
+        if gallery_only or r["projects"]:
+            walked[r["source"]] = max(walked.get(r["source"], 0), r["page"])
+            if r.get("complete"):
+                complete.add(r["source"])
     deadline = datetime.fromisoformat(args.deadline) if args.deadline else None
     # The stop line's format is parsed by corpus/release/run.py: summaries are counted apart and printed on their
     # own line so that line stays byte-for-byte what release expects.
@@ -190,15 +200,24 @@ def fetch(args, f: Fetcher) -> int:
 
     pool = ThreadPoolExecutor(max(1, min(getattr(args, "workers", 1), MAX_WORKERS)))
     try:
-        with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ:
+        with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ, PROGRESS.open("a") as prog:
+            def handled(src, page, last=False):
+                rej.flush()  # the page's rejections are on disk before the line that lets a rerun skip it
+                prog.write(json.dumps({"source": src["url"], "page": page, "projects": not gallery_only}
+                                      | ({"complete": True} if last else {})) + "\n")
+                prog.flush()
+
             for src in sources:
+                if src["url"] in complete:
+                    continue
                 prev: list[str] = []
-                for page in range(1, 10_000):
+                for page in range(walked.get(src["url"], 0) + 1, 10_000):  # ended galleries don't reorder
                     if out_of_time() or at_limit():
                         raise StopIteration
                     html = f.get(f"{src['gallery']}?page={page}")
                     urls = parse_gallery(html, src["gallery"])
                     if not urls or urls == prev:  # past the last page, or pagination repeating
+                        handled(src, page - 1, last=True)
                         break
                     prev = urls
                     for card in parse_gallery_cards(html, src["gallery"]):
@@ -210,6 +229,8 @@ def fetch(args, f: Fetcher) -> int:
                             summarized += 1
                     summ.flush()
                     if gallery_only:
+                        if not at_limit():  # a limit can cut a page's cards short; then it's redone next run
+                            handled(src, page)
                         continue
                     todo = []
                     for url in urls:
@@ -219,6 +240,7 @@ def fetch(args, f: Fetcher) -> int:
                             continue
                         seen.add(url)
                         todo.append(url)
+                    whole_page = not args.limit or len(todo) <= args.limit - counts["written"]
                     if args.limit:
                         todo = todo[:max(args.limit - counts["written"], 0)]
                     if todo and (out_of_time() or at_limit()):
@@ -240,6 +262,8 @@ def fetch(args, f: Fetcher) -> int:
                                 continue
                         rejected[reason] = rejected.get(reason, 0) + 1
                         rej.write(json.dumps({"url": url, "reason": reason, "at": now()}) + "\n")
+                    if whole_page:  # every project on it written or rejected; a Stop above skips this
+                        handled(src, page)
     except StopIteration:
         stop_reason = "deadline" if out_of_time() else "limit"
     except Stop as e:
@@ -265,6 +289,7 @@ def main(argv=None) -> int:
     fe.add_argument("--deadline", help="ISO time with offset; stop when it passes")
     fe.add_argument("--rps", type=float, default=DEFAULT_RPS, help=f"requests per second, at most {MAX_RPS:g}")
     fe.add_argument("--workers", type=int, default=1, help=f"project pages in flight at once, at most {MAX_WORKERS}")
+    fe.add_argument("--rewalk", action="store_true", help="ignore progress.jsonl and walk every gallery from page 1")
     fe.add_argument("--gallery-only", action="store_true",
                     help="write gallery cards to summaries.jsonl and skip project pages (--limit counts summaries)")
     args = ap.parse_args(argv)
