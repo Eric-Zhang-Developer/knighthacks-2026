@@ -26,7 +26,7 @@ export async function toolIdentity(sessionId: string, turnId: number, tool: stri
 export async function request(path: string, body?: unknown, signal?: AbortSignal, headers?: Record<string, string>) {
   const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body ?? {}), signal });
   const data = await response.json().catch(() => null);
-  if (response.status === 429 && path === "/api/mentor/session") throw new Error("Call-start limit reached: up to 3 attempts per 10 minutes and 12 per workspace per hour. Failed connections also count. Wait for the window to reset; refreshing will not reset it. You can keep typing.");
+  if (response.status === 429 && path === "/api/mentor/session") throw new Error("Live conversation is temporarily unavailable. Try again later; your draft is kept and typing remains available.");
   if (!response.ok) throw new Error(response.status === 404 || response.status === 503 ? "This service is not available yet. Your conversation is kept; you can continue typing." : typeof data?.error === "string" ? data.error : "That request did not finish. Your conversation is kept.");
   return data;
 }

@@ -7,6 +7,7 @@ import { getState } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
 import { readFields, request, toolIdentity } from "./protocol";
 import { LIVE_CONNECTION, connectionFailureNotice } from "./live-connection";
+import type { MentorNews } from "./NewsCards";
 
 export type LiveControls = { send: (text: string) => void; context: (text: string) => void; end: () => void; toggleMute: () => void };
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   onMessage: (role: "user" | "mentor", text: string) => void;
   onProposal: (fields: Fields) => void;
   onEvidence: (projects: { projectId: string; title: string; url: string; excerpt: string }[]) => void;
+  onNews: (news: MentorNews) => void;
   onState: (state: string) => void;
   onControls: (controls: LiveControls | null) => void;
   onNotice: (notice: string) => void;
@@ -100,6 +102,7 @@ function Session(props: Props) {
           if (response.sessionId !== result.sessionId || response.turnId !== turnId || response.callId !== callId) throw new Error("The tool response did not match this turn.");
           if (response.data?.status === "pending_confirmation") callbacks.current.onProposal(readFields(response.data.fields));
           if (Array.isArray(response.data?.projects)) callbacks.current.onEvidence(response.data.projects);
+          if (name === "search_recent_news" && response.data && typeof response.data === "object") callbacks.current.onNews(response.data as MentorNews);
           return JSON.stringify(response);
         } catch { return JSON.stringify({ error: "Tool unavailable. Do not claim success." }); }
         finally { requests.current.delete(controller); }
@@ -109,6 +112,7 @@ function Session(props: Props) {
         clientTools: {
           get_context: (args) => tool("get_context", args),
           find_projects: (args) => tool("find_projects", args),
+          search_recent_news: (args) => tool("search_recent_news", args),
           propose_idea: (args) => tool("propose_idea", args),
         },
         onConnect: () => {
@@ -116,7 +120,7 @@ function Session(props: Props) {
           if (connectionTimer.current) clearTimeout(connectionTimer.current);
           connectionTimer.current = null;
           callbacks.current.onState(muted.current ? "Muted" : "Listening");
-          conversation.sendContextualUpdate(`Selected saved version: ${getState().activeIdeaVersionId ?? "none"}. Have a natural spoken conversation: ask one useful question at a time, listen and respond without requiring button presses. Avoid automatic praise; examine motivations, failure modes and missing evidence. Help compare two or three candidate ideas when useful. Call propose_idea separately for each distinct candidate with a concise title, audience, problem, workflow and known constraints; leave unknown fields null. Proposals are unsaved cards, never claim they are saved. Never save without an explicit app confirmation.`);
+          conversation.sendContextualUpdate(`Selected saved version: ${getState().activeIdeaVersionId ?? "none"}. Have a natural spoken conversation: ask one strong validation question tied to the user's problem and context, then ask one useful question at a time without repeating what the user already answered. Ask whether sponsor-track fit matters before using sponsor criteria; do not assume it does. Avoid automatic praise; examine motivations, failure modes and missing evidence. Help compare two or three candidate ideas when useful. Call propose_idea separately for each distinct candidate with a concise title, audience, problem, workflow and known constraints; leave unknown fields null. Proposals are unsaved cards, never claim they are saved. Never save or delete without explicit app confirmation.`);
           callbacks.current.onControls({ send: (text) => conversation.sendUserMessage(text), context: (text) => conversation.sendContextualUpdate(text), end, toggleMute: () => {
             const next = !muted.current;
             muted.current = next; conversation.setMuted(next);
