@@ -287,3 +287,5 @@
 @keyframes tag-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -20px 0 -20px); } }
 @keyframes tag-in-left { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 -20px 0 -20px); } }
 @media (prefers-reduced-motion: reduce) { .tags > button[data-on] { animation: none; } }
+/* Under the project list: drops category colour from the stars. */
+.plain { align-self: flex-start; margin: var(--space-1) 0 0; }
