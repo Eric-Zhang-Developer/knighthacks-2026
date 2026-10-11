@@ -47,21 +47,30 @@ const short = (t: string) => (t.length > 28 ? `${t.slice(0, 27).trimEnd()}…` :
 
 test("a saved idea is scanned: arcs land closest first, each tag shows the API's similarity, the ledger adds up", async ({ page }, info) => {
   await withIdea(page);
+  // Software GL draws a few frames a second, so record every phase the galaxy passes through rather than polling.
+  await page.addInitScript(() => {
+    const w = window as unknown as { scanPhases: string[] };
+    w.scanPhases = [];
+    new MutationObserver(() => {
+      const v = document.querySelector("[data-star-count]")?.getAttribute("data-scan");
+      if (v && w.scanPhases.at(-1) !== v) w.scanPhases.push(v);
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-scan"] });
+  });
   await page.goto("/");
-  await expect(galaxy(page)).toHaveAttribute("data-scan", "drain", { timeout: 20_000 });
-  await page.screenshot({ path: info.outputPath("1-drain.png") });
-  await expect(galaxy(page)).toHaveAttribute("data-scan", "reach");
-  // Mid-scan, the links logged so far are the closest ones, in order (a landed tag can be off screen mid-flight).
-  await expect.poll(() => readout(page).getByRole("listitem").count()).toBeGreaterThanOrEqual(2);
-  const early = await readout(page).getByRole("listitem").allInnerTexts();
-  early.forEach((t, k) => expect(t.replace(/\s+/g, " ").trim()).toBe(`LINK ${SIMS[k].toFixed(2)} ${near[k].title}`));
-  await page.screenshot({ path: info.outputPath("2-reach.png") });
-  await expect(galaxy(page)).toHaveAttribute("data-scan", "done", { timeout: 8_000 });
+  await expect(galaxy(page)).toHaveAttribute("data-scan", /drain|reach/, { timeout: 20_000 });
+  await page.screenshot({ path: info.outputPath("1-scanning.png") });
+  await expect(galaxy(page)).toHaveAttribute("data-scan", "done", { timeout: 15_000 });
+  const phases = (await page.evaluate(() => (window as unknown as { scanPhases: string[] }).scanPhases)).filter((p) => p !== "idle");
+  expect(phases[0]).toBe("drain"); // in order: drain, reach (a slow frame may skip the short settle), done
+  expect(phases.indexOf("reach")).toBe(1);
+  expect(phases.at(-1)).toBe("done");
   await expect(tags(page)).toHaveCount(5);
+  // Every tag and log line shows exactly what the API returned, closest first.
   const texts = (await tags(page).allInnerTexts()).map((t) => t.replace(/\s+/g, " "));
   expect(texts).toEqual(near.map((p, k) => `${SIMS[k].toFixed(2)} ${short(p.title)}`));
+  const log = (await readout(page).getByRole("listitem").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
+  expect(log).toEqual(near.map((p, k) => `LINK ${SIMS[k].toFixed(2)} ${p.title}`));
   await expect(readout(page)).toContainText(`${stars.length.toLocaleString("en-US")} projects searched · 5 nearest linked · closest 0.83 · 0 invented`);
-  await expect(readout(page).getByRole("listitem")).toHaveCount(5);
   // Settled into the idea focus: neighbours lit, everything else dimmed.
   await expect(galaxy(page)).toHaveAttribute("data-dimmed-count", String(stars.length - 5));
   await page.screenshot({ path: info.outputPath("3-done.png") });

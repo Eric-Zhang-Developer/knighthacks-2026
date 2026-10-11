@@ -45,18 +45,21 @@ const DEPTH_GLSL = /* glsl */ `
 const SCAN_GLSL = /* glsl */ `
   attribute float aCat; // category slot, -1 none
   attribute float aNbr; // 1 + the neighbour's arc, 0 for any other star
+  uniform float uScanning; // 1 while a scan or the intro plays; at rest only the focus dim applies
   uniform float uDrain;
   uniform float uFade;
   uniform float uWarm[${SLOTS}];
   uniform float uLand[${ARCS}];
   vec3 scanned(vec3 col, float ringed) {
+    float other = 1.0 - step(0.5, aNbr);
+    if (uScanning < 0.5) return col * (1.0 - 0.88 * uFade * other); // no array lookups at rest
     float warm = aCat >= 0.0 ? uWarm[int(aCat + 0.5)] : 0.0;
     float since = aNbr > 0.5 ? uLand[int(aNbr - 0.5)] : -1.0;
     float landed = step(0.0, since);
     float grey = uDrain * (1.0 - max(warm, landed));
     float lum = dot(col, vec3(0.3, 0.59, 0.11));
     vec3 c = mix(col, vec3(lum) * vec3(0.78, 0.84, 1.0) * 0.9, grey) * mix(1.0, 0.38, grey); // quiet, cool, unscanned
-    c *= mix(1.0, 0.12, uFade * (1.0 - step(0.5, aNbr)));
+    c *= mix(1.0, 0.12, uFade * other);
     c *= 1.0 + landed * 3.0 * exp(-max(since, 0.0) * 3.5); // the landing flash
     c *= 1.0 + ringed * uDrain * 6.0 * warm * (1.0 - warm); // prize rings glint as their cloud lights
     return c;
@@ -64,6 +67,7 @@ const SCAN_GLSL = /* glsl */ `
 `;
 
 const scanUniforms = () => ({
+  uScanning: { value: 0 },
   uDrain: { value: 0 },
   uFade: { value: 0 },
   uWarm: { value: new Float32Array(SLOTS) },
@@ -308,6 +312,7 @@ const REST_WARM = new Float32Array(SLOTS);
 const REST_LAND = new Float32Array(ARCS).fill(99);
 // At rest the idea focus is the same dim the scan settles into, so the hand-over from scan to rest is seamless.
 function applyScan(u: Record<string, THREE.IUniform>, f: Frame | null, focused: boolean) {
+  u.uScanning.value = f ? 1 : 0;
   u.uDrain.value = f?.drain ?? 0;
   u.uFade.value = f ? f.fade : focused ? 1 : 0;
   (u.uWarm.value as Float32Array).set(f?.warm ?? REST_WARM);
