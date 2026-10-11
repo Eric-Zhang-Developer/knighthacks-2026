@@ -79,7 +79,8 @@ function providers(text: string, image: AiImage | undefined, schema: z.ZodType, 
   // One call per key: spent credits on the main key raise PROVIDER_ERROR, which falls through to the spare.
   const gemini: Call[] = geminiModel ? geminiKeys().map((geminiKey) => async (attempt: number) => {
     try {
-      const client = new GoogleGenAI({ apiKey: geminiKey, vertexai: false, httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } } });
+      // The SDK also sends this as Google's server deadline; rubric generation can take over 30 seconds.
+      const client = new GoogleGenAI({ apiKey: geminiKey, vertexai: false, httpOptions: { timeout: 90000, retryOptions: { attempts: 1 } } });
       const contents = image ? [{ role: "user", parts: [{ inlineData: { mimeType: image.mediaType, data: base64! } }, { text }] }] : text;
       const response = await client.models.generateContent({ model: geminiModel, contents, config: {
         responseMimeType: "application/json", responseJsonSchema, ...(attempt ? { systemInstruction: RETRY_INSTRUCTION } : {}),

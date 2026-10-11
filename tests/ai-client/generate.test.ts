@@ -19,7 +19,7 @@ test("validated generation uses configured model and JSON schema", async () => {
   call.mockResolvedValue({ text: '{"message":"ok"}' });
   expect(await generate({ prompt: "private prompt", schema })).toEqual({ message: "ok" });
   expect(call.mock.calls[0][0]).toMatchObject({ model: "test-model", config: { responseMimeType: "application/json" } });
-  expect(construct.mock.calls[0][0]).toMatchObject({ httpOptions: { retryOptions: { attempts: 1 } } });
+  expect(construct.mock.calls[0][0]).toMatchObject({ httpOptions: { timeout: 90000, retryOptions: { attempts: 1 } } });
 });
 test.each(["not-json", '{"message":42}'])("retries invalid output exactly once: %s", async (bad) => {
   call.mockResolvedValueOnce({ text: bad }).mockResolvedValueOnce({ text: '{"message":"fixed"}' });
