@@ -399,3 +399,33 @@ def test_an_empty_reply_after_a_full_page_does_not_complete_the_source(tmp_path,
     fetched.clear()
     run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake(empty=False))
     assert fetched == ["https://a.devpost.com/project-gallery?page=2"]  # a full page then empty: one request, not complete
+
+
+def test_projects_dropped_by_the_limit_are_not_seen_by_a_later_gallery(tmp_path, monkeypatch):
+    """Codex: source a's page lists [bad, x]; --limit 1 drops x. Source b lists x: b's page mustn't be recorded."""
+    _sources(tmp_path, monkeypatch, names=("a", "b"))
+    pages = {"a": ["bad", "x"], "b": ["x"]}
+
+    class Fake:
+        def get(self, url):
+            if "/software/" in url:
+                return "<html></html>" if url.endswith("/bad") else PROJECT
+            name, n = url.split("//")[1].split(".")[0], int(url.rsplit("page=", 1)[1])
+            return "".join(f'<a href="https://devpost.com/software/{s}">x</a>' for s in pages[name]) if n == 1 else ""
+
+    run.fetch(type("A", (), {"limit": 1, "deadline": None}), Fake())
+    assert len((tmp_path / "out.jsonl").read_text().splitlines()) == 1  # b fetched x
+    assert [(r["source"], r["page"]) for r in run.read_jsonl(tmp_path / "progress.jsonl")] == [("https://b.devpost.com", 1)]
+
+
+def test_a_repeated_page_right_after_a_restart_is_still_caught(tmp_path, monkeypatch):
+    """Codex: the run stops after page 1; on restart page 2 returns page 1's links. It mustn't be recorded."""
+    _sources(tmp_path, monkeypatch)
+
+    class Fake:
+        def get(self, url):
+            return PROJECT if "/software/" in url else GALLERY
+
+    run.fetch(type("A", (), {"limit": 24, "deadline": None}), Fake())  # page 1 done, then the limit
+    run.fetch(type("A", (), {"limit": 0, "deadline": None}), Fake())  # page 2 repeats page 1
+    assert [r["page"] for r in run.read_jsonl(tmp_path / "progress.jsonl")] == [1]

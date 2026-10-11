@@ -170,10 +170,12 @@ def fetch(args, f: Fetcher) -> int:
     gallery_only = getattr(args, "gallery_only", False)
     # A gallery-only page wrote its cards but not its projects, so it only lets another gallery-only run skip it.
     walked: dict[str, int] = {}
+    last_urls: dict[str, list[str]] = {}  # the last handled page's links, so a repeat is still caught after a restart
     complete: set[str] = set()
     for r in [] if getattr(args, "rewalk", False) else read_jsonl(PROGRESS):
         if gallery_only or r["projects"]:
-            walked[r["source"]] = max(walked.get(r["source"], 0), r["page"])
+            if r["page"] > walked.get(r["source"], 0):
+                walked[r["source"]], last_urls[r["source"]] = r["page"], r.get("urls", [])
             if r.get("complete"):
                 complete.add(r["source"])
     deadline = datetime.fromisoformat(args.deadline) if args.deadline else None
@@ -202,16 +204,16 @@ def fetch(args, f: Fetcher) -> int:
     pool = ThreadPoolExecutor(max(1, min(getattr(args, "workers", 1), MAX_WORKERS)))
     try:
         with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ, PROGRESS.open("a") as prog:
-            def handled(src, page, last=False):
+            def handled(src, page, urls, last=False):
                 rej.flush()  # the page's rejections are on disk before the line that lets a rerun skip it
-                prog.write(json.dumps({"source": src["url"], "page": page, "projects": not gallery_only}
+                prog.write(json.dumps({"source": src["url"], "page": page, "projects": not gallery_only, "urls": urls}
                                       | ({"complete": True} if last else {})) + "\n")
                 prog.flush()
 
             for src in sources:
                 if src["url"] in complete:
                     continue
-                prev: list[str] = []
+                prev: list[str] = last_urls.get(src["url"], [])
                 cut_short = False  # once a page is left unfinished, later pages aren't recorded: progress stays contiguous
                 for page in range(walked.get(src["url"], 0) + 1, 10_000):  # ended galleries don't reorder
                     if out_of_time() or at_limit():
@@ -222,7 +224,7 @@ def fetch(args, f: Fetcher) -> int:
                         # Complete only after a short page: an empty reply after a full one may be transient, so a
                         # rerun asks again (one request) rather than never again.
                         if prev and len(prev) < GALLERY_PAGE and not cut_short:
-                            handled(src, page - 1, last=True)
+                            handled(src, page - 1, prev, last=True)
                         break
                     prev = urls
                     for card in parse_gallery_cards(html, src["gallery"]):
@@ -235,7 +237,7 @@ def fetch(args, f: Fetcher) -> int:
                     summ.flush()
                     if gallery_only:
                         if not at_limit() and not cut_short:  # a limit can cut a page's cards short; then it's redone
-                            handled(src, page)
+                            handled(src, page, urls)
                         continue
                     todo = []
                     for url in urls:
@@ -247,7 +249,9 @@ def fetch(args, f: Fetcher) -> int:
                         todo.append(url)
                     whole_page = not args.limit or len(todo) <= args.limit - counts["written"]
                     if args.limit:
-                        todo = todo[:max(args.limit - counts["written"], 0)]
+                        keep = max(args.limit - counts["written"], 0)
+                        seen.difference_update(todo[keep:])  # not processed, so another gallery listing them must not skip them
+                        todo = todo[:keep]
                     if todo and (out_of_time() or at_limit()):
                         raise StopIteration
                     counts["discovered"] += len(todo)
@@ -269,7 +273,7 @@ def fetch(args, f: Fetcher) -> int:
                         rej.write(json.dumps({"url": url, "reason": reason, "at": now()}) + "\n")
                     cut_short = cut_short or not whole_page
                     if not cut_short:  # every project on it written or rejected; a Stop above skips this
-                        handled(src, page)
+                        handled(src, page, urls)
     except StopIteration:
         stop_reason = "deadline" if out_of_time() else "limit"
     except Stop as e:
