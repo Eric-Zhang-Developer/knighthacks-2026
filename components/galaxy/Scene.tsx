@@ -50,10 +50,11 @@ const starUniforms = () => ({
 });
 
 // The stars. Over the whole map (uSharp 0): a soft sprite per star with a white-hot core, a halo in its category
-// colour, per-star brightness, a slow twinkle and depth cueing. Zoomed in (uSharp 1): a solid disc a few pixels wide
-// with a lighter centre, every star equally bright, so a dense core reads as separate projects instead of one smear;
-// stars spread apart as the camera closes in rather than swelling. A prize winner's disc sits inside a thin ring of a
-// fixed width, so the mark is a shape, not colour alone.
+// colour, per-star brightness, a slow twinkle and depth cueing. Zoomed in (uSharp 1): still a star, just a tight
+// one: a white-hot pinpoint, a short glow in its hue that falls off within a few pixels (so a dense core reads as
+// separate projects, not one smear), its own brightness, and four faint spikes on the brightest; stars spread apart
+// as the camera closes in rather than swelling. A prize winner sits inside a thin ring of a fixed width, so the mark
+// is a shape, not colour alone.
 const starMaterial = () =>
   new THREE.ShaderMaterial({
     ...ADD,
@@ -71,7 +72,8 @@ const starMaterial = () =>
       varying float vAlpha;
       varying float vRing;
       varying float vHalf; // half the sprite, device px
-      varying float vDisc; // the sharp disc's radius, device px
+      varying float vDisc; // the sharp core's radius, device px
+      varying float vSpark; // spikes: 0 none, 1 full (prize winners, marked and the brightest stars)
       void main() {
         vec4 mv = modelViewMatrix * vec4(morphed(), 1.0);
         float depth = -mv.z;
@@ -82,13 +84,15 @@ const starMaterial = () =>
         float tw = 1.0 - uTwinkle * 0.5 * smoothstep(0.75, 1.0, sin(uTime * (0.5 + 1.8 * fract(seed * 7.31)) + seed * 60.0));
         float even = max(marked, ring); // marked stars and prize winners are always at full brightness
         float soft = mix(bright * tw, 1.0, even) * mix(1.3, 0.35, far);
-        vAlpha = mix(soft, mix(0.9, 1.0, even) * mix(1.0, 0.45, far), uSharp);
+        float lit = mix(0.45 + 0.55 * pow(s2, 1.6), 1.0, even) * mix(1.0, tw, 0.5); // a magnitude, kept up close
+        vAlpha = mix(soft, lit * mix(1.0, 0.45, far), uSharp);
+        vSpark = max(even, smoothstep(0.82, 0.97, s2));
         vColor = starColor;
         vRing = ring;
         float jitter = mix(0.7 + 0.7 * s2, 1.0, marked);
         float softPx = min(size * jitter * 2.6 * uPixelRatio * atten(depth) * mix(1.15, 0.75, far), 90.0 * uPixelRatio);
-        vDisc = (size * 0.55 + 1.6) * uPixelRatio * mix(1.0, 0.75, far);
-        float sharpPx = 2.0 * (vDisc + (ring > 0.5 ? 4.0 : 1.5) * uPixelRatio);
+        vDisc = (0.9 + size * 0.18 + 0.6 * s2) * uPixelRatio * mix(1.0, 0.75, far);
+        float sharpPx = 2.0 * (vDisc * (4.0 + 2.0 * vSpark) + (ring > 0.5 ? 3.0 : 0.0) * uPixelRatio);
         gl_PointSize = mix(softPx, sharpPx, uSharp);
         vHalf = gl_PointSize * 0.5;
         gl_Position = projectionMatrix * mv;
@@ -101,6 +105,7 @@ const starMaterial = () =>
       varying float vRing;
       varying float vHalf;
       varying float vDisc;
+      varying float vSpark;
       void main() {
         float d = length(gl_PointCoord - 0.5) * 2.0;
         if (d > 1.0) discard;
@@ -109,12 +114,16 @@ const starMaterial = () =>
         float halo = exp(-d * d * 6.0) * 0.22;
         float band = vRing * (smoothstep(0.56, 0.62, d) - smoothstep(0.68, 0.74, d)) * 0.4;
         vec3 soft = vColor * (core + halo + band) + vec3(core * 0.6 * lum);
-        // Sharp: measured in device pixels, so the edge and the ring stay one pixel crisp at any size.
-        float px = d * vHalf;
-        float disc = 1.0 - smoothstep(vDisc - 0.8, vDisc + 0.8, px);
-        float centre = exp(-px * px / (vDisc * vDisc) * 2.5);
-        float line = vRing * (1.0 - smoothstep(0.5 * uPixelRatio, 1.1 * uPixelRatio, abs(px - vDisc - 2.6 * uPixelRatio)));
-        vec3 sharp = vColor * (disc * 0.85 + line * 0.9) + vec3(disc * centre * 0.35 * lum);
+        // Sharp: measured in device pixels, so the core, spikes and ring stay crisp at any size.
+        vec2 q = (gl_PointCoord - 0.5) * 2.0 * vHalf;
+        float px = length(q);
+        float r = vDisc;
+        float point = exp(-px * px / (r * r * 0.5));
+        float glow = exp(-px / (r * 0.85)) * 0.6;
+        float thin = 0.45 * uPixelRatio;
+        float spike = vSpark * (1.0 - d) * 0.5 * (exp(-abs(q.x) / thin - abs(q.y) / (r * 2.2)) + exp(-abs(q.y) / thin - abs(q.x) / (r * 2.2)));
+        float line = vRing * (1.0 - smoothstep(0.5 * uPixelRatio, 1.1 * uPixelRatio, abs(px - r * 2.6 - 1.5 * uPixelRatio)));
+        vec3 sharp = vColor * (glow + spike + line * 0.9) + mix(vColor, vec3(1.0), 0.65) * point * 1.4;
         gl_FragColor = vec4(mix(soft, sharp, uSharp) * vAlpha, 0.0);
       }`,
   });
@@ -801,7 +810,9 @@ function Names(props: { ids: string[]; titles: string[]; visible: Uint8Array; la
         el.setAttribute("aria-label", `Select ${titles[i]}`);
       }
       el.setAttribute("data-on", "");
-      el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
+      // `translate`, not `transform`: a pressed button's transform is reset under reduced motion (globals.css), which
+      // jumped the name off the pointer mid-click and let the map pick the star underneath instead.
+      el.style.translate = `${p.x.toFixed(1)}px ${p.y.toFixed(1)}px`;
     }
   });
   return null;

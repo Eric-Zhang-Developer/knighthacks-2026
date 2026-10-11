@@ -37,10 +37,11 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    faint glow per cloud; a far starfield and dust for depth; a single full-screen pass for glow and tone mapping.
    Labels are HTML from 3D ("Health & wellbeing · 774"); far-side labels fade and overlapping labels yield to the
    nearer one. Zooming in sharpens the stars (person, 2026-10-11: "the fuzziness when you're up close… kind of
-   sucks"): from 1.3x to 3.5x the whole-map view, each star turns into a solid disc a few pixels wide with a lighter
-   centre, every star equally bright and still, and the cloud glow, bloom and white bleach fade out, so a dense core
+   sucks"): from 1.3x to 3.5x the whole-map view, each star tightens into a white-hot pinpoint with a short glow in its hue
+   (person, 2026-10-11, of flat discs: "these dont look like stars"), keeping its own brightness, with four faint
+   spikes on the brightest, and the cloud glow, bloom and white bleach fade out, so a dense core
    reads as separate projects; stars spread apart as the camera closes in rather than swelling. A prize winner is a
-   disc inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
+   star inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
    named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a cloud's
    name, each a button that selects its project; none while a project is selected or the stars are flying.
 5. Idea focus: dotted arcs from the active idea (placed among its neighbours in the current layout) to each

@@ -124,8 +124,7 @@
 .region small { font: 400 var(--text-xs)/1 var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
 
 /* Zoomed in, the nearest projects' names: small and dim beside their star, so they label without crowding it. */
-/* clip, not hidden: a hidden overflow can still be scrolled (focusing a name would shift every name off its star). */
-.names { position: absolute; inset: 0; pointer-events: none; overflow: clip; }
+.names { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .names > button {
   position: absolute;
   left: 0;
@@ -143,7 +142,7 @@
   text-shadow: 0 0 6px var(--bg), 0 0 2px var(--bg);
   pointer-events: auto;
   cursor: pointer;
-  will-change: transform;
+  will-change: translate;
   opacity: 0;
   transition: opacity 200ms, visibility 0s linear 200ms; /* fade out, then stop taking clicks */
 }
