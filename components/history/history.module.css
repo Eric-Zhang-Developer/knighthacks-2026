@@ -16,7 +16,7 @@
   font: inherit;
   cursor: pointer;
 }
-.history select { padding-right: 28px; }
+.history select { padding-right: calc(var(--space-5) + var(--space-1)); }
 .history button:disabled { color: var(--muted); cursor: default; }
 .history select option { background: var(--panel); }
 .history input { flex: 1; min-width: 80px; accent-color: var(--accent); }

@@ -22,10 +22,11 @@
   --accent: #4fd6e8;
   --on-accent: #00262d;
 
-  /* Type: five sizes. 11 markings, 13 secondary, 15 body, 22 panel headings (serif), 30 display (serif). */
+  /* Type: six sizes. 11 markings, 13 secondary, 15 body; serif 18 section titles, 22 panel headings, 30 display. */
   --text-xs: 11px;
   --text-sm: 13px;
   --text-md: 15px;
+  --title: 18px;
   --heading: 22px;
   --display: 30px;
   --tracking-marks: 0.14em;
@@ -193,7 +194,7 @@ input:focus-visible,
 select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 select {
   appearance: none;
-  padding-right: 28px;
+  padding-right: calc(var(--space-5) + var(--space-1));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4acbc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
