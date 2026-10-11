@@ -931,10 +931,12 @@ function ScanDriver({ director, live, idea, morph, view }: { director: Director;
   useFrame((_, dt) => {
     live.frame = director.tick(performance.now() / 1000);
     live.intro = director.status.intro === "play";
-    if (director.needsFraming && idea && idea.neighbours.length > 0 && morph.current.length) {
+    if (director.needsFraming && idea && idea.neighbours.length > 0 && morph.to.length) {
       director.needsFraming = false;
-      const at = morph.current;
-      const pts = [ideaAt(idea, morph), ...idea.neighbours.map((i) => [at[3 * i], at[3 * i + 1], at[3 * i + 2]])];
+      // Frame where the stars are going, not where they are: a scan that starts during the first paint's burst (#456)
+      // or a layout flight otherwise frames the stars mid-flight and ends up looking at empty space (#458).
+      const at = morph.to;
+      const pts = [placeIdea(idea.neighbours, at, idea.own), ...idea.neighbours.map((i) => [at[3 * i], at[3 * i + 1], at[3 * i + 2]])];
       const c = [0, 1, 2].map((k) => pts.reduce((sum, p) => sum + p[k], 0) / pts.length) as Vec3;
       view.frameGroup(c, Math.max(...pts.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]))));
     }
