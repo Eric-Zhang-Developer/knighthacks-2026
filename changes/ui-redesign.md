@@ -14,5 +14,6 @@ verify: `node scripts/verify.mjs ui-redesign /Users/ericzhang/code/hackathons/kn
 ## Gaps
 Layout (bottom-centre entry, contextual side panel, filters, header) is live-mentor-ui's (#369) and untouched, so the
 header filters still truncate. On a phone the rail gives the project list ~5px (page.module.css, reported on #369).
-Not yet reviewed by the person (Validation 4). e2e that fail here also fail on main a1526ef: branches-ui:9,
-design-refresh:114 (and :63 intermittently).
+Not yet reviewed by the person (Validation 4). The e2e failures noted here earlier were my setup: branches-ui:9
+passes with its own fixtures (I had given it idea-create-ui's), design-refresh:63 was machine load, and
+design-refresh:114 was the test's timing, fixed in #395.
