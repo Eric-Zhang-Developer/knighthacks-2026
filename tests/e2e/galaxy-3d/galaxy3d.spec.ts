@@ -106,6 +106,28 @@ test("dragging turns the camera, not the stars", async ({ page }) => {
   expect(maxDiff(await target(page), before)).toBe(0);
 });
 
+test("a right-drag turns the camera; a left-drag doesn't", async ({ page }) => {
+  test.slow(); // two drags, each waiting for software GL to settle
+  await page.emulateMedia({ reducedMotion: "reduce" }); // no drift, so only the drag moves the camera
+  await page.goto("/?layout=nebula");
+  const box = await ready(page);
+  await settled(page);
+  const angles = () => canvas(page).evaluate((c) => { const v = (c as Canvas & { starView: { yaw: number; pitch: number } }).starView; return [v.yaw, v.pitch]; });
+  const drag = async (button: "left" | "right") => {
+    await page.mouse.move(box.x + 60, box.y + box.height - 60);
+    await page.mouse.down({ button });
+    await page.mouse.move(box.x + 260, box.y + box.height - 60, { steps: 12 });
+    await page.mouse.up({ button });
+    await settled(page);
+  };
+  const start = await angles();
+  await drag("left");
+  expect(await angles()).toEqual(start);
+  await drag("right");
+  const [yaw] = await angles();
+  expect(Math.abs(yaw - start[0])).toBeGreaterThan(0.2); // 200px at 0.002 rad/px
+});
+
 test("picking a project centres it; fit shows the galaxy in both layouts", async ({ page }, info) => {
   // Software GL draws a few frames a second, so each click waits seconds for a stable frame; the 1.5 s bound below is
   // still checked, this only stops the whole test running out of its 30 s.

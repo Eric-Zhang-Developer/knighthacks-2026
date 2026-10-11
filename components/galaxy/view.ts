@@ -2,7 +2,7 @@
 // so the scene, the map buttons and the keys all drive the same object.
 //
 // Motion, like a map: a drag moves across the galaxy with what's under the pointer staying under it, and a release
-// glides on; the wheel zooms toward the pointer; turning is a modifier-drag. Zoom-to, fit and fly-to are critically
+// glides on; the wheel zooms toward the pointer; turning is a right-drag or a modifier-drag. Zoom-to, fit and fly-to are critically
 // damped springs from wherever the camera is now, so any new input interrupts them. Left alone for a while, the camera
 // drifts round whatever it's looking at. With reduced motion every change is a jump and nothing drifts or glides.
 
@@ -26,6 +26,13 @@ const SHARP_AT = 3.5;
 export function sharpness(zoomOverFit: number) {
   const t = Math.min(1, Math.max(0, Math.log(zoomOverFit / SHARP_FROM) / Math.log(SHARP_AT / SHARP_FROM)));
   return t * t * (3 - 2 * t);
+}
+
+// Whether a drag starting with this pointer-down turns the camera rather than moving across the map: a right-drag
+// (like map apps) or a modifier-drag; and while a project is held, a plain drag circles it too.
+export const RIGHT_BUTTON = 2;
+export function dragTurns(e: { button: number; altKey: boolean; ctrlKey: boolean; metaKey: boolean }, held: boolean) {
+  return e.button === RIGHT_BUTTON || e.altKey || e.ctrlKey || e.metaKey || (held && e.button === 0);
 }
 
 export class Orbit {

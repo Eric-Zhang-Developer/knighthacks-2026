@@ -218,7 +218,7 @@ export default function Galaxy() {
       data-scan={scanStatus.key === activeIdea && activeIdea ? scanStatus.scan : "idle"}
       data-intro={scanStatus.intro}
       tabIndex={0}
-      aria-label="Star map. Drag to move across it, option-drag to turn it, scroll or pinch to zoom where you point; plus, minus and 0 keys zoom in, out and fit."
+      aria-label="Star map. Drag to move across it, right-drag or option-drag to turn it, scroll or pinch to zoom where you point; plus, minus and 0 keys zoom in, out and fit."
       onKeyDown={(e) => {
         const act = ({ "+": () => view.zoomBy(1.6), "=": () => view.zoomBy(1.6), "-": () => view.zoomBy(1 / 1.6), "0": () => view.fit() } as Record<string, () => void>)[e.key];
         if (!act || e.target !== e.currentTarget) return;
