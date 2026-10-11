@@ -56,10 +56,18 @@ export default function Galaxy() {
   }, []);
   const switchLayout = useCallback((to: LayoutName) => {
     setLayout(to);
-    const url = new URL(location.href);
-    url.searchParams.set("layout", to);
-    window.history.replaceState(window.history.state, "", url);
+    setParam("layout", to);
   }, []);
+  // Plain stars (?colors=off): category colour off, so "By meaning" reads as one field; the idea's neighbours keep
+  // theirs, so a scan lights its matches in colour against it.
+  const [plain, setPlain] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("colors") === "off") setPlain(true);
+  }, []);
+  const togglePlain = () => {
+    setParam("colors", plain ? null : "off");
+    setPlain(!plain);
+  };
   // The page's discovery rail (experience-shell), if there is one; without it the controls float over the map.
   const [rail, setRail] = useState<HTMLElement | null>(null);
   useEffect(() => setRail(document.getElementById("discovery-rail")), []);
@@ -94,7 +102,12 @@ export default function Galaxy() {
   // The map, list and legend all use this one mask, so their counts agree under any filter.
   const visible = useMemo(() => Uint8Array.from(revealed, (v, i) => (v && matches(data, ids[i], filter) ? 1 : 0)), [revealed, data, ids, filter]);
   const events = useMemo(() => new Set(stars.flatMap((s) => (s.event ? [s.event] : []))).size, [stars]);
-  const colourAt = useMemo(() => (data ? (i: number) => colourOf(data, data.projects[ids[i]]) : undefined), [data, ids]);
+  const kept = plain ? neighbors : null;
+  const colourAt = useMemo(() => {
+    if (!data) return undefined;
+    const keep = plain ? new Set(kept ?? []) : null;
+    return (i: number) => (keep && !keep.has(ids[i]) ? null : colourOf(data, data.projects[ids[i]]));
+  }, [data, ids, plain, kept]);
   const ringAt = useMemo(() => (data ? (i: number) => wins(data.projects[ids[i]], filter.event).length > 0 : undefined), [data, ids, filter.event]);
   // Idea focus: the active idea's stored neighbours keep their colour, every other star dims, and one line runs to each.
   // The scene's star shader draws the dimming, so the scan can settle into it; it starts once the scan has this idea.
@@ -117,14 +130,15 @@ export default function Galaxy() {
   }, [ideaStars, activeIdea, neighbors, focus, ids]);
   const regions = useMemo(
     () =>
-      data
+      // By meaning, a category spans the whole map, so its centre is the map's middle: no labels there.
+      data && layout === "clouds"
         ? compactRegions(data, ids, positions, (i) => visible[i] === 1).map((g) => ({
             ...g,
             slot: slots.indexOf(g.key),
             colour: colourOf(data, { domain: g.key, status: "clear", prizes: [] }) ?? [1, 1, 1],
           }))
         : [],
-    [data, ids, positions, visible, slots],
+    [data, ids, positions, visible, slots, layout],
   );
   const ringCount = useMemo(() => (ringAt ? ids.filter((_, i) => visible[i] && ringAt(i)).length : 0), [ringAt, ids, visible]);
   const shown = useMemo(() => visible.reduce((n, v) => n + v, 0), [visible]);
@@ -247,6 +261,7 @@ export default function Galaxy() {
       data-ring-count={ringCount}
       data-line-count={idea?.lines ? idea.neighbours.length : 0}
       data-layout={layout}
+      data-plain={plain}
       data-dimmed-count={dimmed}
       data-scan={scanStatus.key === activeIdea && activeIdea ? scanStatus.scan : "idle"}
       data-intro={scanStatus.intro}
@@ -297,7 +312,7 @@ export default function Galaxy() {
       {/* A cloud's name flies the camera to that cloud. */}
       <div ref={setLabelLayer} className={styles.regions} onWheel={passWheel}>
         {regions.map((g) => (
-          <span key={g.key} className={styles.region} style={{ "--hue": `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
+          <span key={g.key} className={styles.region} style={{ "--hue": plain ? "var(--paper)" : `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
             <button type="button" aria-label={`Go to ${g.label}, ${g.count.toLocaleString()} projects`} onClick={() => view.flyToCloud([g.at[0], g.at[1], g.at[2]])}>
               {g.label}
               <small> · {g.count.toLocaleString()}</small>
@@ -373,6 +388,9 @@ export default function Galaxy() {
             onOpen={setListOpen}
             onHold={onListHold}
           />
+          <button type="button" className={`ui-chip ${styles.plain}`} aria-pressed={plain} onClick={togglePlain}>
+            Hide category colors
+          </button>
         </div>,
       )}
     </div>
@@ -518,5 +536,12 @@ async function scanOf(versionId: string): Promise<ScanLoad> {
     return { state: "unavailable" };
   }
 }
+
+const setParam = (key: string, value: string | null) => {
+  const url = new URL(location.href);
+  if (value === null) url.searchParams.delete(key);
+  else url.searchParams.set(key, value);
+  window.history.replaceState(window.history.state, "", url);
+};
 
 const portal = (target: HTMLElement | null, node: React.ReactNode) => (target ? createPortal(node, target) : node);

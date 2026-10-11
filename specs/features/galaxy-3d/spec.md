@@ -52,6 +52,11 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 6. Picking, the reveal mask, legend filters, prize rings and history work in both layouts and mid-flight.
 7. Remove the 2D `Viewport`, `StarGrid` and `boundsOf` code and `tests/galaxy-2d/`, `tests/e2e/galaxy-2d/`; their
    checks move to `tests/galaxy-3d/` and `tests/e2e/galaxy-3d/`.
+8. Plain stars (person, 2026-10-11, on "By meaning": "how the fuck do I read this?… What if we just added a filter
+   to drop color… a toggle", placed "bottom left under projects"). A "Hide category colors" toggle under the project
+   list gives every star the neutral blue-white; the active idea's neighbours keep their category colour, so a scan
+   lights its matches against a plain field. Kept in the URL as `?colors=off`. "By meaning" shows no category labels:
+   a category spans the whole map there, so its centre is the middle and the labels piled up on each other.
 
 ## Requirements
 - No new dependency: the camera, morph and glow pass are our own code on three.js and react-three-fiber.
@@ -88,6 +93,10 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    (`tests/galaxy-3d/sharp.test.ts`): sharpness is 0 at the fit view, 1 at the closest zoom, never falling as you zoom
    in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name,
    and names none with another star drawn within 16px (a dense field has none; a lone star beside it is named).
+8. `plain.spec.ts`: "By meaning" has no "Go to <category>" labels ("By category" has them). Of the lit pixels in a
+   320px box at the map's centre, more than 30% have a hue outside the plain stars' blue-white before "Hide category
+   colors" and under 5% after; the toggle is pressed, `?colors=off` is in the URL and survives a reload, and pressing
+   it again removes both.
 
 ## Defaults
 "By category" is the default because it reads at a glance; "By meaning" is one tap away. Undo: set the default
