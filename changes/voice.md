@@ -1,7 +1,7 @@
 ## What shipped
-Push-to-talk commits released speech to `ideaDraft`; mic denial/provider failure leaves it unchanged. Token minting now requires a same-origin workspace session and an atomic Postgres reservation: 10 attempts per member per 60 seconds, then 429; database failure returns 503 without minting.
+Push-to-talk commits released speech to `ideaDraft`; mic denial/provider failure leaves it unchanged. Token minting requires a same-origin workspace session. Per the explicit demo override, repeated authorized requests no longer encounter an app-imposed issuance quota; provider and platform controls still apply.
 ## Where it lives
-`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/`, `db/schema/voice.ts`, `tests/voice/`, `tests/e2e/voice/`; reviewed additive SQL and test-database concurrency evidence: `specs/decisions/voice-schema.md`.
+`components/voice/`, `app/api/voice/token/route.ts`, `lib/voice/`, `tests/voice/`, `tests/e2e/voice/`. The existing `voice_token_limits` table is retained but unused; removing it would be a separate destructive schema operation.
 ## How to check it
 verify: `node scripts/verify.mjs voice "C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\voice\20261010T182347Z"` pass at 23aafd0 (uncommitted changes: exact #206 tracing-root configuration, restored afterward); 4 passed including live ElevenLabs token/no-key-leak and anonymous 401, 1 conditional skip. Dedicated-Neon concurrency/expiry/isolation/cascade regression passed; 255 regular unit tests passed.
 ## Gaps
