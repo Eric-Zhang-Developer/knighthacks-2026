@@ -18,9 +18,9 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 ## Plan
 1. Perspective camera that moves like a map (person, 2026-10-10: "you can only zoom in on one singular point"): a
    drag moves across the galaxy with what's under the pointer staying under it, and a release glides on and slows;
-   the wheel and pinch zoom toward the pointer, with limits; option-, ctrl- or cmd-drag turns it (about a third of a
-   circle per 300px). While a project is selected the camera holds on it: a drag circles it, a right-drag does
-   nothing, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
+   the wheel and pinch zoom toward the pointer, with limits; a right-drag, or an option-, ctrl- or cmd-drag, turns it
+   (about a third of a circle per 300px; person, 2026-10-11: "I can't rotate with the left or right mouse button").
+   While a project is selected the camera holds on it: any drag circles it, zoom stays on it. After 20 s untouched it drifts round whatever it's looking at (about once per 105 s);
    any input stops the drift. Zoom in, zoom out, fit and "fly to a project" are critically damped springs from the
    current view (apple-design). The map buttons and the `+`, `-`, `0` keys keep working. A cloud's label is a
    button that flies to that cloud.

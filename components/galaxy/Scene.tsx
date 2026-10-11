@@ -8,7 +8,7 @@ import { useAppState } from "@/lib/store";
 import { placeIdea } from "./layouts";
 import { easeInOut, Morph, MORPH_GLSL } from "./morph";
 import { nearestNames, pickNearest, shortTitle, STYLE, styleFor } from "./stars";
-import { FOV, type Orbit, type Vec3 } from "./view";
+import { dragTurns, FOV, type Orbit, type Vec3 } from "./view";
 
 const PICK_RADIUS = 10; // CSS px
 const WHEEL_ZOOM = 0.0015; // per wheel pixel: one notch (~100px) is about 16%
@@ -537,7 +537,7 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
     const pointers = new Map<number, { x: number; y: number }>();
     let down = { x: 0, y: 0 };
     let moved = false;
-    let turning = false; // a modifier-drag turns the camera; a plain drag moves across the map
+    let turning = false; // a right- or modifier-drag turns the camera; a plain drag moves across the map
     let grab = 0; // the depth of what the drag picked up
     // The depth of the star under a screen point, or the target's when there's none.
     const depthAt = (p: { x: number; y: number }) => {
@@ -553,8 +553,8 @@ function Rig(props: { view: Orbit; morph: Morph; visible: Uint8Array; onHover: (
       if (pointers.size === 1) {
         down = p;
         moved = false;
-        // Selected, the camera holds on the project: a plain drag circles it, and a right-drag does nothing.
-        turning = e.altKey || e.ctrlKey || e.metaKey || (view.held && e.button === 0);
+        // Selected, the camera holds on the project: any drag circles it.
+        turning = dragTurns(e, view.held);
         grab = depthAt(p);
         trail = [{ ...p, t: e.timeStamp }];
       }
