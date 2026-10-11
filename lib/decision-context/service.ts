@@ -85,7 +85,7 @@ export async function recommend(workspaceId: string, versionId: string, profileR
   }
   const features = assess(output.features.map((c) => ({
     id: randomUUID(), title: ground(c.title, sources), demoStep: ground(c.demoStep, sources), reason: ground(c.reason, sources),
-    requirements: c.requirements,
+    requirements: { skills: c.requirements.skills.map((x) => x.trim()), hardware: c.requirements.hardware.map((x) => x.trim()), hours: c.requirements.hours },
   })), profile);
   // Recheck ownership on insert: a version deleted during generation must not get a recommendation.
   const r = await db().execute(sql`insert into "scope_recommendations" as r ("id", "version_id", "profile_revision", "profile", "features")

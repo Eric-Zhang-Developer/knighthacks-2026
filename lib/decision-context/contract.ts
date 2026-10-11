@@ -27,19 +27,35 @@ export const selectSchema = z.object({
   choices: z.array(z.object({ featureId: z.uuid(), scope: z.enum(SCOPES) }).strict()).min(1).max(8),
 }).strict();
 
-const provenance = { label: z.enum(["supported", "inferred", "unverified"]), sourceIds: z.array(z.string().min(1).max(128)).max(6) };
-const claim = (max: number) => z.object({ text: z.string().trim().min(1).max(max), ...provenance }).strict();
 export type Claim = { text: string; label: "supported" | "inferred" | "unverified"; sourceIds: string[] };
-const named = z.array(z.string().trim().min(1).max(80)).max(6);
 // What the model proposes: candidates and what each needs. It never sets a scope; assess() does.
+// The provider gets only the plain shape: Gemini rejects this schema outright once its length and count limits are
+// written into the JSON Schema (measured 2026-10-11: PROVIDER_ERROR with them, OK without). The limits live in one
+// refinement instead, which generate() still enforces, retrying once, before anything is stored.
+const claimShape = z.object({ text: z.string(), label: z.enum(["supported", "inferred", "unverified"]), sourceIds: z.array(z.string()) }).strict();
+const LIMITS = { title: 120, demoStep: 400, reason: 400 } as const;
+const fits = (s: string, max: number) => s.trim().length >= 1 && s.trim().length <= max;
 export const generatedSchema = z.object({
   features: z.array(z.object({
-    title: claim(120),
-    demoStep: claim(400),
-    reason: claim(400),
-    requirements: z.object({ skills: named, hardware: named, hours: z.number().min(0.25).max(72).nullable() }).strict(),
-  }).strict()).min(1).max(8),
-}).strict();
+    title: claimShape,
+    demoStep: claimShape,
+    reason: claimShape,
+    requirements: z.object({ skills: z.array(z.string()), hardware: z.array(z.string()), hours: z.number().nullable() }).strict(),
+  }).strict()),
+}).strict().superRefine((out, ctx) => {
+  const bad = (message: string) => ctx.addIssue({ code: "custom", message });
+  if (out.features.length < 1 || out.features.length > 8) bad("Propose 1 to 8 features");
+  for (const f of out.features) {
+    for (const key of ["title", "demoStep", "reason"] as const) {
+      const c = f[key];
+      if (!fits(c.text, LIMITS[key])) bad(`${key} text must be 1 to ${LIMITS[key]} characters`);
+      if (c.sourceIds.length > 6 || c.sourceIds.some((id) => !fits(id, 128))) bad("At most 6 source ids of up to 128 characters");
+    }
+    const { skills, hardware, hours } = f.requirements;
+    if ([skills, hardware].some((list) => list.length > 6 || list.some((n) => !fits(n, 80)))) bad("At most 6 skills and 6 devices, each up to 80 characters");
+    if (hours !== null && (hours < 0.25 || hours > 72)) bad("hours must be 0.25 to 72, or null");
+  }
+});
 export type Candidate = z.infer<typeof generatedSchema>["features"][number];
 
 export type Influence = { field: keyof Profile; value: string | number | string[]; tradeoff: string };
@@ -60,7 +76,7 @@ export function ground(c: Claim, sources: Map<string, string[]>): Claim {
   const checked = checkClaims([c], sources.keys())[0];
   const ids = [...new Set(c.sourceIds.filter((id) => sources.has(id)))];
   const quoted = ids.some((id) => sources.get(id)!.some((s) => s.includes(c.text)));
-  return { text: c.text, label: checked.label === "supported" && !quoted ? "inferred" : checked.label, sourceIds: ids };
+  return { text: c.text.trim(), label: checked.label === "supported" && !quoted ? "inferred" : checked.label, sourceIds: ids };
 }
 
 const norm = (s: string) => s.trim().toLowerCase();

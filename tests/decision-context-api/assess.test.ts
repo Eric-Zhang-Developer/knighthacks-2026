@@ -78,3 +78,21 @@ test("the profile accepts unknowns and rejects out-of-range values", () => {
   expect(profileSchema.safeParse({ ...UNKNOWN, skills: Array(13).fill("x") }).success).toBe(false);
   expect(profileSchema.safeParse({ ...UNKNOWN, enthusiasm: 6 }).success).toBe(false);
 });
+
+test("generated output limits hold even though the provider schema carries none", async () => {
+  const { generatedSchema } = await import("@/lib/decision-context/contract");
+  const one = { title: claim("Dashboard"), demoStep: claim("Show it"), reason: claim("Value"), requirements: { skills: [], hardware: [], hours: null } };
+  expect(generatedSchema.safeParse({ features: [one] }).success).toBe(true);
+  const broken = [
+    { features: [] },
+    { features: Array(9).fill(one) },
+    { features: [{ ...one, title: claim("x".repeat(121)) }] },
+    { features: [{ ...one, reason: claim("   ") }] },
+    { features: [{ ...one, demoStep: { ...claim("Show"), sourceIds: Array(7).fill("p") } }] },
+    { features: [{ ...one, requirements: { skills: Array(7).fill("React"), hardware: [], hours: null } }] },
+    { features: [{ ...one, requirements: { skills: [], hardware: ["y".repeat(81)], hours: null } }] },
+    { features: [{ ...one, requirements: { skills: [], hardware: [], hours: 0.1 } }] },
+    { features: [{ ...one, requirements: { skills: [], hardware: [], hours: 73 } }] },
+  ];
+  for (const b of broken) expect(generatedSchema.safeParse(b).success).toBe(false);
+});
