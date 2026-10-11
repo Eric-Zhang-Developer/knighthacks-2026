@@ -1,8 +1,8 @@
 .rehearse { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
-.heading { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.15; color: var(--paper); }
+.heading { margin: 0; font-family: var(--font-display); font-size: var(--title); font-weight: 600; line-height: 1.15; color: var(--paper); }
 .meta { margin: 0; color: var(--muted); font-size: var(--text-sm); }
 /* Chart annotation, as in the idea card's group names. */
-.part { margin: var(--space-2) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.part { margin: var(--space-2) 0 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
 .items { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
 .items li { display: flex; gap: var(--space-2); }
 .items input {
@@ -25,7 +25,7 @@
   gap: var(--space-1);
   padding: 1px var(--space-2);
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   font-size: var(--text-sm);
   line-height: 1.4;
   white-space: nowrap;

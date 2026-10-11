@@ -1,91 +1,115 @@
 /*
- * Design system (specs/features/design-refresh): Material 3 is the system (colour roles, tonal surfaces, shape and
- * type scales, state layers); Apple supplies materials and motion (translucent floating chrome, springs, the
- * reduced-transparency / contrast / motion fallbacks). Dark scheme from one blue seed, the accent in the person's
- * design references.
+ * Design system (specs/features/ui-redesign): an observatory instrument laid over the night sky. Near-black sky,
+ * paper-white text, brass for the instrument's markings (counts, step labels, annotations) and one interactive accent,
+ * the idea star's cyan. Engraved serif headings, Plex Sans to read, Plex Mono for data. The Material token names from
+ * design-refresh stay as aliases, so every panel that reads them takes the new values without touching its files.
  */
 :root {
-  /* Material 3 dark scheme (seed #3f6fd8). Pairs: X with on-X only. */
-  --md-sys-color-primary: #adc6ff;
-  --md-sys-color-on-primary: #002e69;
-  --md-sys-color-primary-container: #1c4e9f;
-  --md-sys-color-on-primary-container: #d8e2ff;
-  --md-sys-color-secondary: #bfc6dc;
-  --md-sys-color-on-secondary: #293041;
-  --md-sys-color-secondary-container: #3f4759;
-  --md-sys-color-on-secondary-container: #dbe2f9;
-  --md-sys-color-tertiary: #7fd6e6;
-  --md-sys-color-on-tertiary: #00363e;
-  --md-sys-color-error: #ffb4ab;
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #93000a;
-  --md-sys-color-surface: #111318;
-  --md-sys-color-surface-dim: #111318;
-  --md-sys-color-surface-bright: #37393e;
-  --md-sys-color-surface-container-lowest: #0c0e13;
-  --md-sys-color-surface-container-low: #191c20;
-  --md-sys-color-surface-container: #1d2024;
-  --md-sys-color-surface-container-high: #282a2f;
-  --md-sys-color-surface-container-highest: #33353a;
-  --md-sys-color-on-surface: #e3e2e9;
-  --md-sys-color-on-surface-variant: #c4c6d0;
-  --md-sys-color-outline: #8e9099;
-  --md-sys-color-outline-variant: #44474f;
-  --md-sys-color-scrim: #000000;
+  /* Sky and surfaces, darkest to lightest. */
+  --sky: #04060b;
+  --surface-low: #090c13;
+  --surface: #0d1119;
+  --surface-high: #151b26;
+  --hairline: #232b3a;
+  --hairline-strong: #4a5366;
 
-  /* Shape scale. */
-  --md-sys-shape-corner-extra-small: 4px;
-  --md-sys-shape-corner-small: 8px;
-  --md-sys-shape-corner-medium: 12px;
-  --md-sys-shape-corner-large: 16px;
-  --md-sys-shape-corner-extra-large: 28px;
-  --md-sys-shape-corner-full: 9999px;
+  /* Text: three steps. */
+  --ink: #ece8de;
+  --ink-2: #a4acbc;
 
-  /* Type scale (Roboto Flex). Tracking is size-specific: tight on display, open on labels (apple-design §15). */
-  --md-sys-typescale-display-small: 600 36px/44px var(--font-sans);
-  --md-sys-typescale-title-large: 500 22px/28px var(--font-sans);
-  --md-sys-typescale-title-medium: 500 16px/24px var(--font-sans);
-  --md-sys-typescale-body-large: 400 16px/24px var(--font-sans);
-  --md-sys-typescale-body-medium: 400 14px/20px var(--font-sans);
-  --md-sys-typescale-label-large: 500 14px/20px var(--font-sans);
-  --md-sys-typescale-label-medium: 500 12px/16px var(--font-sans);
+  /* Markings and the one accent. */
+  --brass-tone: #d6b37a;
+  --accent: #4fd6e8;
+  --on-accent: #00262d;
 
-  /* Motion: Material's emphasized curves for enter/exit; springs live in code. */
-  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  /* Type: six sizes. 11 markings, 13 secondary, 15 body; serif 18 section titles, 22 panel headings, 30 display. */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --title: 18px;
+  --heading: 22px;
+  --display: 30px;
+  --tracking-marks: 0.14em;
 
-  /* Apple material for floating chrome: translucent, blurred, saturated. */
-  --material-thick: rgba(17, 19, 24, 0.72);
-  --material-blur: blur(24px) saturate(160%);
+  /* Shape: panels, fields, and round controls (buttons and chips are pills). */
+  --radius: 16px;
+  --radius-field: 10px;
+  --radius-sm: 10px;
+  --radius-round: 9999px;
 
-  /* Every panel's existing tokens, now Material roles: panels change without touching their files. Literal hex where
-     tests/visual-polish checks contrast from this file; the comment names the role. */
-  --font-display: var(--font-sans);
-  --bg: #070910;
-  --panel: #1d2024; /* surface-container */
-  --panel-top: var(--md-sys-color-surface-container);
-  --border: var(--md-sys-color-outline-variant);
-  --rule: rgba(68, 71, 79, 0.6);
-  --text: #e3e2e9; /* on-surface */
-  --paper: #f1f0f7;
-  --muted: #acafb9;
-  --brass: var(--md-sys-color-primary);
-  --idea: #4fd6e8; /* the idea star */
-  --history: #c9b6ff; /* revision history */
-  --uncertain: #f5c46a; /* uncertainty */
-  --live: #7ddc9c; /* current-event projects */
-  --failed: #ffb4ab; /* error */
-
+  /* Space: a 4px scale. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --radius-sm: var(--md-sys-shape-corner-small);
-  --radius: var(--md-sys-shape-corner-large);
-  --text-sm: 13px;
-  --text-md: 15px;
-  --heading: 22px;
+  --space-6: 32px;
+
+  /* Instruments over the sky: translucent, blurred; solid under reduced transparency or more contrast. */
+  --material-thick: rgba(9, 12, 19, 0.7);
+  --material-blur: blur(22px) saturate(140%);
+  --glass: var(--material-thick);
+  --glass-blur: var(--material-blur);
+  --lift: 0 18px 48px rgba(0, 0, 0, 0.5);
+
+  /* The tokens every panel already reads. Literal hex where tests/visual-polish checks contrast from this file. */
+  --bg: #04060b;
+  --panel: #0d1119;
+  --panel-top: var(--surface);
+  --border: #232b3a;
+  --rule: rgba(35, 43, 58, 0.8);
+  --text: #ece8de;
+  --paper: #f5f1e6;
+  --muted: #a4acbc;
+  --brass: var(--brass-tone);
+  --idea: #4fd6e8; /* the idea star, and the one interactive accent */
+  --history: #c9b6ff; /* revision history */
+  --uncertain: #f5c46a; /* uncertainty */
+  --live: #7ddc9c; /* current-event projects */
+  --failed: #ffb4ab; /* error */
+
+  /* design-refresh's Material roles, mapped onto the observatory. */
+  --md-sys-color-primary: var(--accent);
+  --md-sys-color-on-primary: var(--on-accent);
+  --md-sys-color-primary-container: #0f3a42;
+  --md-sys-color-on-primary-container: #c9f4fa;
+  --md-sys-color-secondary: var(--ink-2);
+  --md-sys-color-on-secondary: var(--sky);
+  --md-sys-color-secondary-container: var(--surface-high);
+  --md-sys-color-on-secondary-container: var(--ink);
+  --md-sys-color-tertiary: var(--brass-tone);
+  --md-sys-color-on-tertiary: #2a1d05;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #5c1414;
+  --md-sys-color-surface: var(--surface);
+  --md-sys-color-surface-dim: var(--surface-low);
+  --md-sys-color-surface-bright: #1e2532;
+  --md-sys-color-surface-container-lowest: var(--sky);
+  --md-sys-color-surface-container-low: var(--surface-low);
+  --md-sys-color-surface-container: #0d1119;
+  --md-sys-color-surface-container-high: var(--surface-high);
+  --md-sys-color-surface-container-highest: #1b2230;
+  --md-sys-color-on-surface: var(--ink);
+  --md-sys-color-on-surface-variant: var(--ink-2);
+  --md-sys-color-outline: var(--hairline-strong);
+  --md-sys-color-outline-variant: var(--hairline);
+  --md-sys-color-scrim: #000000;
+  --md-sys-shape-corner-extra-small: var(--radius-field);
+  --md-sys-shape-corner-small: var(--radius-field);
+  --md-sys-shape-corner-medium: var(--radius-field);
+  --md-sys-shape-corner-large: var(--radius);
+  --md-sys-shape-corner-extra-large: var(--radius);
+  --md-sys-shape-corner-full: var(--radius-round);
+  --md-sys-typescale-display-small: 500 var(--display)/1.15 var(--font-display);
+  --md-sys-typescale-title-large: 600 var(--heading)/1.2 var(--font-display);
+  --md-sys-typescale-title-medium: 500 var(--text-md)/1.45 var(--font-sans);
+  --md-sys-typescale-body-large: 400 var(--text-md)/1.55 var(--font-sans);
+  --md-sys-typescale-body-medium: 400 var(--text-sm)/1.5 var(--font-sans);
+  --md-sys-typescale-label-large: 500 var(--text-sm)/1.35 var(--font-sans);
+  --md-sys-typescale-label-medium: 500 var(--text-xs)/1.4 var(--font-mono);
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
 }
 
 * {
@@ -102,28 +126,35 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: var(--text-md);
   line-height: 1.5;
-  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--md-sys-color-primary); text-underline-offset: 3px; }
-::selection { background: rgba(173, 198, 255, 0.3); }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+::selection { background: rgba(79, 214, 232, 0.28); }
+
+/* Scrollbars: thin and dark, so no panel shows a bright system bar against the sky. */
+* { scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: var(--radius-round); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
 
 button,
 select,
 input,
-textarea { font-family: inherit; }
+textarea { font-family: inherit; color: inherit; }
 
-/* Buttons: full-pill with a state layer; a press answers on pointer-down (apple-design §1). */
+/* Buttons: pills that answer on pointer-down. A panel's own class sets its size; colour and state come from here. */
 button {
   position: relative;
-  border-radius: var(--md-sys-shape-corner-full);
+  border-radius: var(--radius-round);
   font: var(--md-sys-typescale-label-large);
   letter-spacing: 0.01em;
-  transition: transform 100ms ease-out, background-color 150ms ease;
+  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 button:not(:disabled) { cursor: pointer; }
 button:not(:disabled):active { transform: scale(0.97); }
+button:disabled { opacity: 0.45; }
 button::after {
   content: "";
   position: absolute;
@@ -134,29 +165,85 @@ button::after {
   pointer-events: none;
   transition: opacity 150ms ease;
 }
-button:not(:disabled):hover::after { opacity: 0.08; }
+button:not(:disabled):hover::after { opacity: 0.07; }
 button:not(:disabled):active::after { opacity: 0.12; }
-/* Action buttons in panels and the composer are full pills, over each panel's own corner; rows in a list (projects,
+/* Action buttons in panels and the composer are pills over each panel's own corner; rows in a list (projects,
    legend entries, results, sparks) keep their list shape. :root lifts this above a panel's single-class rule. */
-:root :is(.ui-panel, footer) button:not(li *) { border-radius: var(--md-sys-shape-corner-full); }
-/* A form's submit button is the panel's primary action: Material's filled button. */
+:root :is(.ui-panel, footer) button:not(li *) { border-radius: var(--radius-round); }
+/* A form's submit button is the panel's primary action: the accent, filled. */
 form button[type="submit"]:not(:disabled) {
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background: var(--accent);
+  color: var(--on-accent);
   border-color: transparent;
+  font-weight: 600;
 }
 
+/* Fields: a well in the instrument, hairline edge, accent focus. */
 input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
-  border-radius: var(--md-sys-shape-corner-small);
+  border-radius: var(--radius-field);
+  background-color: var(--surface-low);
+  border: 1px solid var(--hairline);
+  color: var(--text);
 }
+input::placeholder,
+textarea::placeholder { color: var(--ink-2); opacity: 0.8; }
 textarea:focus-visible,
 input:focus-visible,
-select:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: 0; }
-input[type="range"] { accent-color: var(--md-sys-color-primary); }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+select {
+  appearance: none;
+  padding-right: calc(var(--space-5) + var(--space-1));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4acbc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  text-overflow: ellipsis;
+}
+input[type="range"] { accent-color: var(--accent); }
 
-/* A panel: a Material surface container card. */
+/* The shared controls, as classes for panels whose markup belongs to other features. */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-round);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font: var(--md-sys-typescale-label-large);
+  white-space: nowrap;
+}
+.ui-button[data-variant="primary"] { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.ui-button[data-variant="quiet"] { background: none; border-color: transparent; color: var(--ink-2); }
+.ui-button[data-variant="icon"] { width: 40px; padding: 0; }
+.ui-field { width: 100%; min-height: 40px; padding: var(--space-2) var(--space-3); font: var(--md-sys-typescale-body-medium); }
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-round);
+  background: none;
+  color: var(--ink-2);
+  font: var(--md-sys-typescale-label-large);
+}
+.ui-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: rgba(79, 214, 232, 0.1); }
+/* An instrument marking: mono small caps in brass. */
+.ui-mark {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-marks);
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* A panel: an instrument plate. Solid (visual-polish holds panels to --panel), hairline edge. */
 .ui-panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -166,11 +253,11 @@ input[type="range"] { accent-color: var(--md-sys-color-primary); }
 .ui-heading {
   font: var(--md-sys-typescale-title-large);
   font-size: var(--heading);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--paper);
 }
 
-/* The idea path: each panel that appears gets its step number, as a small label above the title. */
+/* The idea path: each panel that appears gets its step number, as an instrument marking above the title. */
 aside[aria-label="Idea and evidence"] .ui-panel {
   animation: rise 0.4s var(--md-sys-motion-easing-emphasized-decelerate) both;
 }
@@ -178,21 +265,23 @@ aside[aria-label="Idea and evidence"] .ui-heading::before {
   counter-increment: step;
   content: "Step " counter(step);
   display: block;
-  margin-bottom: 2px;
-  font: var(--md-sys-typescale-label-medium);
-  letter-spacing: 0.06em;
-  color: var(--md-sys-color-primary);
+  margin-bottom: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-marks);
+  text-transform: uppercase;
+  color: var(--brass);
 }
 
-/* Push-to-talk is a floating pill over the chart: a solid surface like every panel (visual-polish holds all panels to
-   --panel), lifted by its shadow. */
+/* Push-to-talk floats over the chart as a pill: a solid plate like every panel, lifted by its shadow. */
 footer[aria-label="Voice"] .ui-panel {
-  border-radius: var(--md-sys-shape-corner-full);
+  border-radius: var(--radius-round);
   padding-left: var(--space-5);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--lift);
 }
 @media (max-width: 720px) {
-  footer[aria-label="Voice"] .ui-panel { border-radius: var(--md-sys-shape-corner-extra-large); }
+  footer[aria-label="Voice"] .ui-panel { border-radius: var(--radius); }
 }
 
 @keyframes rise {
@@ -201,7 +290,7 @@ footer[aria-label="Voice"] .ui-panel {
 }
 
 :focus-visible {
-  outline: 2px solid var(--md-sys-color-primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -219,14 +308,14 @@ footer[aria-label="Voice"] .ui-panel {
 }
 /* Reduced transparency: frosted surfaces become solid. */
 @media (prefers-reduced-transparency: reduce) {
-  :root { --material-thick: var(--md-sys-color-surface-container-low); --material-blur: none; }
+  :root { --material-thick: var(--surface-low); --material-blur: none; }
 }
-/* More contrast: solid surfaces with defined borders. */
+/* More contrast: solid surfaces with defined edges. */
 @media (prefers-contrast: more) {
   :root {
-    --material-thick: var(--md-sys-color-surface-container-low);
+    --material-thick: var(--surface-low);
     --material-blur: none;
-    --border: var(--md-sys-color-outline);
-    --muted: var(--md-sys-color-on-surface-variant);
+    --border: #6b7488;
+    --muted: #c4cad6;
   }
 }

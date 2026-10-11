@@ -40,8 +40,9 @@ the Filters disclosure and removing the totals strip and explainer from the firs
   (blurred fill, hairline edge, solid fallback under reduced transparency), never a wall in front of it. No card inside
   a bordered panel.
 - **Type.** Cormorant Garamond (display: the wordmark and panel headings), IBM Plex Sans (interface text), IBM Plex
-  Mono (data: counts, years, coordinates, small-caps annotations). All self-hosted in `app/fonts/` (#226). Five sizes
-  only, as tokens: 11 (annotation), 13 (secondary), 15 (body), 20 (panel heading), 28 (display).
+  Mono (data: counts, years, coordinates, small-caps annotations). All self-hosted in `app/fonts/` (#226). Six sizes
+  only, as tokens: 11 (annotation), 13 (secondary), 15 (body), 18 (section title, serif), 22 (panel heading, serif),
+  30 (display, serif). Panels hold sections under one heading, so a step between body and heading is needed.
 - **Colour.** Near-black sky, neutral text in three steps (primary, secondary, faint), one accent: the idea cyan
   `--idea`, already the idea star's colour. Category colours appear on the map and legend only. A warning amber and a
   failure red for states, nothing else.
