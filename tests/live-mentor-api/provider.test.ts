@@ -7,7 +7,7 @@ vi.mock("@elevenlabs/elevenlabs-js", () => {
   } };
 });
 import { configuredAgent, mintConversationToken } from "@/lib/mentor/provider";
-import { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG } from "@/lib/mentor/agent-config";
+import { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG, PROGRESSIVE_BRAINSTORMING_POLICY } from "@/lib/mentor/agent-config";
 import { setupMentor } from "@/lib/mentor/setup";
 
 const setupEnv = {
@@ -41,6 +41,15 @@ describe("private mentor capabilities", () => {
 });
 
 describe("explicit managed mentor setup", () => {
+  it("deploys progressive evidence-first policy without granting a save tool", async () => {
+    mocks.get.mockResolvedValue({ name: MENTOR_AGENT_NAME, tags: [MENTOR_AGENT_TAG] });
+    await setupMentor(["--update"], { ...setupEnv, ELEVENLABS_MENTOR_AGENT_ID: "agent_test" });
+    const definition = mocks.update.mock.calls[0][1];
+    expect(definition.conversationConfig.agent.prompt.prompt).toContain(PROGRESSIVE_BRAINSTORMING_POLICY);
+    expect(definition.conversationConfig.agent.prompt.tools.map((tool: { name: string }) => tool.name)).toEqual(["get_context", "find_projects", "propose_idea"]);
+    expect(definition.platformSettings.auth.enableAuth).toBe(true);
+    expect(definition.conversationConfig.conversation.maxDurationSeconds).toBe(1200);
+  });
   it("is provider-free by default and keeps privacy choices explicit", async () => {
     const result = await setupMentor([], setupEnv);
     expect(result.action).toBe("dry-run");
