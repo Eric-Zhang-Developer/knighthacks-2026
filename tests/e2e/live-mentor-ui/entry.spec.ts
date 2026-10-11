@@ -154,7 +154,7 @@ test("three proposals remain separate; only an explicit selected card is saved",
   await page.getByRole("link", { name: "Talk", exact: true }).click();
   await expect(cards.getByRole("article")).toHaveCount(3);
   await page.getByRole("button", { name: "Hide typing", exact: true }).click();
-  await page.getByRole("link", { name: "Idea", exact: true }).click();
+  await page.getByRole("navigation", { name: "Destinations" }).getByRole("link", { name: "Idea", exact: true }).click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
   await expect(cards).toBeVisible();
   await cards.getByRole("heading", { name: "Fixture direction 1" }).scrollIntoViewIfNeeded();
