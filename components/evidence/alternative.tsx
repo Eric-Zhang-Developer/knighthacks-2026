@@ -7,7 +7,8 @@ import styles from "./evidence.module.css";
 
 // Shape pinned by strongest-alternative-api (lib/alternative/contract.ts).
 type Point = { step: string; claim: { text: string; label: ClaimLabel; sourceIds: string[] } };
-type Alternative = { projectId: string; url: string; title: string; points: Point[]; missingWorkflow: boolean };
+type Alternative = { projectId: string; url: string; title: string; points: Point[]; missingWorkflow: boolean;
+  savedCorpusVersion?: string; sourceCorpusVersion?: string };
 type View = { kind: "loading" } | { kind: "failed"; error: string } | { kind: "ready"; alternative: Alternative };
 
 // POST returns the stored comparison without regenerating, so it also serves a reload.
@@ -61,6 +62,10 @@ export default function StrongestAlternative({ versionId }: { versionId: string 
               Source ↗
             </a>
           </p>
+          {view.alternative.savedCorpusVersion && view.alternative.sourceCorpusVersion &&
+            view.alternative.savedCorpusVersion !== view.alternative.sourceCorpusVersion && (
+              <p className={styles.prompt}>Saved neighbor is unchanged; source text uses the current corpus.</p>
+            )}
           {view.alternative.missingWorkflow ? (
             <p className={styles.prompt}>
               Your idea has no workflow yet. Add how someone uses it, step by step (Suggest revisions can propose one), to
