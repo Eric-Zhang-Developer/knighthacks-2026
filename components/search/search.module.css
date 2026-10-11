@@ -67,3 +67,10 @@
   .filter { flex: 1; min-width: 0; }
   .filter select { width: 100%; max-width: none; }
 }
+.filterMenu { flex: none; position: relative; }
+.filterMenu summary { cursor: pointer; list-style: none; padding: 12px 16px; min-height: 44px; border: 1px solid #43454e; border-radius: 24px; color: #f4f4f6; background: #15171e; }
+.filterSheet { position: absolute; right: 0; top: calc(100% + 10px); width: min(320px, calc(100vw - 32px)); padding: 18px; display: grid; gap: 16px; background: #11131b; border: 1px solid #484b58; border-radius: 20px; box-shadow: 0 20px 60px #0009; max-height: 65dvh; overflow: auto; z-index: 30; }
+.filterSheet .filter { display: grid; gap: 6px; flex: none; width: 100%; max-width: none; color: #e5e7ef; }
+.filterSheet .filter select { width: 100%; max-width: none; min-height: 44px; }
+.filterSheet button { min-height: 44px; background: #222735; color: #f4f4f6; border: 1px solid #555c6e; }
+@media (max-width: 720px) { .bar { flex-wrap: nowrap; } .bar .input { flex: 1 1 0; } }

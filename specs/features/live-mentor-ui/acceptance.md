@@ -34,3 +34,57 @@ Use focused deterministic tests during edits; run the full required suite on the
 provider retries while permission/configuration is blocked. No extra worker beyond the local three-worker cap.
 Small bounded styling/test tasks may use a lower-cost model; authentication/session race review requires the
 stronger reviewer. Neither model choice nor delegation replaces independent evidence of the user's journey.
+
+## October 11 evidence visibility correction
+
+Retrieved conversation sources previously lived inside the optional, usually closed transcript. They now
+render in the idea/evidence panel independently, with excerpts, source links and project inspection. The
+explicit phrase "show related projects" opens already-retrieved sources without starting another search.
+An empty result is not presented as proof of originality. Source-card rendering, unsafe-link rejection and
+bounded command recognition have unit coverage; the full suite passes 545 tests with two skipped.
+Type checking and lint pass. These are automated/source receipts, not a new phone or audio verification.
+Fresh browser automation is blocked by the session's browser access policy; no alternate browser workaround
+was used. Human basic live audio was reported working, but the user explicitly has not tried the remaining
+real-evidence -> proposal -> explicit confirmed-save flow. Required live/phone and decision/share acceptance
+remain open; no completion note or production readiness is claimed.
+
+## Desktop screenshot follow-up
+
+The user's production `?layout=nebula` screenshot still shows the separate square/red theme and old dictation
+bar, not this unmerged mentor shell. Mac theme owner received the concrete feedback on PR #432. In this UI
+branch, destination-scoped panel visibility now applies to desktop as well as phone: Explore has no permanent
+idea rail, a selected project still opens inspection, and Idea/Decide/Plan no longer stack together. The existing
+mentor mount is unchanged. Added 390px/1440px browser assertions for destination isolation, bubble visibility
+and horizontal overflow. These new browser assertions are not run here because browser access is policy-blocked;
+Mac visual verification and production integration remain required. This is not a whole-app redesign completion.
+
+## Plan 443 saved-idea controls (October 11)
+
+Added a compact saved-idea picker, Add idea, exact-title deletion review and bounded named voice intents.
+Selection clears conversation evidence and pending save confirmations; late initial lists/interpretations and
+save receipts cannot replace a newer selection. Optional typing and the persistent voice bubble are unchanged.
+Deletion is intentionally disabled in this feature branch until API #448 is integrated and validated; there is
+no claim that its button deletes here. The backend owner reported a dedicated TEST_DATABASE_URL receipt for
+19280d6 (targeted real-DB deletion test passed), but the full production-build verifier remains blocked.
+Type checking, scoped lint and 32 mentor unit tests pass. Added 390px/1440px selector/review/cancel/reload and
+late-list browser assertions; these remain unrun here under the existing browser access restriction.
+Live.tsx selection invalidation is coordinated with the mentor-quality owner, not duplicated in this patch.
+After repairing a missing local pinned dependency, the full unit suite passed 584 tests (two skipped).
+The production build passed; full lint and type checking are also required on the integration candidate.
+Full deletion UI acceptance (selected/unselected/last, failure and real voice), visual QA, and the previously
+outstanding real evidence -> confirmed save -> decision/share journey still block feature completion.
+
+Historical integration-preview receipt: API448 at 19280d6 enabled the named delete button for local testing
+against the dedicated TEST database. Type checking, scoped lint and 60 combined mentor/idea unit tests passed.
+Selection also cleared news cards, with live tool invalidation from mentor-quality #454. PR #369 contains only
+the UI side and requires the coordinated #448 route before deletion can work. This is not production approval or
+browser/voice acceptance. Its server capability is limited to development when DATABASE_URL exactly equals the
+nonempty TEST_DATABASE_URL; hosted/production builds cannot enable it. Only a boolean reaches the browser.
+
+## Merge acceptance receipt (October 11)
+
+The human explicitly accepted the prepared UI change for merge. This is not evidence that the complete voice
+journey, interruption behavior, real-audio naturalness, or response latency was exercised. The current focused
+UI suite passes 36 tests. The UI owner previously reported the full unit suite at 584 passed and two skipped.
+A warm mic-denial browser rerun passed in 13 seconds (PR #454 comment 6108265346). The remaining browser,
+real-audio and end-to-end decision/share gaps above stay open and are not reclassified by merge acceptance.

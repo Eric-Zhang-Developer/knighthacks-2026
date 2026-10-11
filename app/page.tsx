@@ -3,7 +3,6 @@ import Challenge from "@/components/challenge";
 import Compare from "@/components/compare";
 import Drawer from "@/components/drawer";
 import Evidence from "@/components/evidence";
-import Explainer from "@/components/explainer";
 import Galaxy from "@/components/galaxy";
 import Idea from "@/components/idea";
 import PlanStep from "@/components/plan";
@@ -13,10 +12,9 @@ import Search from "@/components/search";
 import Share from "@/components/share";
 import Nav from "@/components/shell";
 import Sheet from "@/components/shell/Sheet";
-import Starters from "@/components/shell/Starters";
 import Steps from "@/components/shell/Steps";
 import Snapshot from "@/components/snapshot";
-import Voice from "@/components/voice";
+import Mentor from "@/components/mentor";
 import Votes from "@/components/votes";
 import styles from "./page.module.css";
 
@@ -24,12 +22,16 @@ import styles from "./page.module.css";
 // Desktop: top bar, discovery rail | galaxy over the composer | contextual rail. Phone: one destination at a time
 // (Explore, Talk, Idea, Decide, Plan), picked by <Nav> through html[data-dest] (specs/features/experience-shell).
 export default function Home() {
+  // Local testing only: the hosted preview is not approved for production data deletion.
+  // Never serialize either URL; only this capability boolean crosses the client boundary.
+  const deletionAvailable = process.env.NODE_ENV === "development" &&
+    !!process.env.TEST_DATABASE_URL && process.env.DATABASE_URL === process.env.TEST_DATABASE_URL;
   return (
     <div className={styles.shell}>
       <div className={styles.top}>
         <p className={styles.brand}>
           <span className={styles.wordmark}>Uncharted</span>
-          <span className={styles.tagline}>Brainstorm among real hackathon projects</span>
+          <span className={styles.tagline}>Find your next idea.</span>
         </p>
         <header className={styles.search} aria-label="Search">
           <Search />
@@ -37,20 +39,19 @@ export default function Home() {
       </div>
       <main className={styles.map} aria-label="Galaxy">
         {/* The galaxy renders its history, legend and project list into the rail. */}
-        <div className={styles.rail}>
+        <details className={styles.rail}>
+          <summary>Browse the map</summary>
           <div id="discovery-rail" className={styles.railControls} />
-          <div className={styles.explain}>
-            <Explainer />
-          </div>
-        </div>
+        </details>
         <div className={styles.chart}>
           <Galaxy />
         </div>
       </main>
       <footer className={styles.composer} aria-label="Voice">
-        <Voice />
+        <Mentor />
       </footer>
       <aside className={styles.side} aria-label="Idea and evidence">
+        <div id="mentor-notes" />
         <Steps />
         <Sheet>
           <Drawer />
@@ -58,22 +59,26 @@ export default function Home() {
         {/* The idea path in brainstorming order: explore and grow before anything judges the idea (defer
             judgment), then test it, then decide and plan. Each group is one step in the step index. */}
         <div className={styles.ideaPath}>
+          <div id="mentor-evidence" />
+          <div id="mentor-ideas" />
           <div id="step-idea">
-            <Idea />
-            <Starters />
+            <Idea deletionAvailable={deletionAvailable} />
           </div>
-          <div id="step-explore">
+          <details id="step-explore" className={styles.group}>
+            <summary>Explore related projects</summary>
             <Evidence />
-          </div>
-          <div id="step-grow">
+          </details>
+          <details id="step-grow" className={styles.group}>
+            <summary>Refine and compare</summary>
             <Revisions />
             <Branches />
             <Compare />
-          </div>
-          <div id="step-test">
+          </details>
+          <details id="step-test" className={styles.group}>
+            <summary>Test your assumptions</summary>
             <Scorecard />
             <Challenge />
-          </div>
+          </details>
         </div>
         <div id="step-decide" className={styles.decide}>
           {/* Decide's panels render nothing until an idea is saved; the phone says so instead of a blank screen. */}

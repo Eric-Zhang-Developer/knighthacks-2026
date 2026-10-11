@@ -6,7 +6,9 @@ import { withAnswers, type Answer } from "@/components/interview/interview";
 import { PanelState } from "@/components/ui";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState, setState, useAppState } from "@/lib/store";
-import { FIELDS, fromForm, galaxyState, hasText, latest, toForm, type FieldName, type Fields, type Version } from "./fields";
+import { FIELDS, fromForm, hasText, toForm, type FieldName, type Fields, type Version } from "./fields";
+import IdeaManager from "@/components/mentor/IdeaManager";
+import { IDEA_INTENT, IDEA_SELECTED } from "@/components/mentor/idea-management";
 import ProblemEvidence from "./ProblemEvidence";
 import ResearchSection from "./Research";
 import styles from "./idea.module.css";
@@ -37,11 +39,29 @@ const postJson = (body: unknown, headers: Record<string, string> = {}) => ({
   body: JSON.stringify(body),
 });
 
-export default function Idea() {
+export default function Idea({ deletionAvailable = false }: { deletionAvailable?: boolean }) {
+  return <><IdeaManager deletionAvailable={deletionAvailable} /><IdeaContent /></>;
+}
+
+function IdeaContent() {
   const active = useAppState((s) => s.activeIdeaVersionId);
   const draft = useAppState((s) => s.ideaDraft); // voice appends here too
   const [view, setView] = useState<View>({ step: "write" });
   const [error, setError] = useState<string | null>(null);
+  const generation = useRef(0);
+  useEffect(() => {
+    const epoch = generation;
+    const receive = (event: Event) => {
+      generation.current++;
+      const version = (event as CustomEvent<Version | null>).detail;
+      setView(version ? { step: "saved", version } : { step: "write" }); setError(null);
+      saveKey.current = null;
+      setInterview({ text: "", answers: [], round: 0, fields: null });
+    };
+    window.addEventListener("mentor:saved", receive);
+    window.addEventListener(IDEA_SELECTED, receive);
+    return () => { epoch.current++; window.removeEventListener("mentor:saved", receive); window.removeEventListener(IDEA_SELECTED, receive); };
+  }, []);
   // One key per preview, so retrying a save can't create a second idea.
   const saveKey = useRef<string | null>(null);
   // The interview: what has been answered so far, and which round of questions is showing.
@@ -51,15 +71,6 @@ export default function Idea() {
     round: 0,
     fields: null,
   });
-
-  // Reload: restore saved ideas from the server, the latest one active.
-  useEffect(() => {
-    call<Version[]>("/api/ideas").then((r) => {
-      if (!r.ok || r.data.length === 0) return;
-      setState(galaxyState(r.data));
-      setView({ step: "saved", version: latest(r.data)! });
-    });
-  }, []);
 
   const saved = view.step === "saved" ? view.version : null;
   useEffect(() => {
@@ -96,10 +107,12 @@ export default function Idea() {
   }
 
   async function read(text: string) {
+    const token = ++generation.current;
     setError(null);
     setView({ step: "interpreting" });
     saveKey.current = crypto.randomUUID();
     const r = await call<Fields>("/api/ideas/interpret", postJson({ text }));
+    if (token !== generation.current) return;
     if (r.ok) {
       setInterview((i) => ({ ...i, fields: r.data }));
       return setView({ step: "edit", form: toForm(r.data), failed: false });
@@ -121,7 +134,12 @@ export default function Idea() {
     if (!hasText(fields)) return setError("Fill in at least one field.");
     setError(null);
     setView({ step: "saving", form });
+    const token = ++generation.current;
     const r = await call<Version>("/api/ideas", postJson(fields, { "Idempotency-Key": saveKey.current! }));
+    if (token !== generation.current) {
+      if (r.ok) window.dispatchEvent(new Event("ideas:refresh"));
+      return;
+    }
     if (!r.ok) {
       setError(`Couldn't save: ${r.error}`);
       return setView({ step: "edit", form, failed: false });
@@ -134,6 +152,7 @@ export default function Idea() {
       ideaDraft: "",
     });
     setView({ step: "saved", version: r.data });
+    window.dispatchEvent(new CustomEvent("mentor:saved", { detail: r.data }));
   }
 
   if (view.step === "saved") {
@@ -158,7 +177,7 @@ export default function Idea() {
         <ProblemEvidence key={v.versionId} versionId={v.versionId} />
         <ResearchSection key={`research-${v.versionId}`} versionId={v.versionId} />
         {error && <PanelState kind="failed" message={error} />}
-        <button type="button" className={styles.secondary} onClick={() => setView({ step: "write" })}>
+        <button type="button" className={styles.secondary} onClick={() => window.dispatchEvent(new CustomEvent(IDEA_INTENT, { detail: { kind: "add" } }))}>
           New idea
         </button>
       </section>
@@ -195,7 +214,7 @@ export default function Idea() {
             save(form);
           }}
         >
-          {FIELDS.map(({ name, label, long }) => (
+          <details><summary>Edit details (optional)</summary>{FIELDS.map(({ name, label, long }) => (
             <label key={name} className={styles.field}>
               <span>{label}</span>
               {long ? (
@@ -204,7 +223,7 @@ export default function Idea() {
                 <input value={form[name]} disabled={busy} onChange={(e) => set(name, e.target.value)} />
               )}
             </label>
-          ))}
+          ))}</details>
           {error && <PanelState kind="failed" message={error} />}
           <div className={styles.actions}>
             <button type="submit" className={styles.primary} disabled={busy}>
@@ -221,7 +240,10 @@ export default function Idea() {
 
   return (
     <section className={`ui-panel ${styles.idea}`} aria-label="Your idea">
-      <h2 className="ui-heading">Your idea</h2>
+      <h2 className="ui-heading">Start with a conversation</h2>
+      <p>Explore a problem, question an assumption, or find a direction. Nothing is saved without your confirmation.</p>
+      <button type="button" className={styles.primary} onClick={() => window.dispatchEvent(new Event("mentor:open"))}>Brainstorm together</button>
+      <details><summary>Write a standalone draft</summary>
       <form
         className={styles.form}
         onSubmit={(e) => {
@@ -233,7 +255,7 @@ export default function Idea() {
           aria-label="Describe your idea"
           rows={4}
           maxLength={8000}
-          placeholder="Type or hold to talk: what would you build, for whom, and why?"
+          placeholder="What would you build, for whom, and why?"
           value={draft}
           onChange={(e) => setState({ ideaDraft: e.target.value })}
         />
@@ -246,7 +268,7 @@ export default function Idea() {
             </button>
           </div>
         )}
-      </form>
+      </form></details>
     </section>
   );
 }

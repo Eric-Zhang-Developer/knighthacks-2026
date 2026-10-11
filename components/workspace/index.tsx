@@ -37,17 +37,22 @@ function HomeWorkspace() {
 
   if (failed || !identity) {
     return (
-      <section className={`ui-panel ${styles.status}`} aria-label="Workspace">
+      <details className={styles.workspace} aria-label="Workspace">
+        <summary className={styles.menu}>{failed ? "Team offline" : "Team"}</summary>
+        <div className={styles.menuContent}>
         {failed ? (
           <PanelState kind="failed" message={`Couldn't start your workspace: ${failed}`} onRetry={start} />
         ) : (
           <PanelState kind="loading" message="Starting your workspace…" />
         )}
-      </section>
+        </div>
+      </details>
     );
   }
   return (
-    <section className={styles.workspace} aria-label="Workspace">
+    <details className={styles.workspace} aria-label="Workspace">
+      <summary className={styles.menu}>Team</summary>
+      <div className={styles.menuContent}>
       <div className={styles.identity}>
         <span>
           Workspace{" "}
@@ -75,7 +80,8 @@ function HomeWorkspace() {
           </button>
         </div>
       )}
-    </section>
+      </div>
+    </details>
   );
 }
 

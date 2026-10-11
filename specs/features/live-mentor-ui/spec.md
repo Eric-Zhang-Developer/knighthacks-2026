@@ -1,7 +1,7 @@
 ---
 name: A natural spoken mentor connected to the idea and evidence panels
 depends_on: [live-mentor-api, voice, idea-create-ui, idea-interview-ui, neighbor-evidence-ui, design-refresh]
-owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
+owns: [components/mentor/, components/voice/index.tsx, components/idea/index.tsx, components/search/index.tsx, components/search/search.module.css, components/workspace/index.tsx, components/workspace/workspace.module.css, app/page.tsx, app/page.module.css, components/shell/, tests/live-mentor-ui/, tests/e2e/live-mentor-ui/]
 assignee: "codex-conversation-ui"
 ---
 
@@ -18,15 +18,25 @@ This section supersedes experience-shell's dictation composer and form-first pla
 empty-start sparks, only when this feature ships. Existing functional controls remain reachable; acceptance
 tests must assert preserved behavior through the new entry rather than require the obsolete placement.
 
-- Open on the full map with real project points. A circular, keyboard-accessible bottom-center bubble opens
-  a conversation surface with typing and an explicit Start live conversation action. Never start the microphone
+- Open on the full map with real project points. A circular, keyboard-accessible bottom-center bubble starts
+  a live ElevenLabs call in one tap, with no hold gesture or second Start button. Typing and transcript are optional
+  disclosures, not the primary call surface. Explain microphone use on the entry. Never start the microphone
   on page load. The launcher stays reachable across Explore, Talk, Idea, Decide and Plan, including phone safe
   areas; navigation must not remount an active session or discard an unsaved draft. Closing the surface is
   distinct from ending the session: show a persistent active-state indicator and accessible End control.
+  A bubble tap must not open a popup or transcript. Keep transcript/typing an explicit optional control in
+  the contextual rail, and render candidate cards independently in the idea rail. During a connected call,
+  the bubble toggles mute; a separate persistent End control releases the session. Connecting, listening and
+  speaking have distinct state-driven animations (decorative, not claimed audio amplitude), disabled under
+  reduced motion. Denied/failed connections show a compact dismissible notice without opening the rail.
 - The side panel contains conversation outputs: proposed idea, sourced neighbors, risks/unknowns and next
   actions. Do not require a sequence of fields before brainstorming. Existing editable fields are optional
-  refinement controls, and explicit confirmation still governs saves/revisions. Keep one canonical draft and
-  proposal, not independent form and conversation copies that diverge.
+  refinement controls, and explicit confirmation still governs saves/revisions. Retain multiple distinct candidate
+  ideas, showing up to three compact cards per page with title, audience, problem, approach and known constraints.
+  Unknowns stay explicit; do not invent risks. Keep full fields available without truncating the card's main facts.
+  Deduplicate exact proposal redelivery. Preserve earlier candidates when more arrive; never silently evict one.
+  Each card's Proceed with this idea action saves that candidate only, with its own stable retry key, without
+  ending the live call. Update the agent's context only after a confirmed save. No automatic candidate selection.
 - Ask one contextual question at a time about audience, motivation, constraints, evidence and alternatives.
   Challenge weak assumptions constructively, including why the idea might fail or succeed and what is missing.
   Never default to praise or present unsupported confidence. After roughly two or three useful exchanges offer
@@ -57,7 +67,7 @@ tests must assert preserved behavior through the new entry rather than require t
   conversation. Offer Skip/Explore/Review proposal without saving implicitly. Respect the API's answer-count
   limit and show an honest completion/limit state; do not reset counters silently for an endless interview.
 - Keep detailed idea fields behind an optional Edit details disclosure. The default proposal is a readable
-  summary with unknowns visible and an explicit Save as new idea action. Do not hide an unchanged required
+  summary with unknowns visible and an explicit Proceed with this idea action. Do not hide an unchanged required
   form behind the bubble or overwrite edits when an older request completes.
 
 The backend dependency and real-provider acceptance below remain required. This ownership change does not
@@ -65,7 +75,9 @@ authorize out-of-order shipping, production schema/configuration changes or merg
 
 ## Plan
 1. Start brainstorming is an obvious entry action, with a text alternative. Explain microphone use before
-   permission; never listen automatically on page load. Await guest initialization before requesting a session.
+   permission; never listen automatically on page load. Request microphone access directly from the user's tap;
+   await guest initialization before reserving a provider session. Loading or direct #talk navigation only opens
+   the surface; it must not grant microphone consent. Duplicate taps cannot reserve multiple sessions.
    Use `ConversationProvider` and `useConversation` from installed `@elevenlabs/react` 1.17.0; start with the
    authorized `conversationToken` and `connectionType:"webrtc"` from live-mentor-api. Never combine a signed
    WebSocket URL with WebRTC. Pinned startSession/endSession return void: connection/error callbacks establish
@@ -73,7 +85,7 @@ authorize out-of-order shipping, production schema/configuration changes or merg
 2. Show connecting/listening/thinking/speaking/ended/failed/permission-denied states truthfully. Mentor greets
    briefly, asks about the problem and user, listens naturally and asks one relevant follow-up at a time.
    Keep readable user/mentor transcript, mute and End session controls accessible. In this pinned SDK, the
-   explicit Stop control ends the conversation and is labelled Stop and end; do not invent an interrupt() hook
+   explicit End conversation control ends the conversation; do not invent an interrupt() hook
    or treat volume=0/sendUserActivity as proof of cancelled generation. Natural spoken interruption is separate.
 3. Natural interruption must stop the old speech and let the user correct the direction. End releases audio
    tracks and provider connection, aborts tool requests and marks the server session ended. Suppress old
@@ -84,7 +96,7 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    speech cannot claim a tool succeeded while the UI shows a failure. Keep untrusted evidence as data.
 5. Mentor remembers current conversation goals/constraints and loads only authorized selected-version context
    on resume. Corrections update the proposed idea visibly. `propose_idea` is a preview, never an automatic save.
-   A visible explicit Save as new idea action invokes existing POST /api/ideas with stable idempotency; then update
+   A visible explicit Proceed with this idea action invokes existing POST /api/ideas with stable idempotency; then update
    existing app state so the star, evidence and history reflect the confirmed version. Cancel changes nothing.
    Show that saving from a selected existing idea creates a separate idea, not a revision. Existing revision
    controls remain unchanged; conversational editing of a persisted revision is not claimed by this slice.
@@ -134,3 +146,37 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    proposal. Keyboard focus returns to the launcher after closing; text and controls stay usable with the phone
    software keyboard open. Tests use provider fixtures only for deterministic failure/race cases, not as proof
    of real conversation quality. See acceptance.md for the baseline gaps and required evidence.
+8. One bubble tap attempts microphone/session connection without opening a required composer or second Start.
+   Mount, reload and hash navigation never start audio. Minimize/navigation retain the same active call; explicit
+   End releases it. Three distinct proposals yield three separately actionable cards; duplicate delivery adds
+   none. Selecting one saves its exact fields once and retains the others and the live connection. More than
+   three candidates are paginated without losing data. These fixtures are not a real ElevenLabs audio receipt.
+9. From phone Decide, one bubble tap preserves the destination and keeps the transcript closed; a delayed
+   microphone request displays connecting animation, duplicate taps do not re-request, End cancels, and
+   reduced-motion disables animation. Candidate cards remain reachable with the transcript closed. Check
+   the rail and voice dock do not overlap. Speaking animation still requires the real SDK speaking callback.
+10. When the user asks for current news about their problem, the live client calls only `search_recent_news` and
+    renders its fresh seven-day result separately from corpus project cards. Show verified publication dates,
+    clickable resolved sources, supported claims, explicitly inferred relevance, the exact search window/as-of
+    date and every limitation. An empty result stays empty and says no verified recent news was found; never show
+    stale articles as a fallback or describe this non-exhaustive search as the absolute latest news.
+
+## Hands-free confirmation amendment (human request)
+
+After initial microphone consent, buttons are alternatives rather than required per-turn controls. The UI may
+interpret a bounded set of explicit, whole user utterances from the SDK user-message callback (or typed input):
+show a destination, show a numbered candidate, open the team menu without sending an invitation, minimize,
+end, request save, confirm save, or cancel. Agent speech and retrieved/tool content never execute UI commands.
+Do not imply that this small command vocabulary understands every possible phrasing.
+
+Spoken saving is explicit user confirmation in the app, not a new provider mutation tool: a request to save a
+numbered card first displays its exact candidate and asks for "confirm save idea N". Bind this review to its ID,
+save key and fields, expire it after one minute, and consume it synchronously before the existing POST /api/ideas.
+Wrong numbers, edits, ended/reconnected sessions, unrelated intervening user utterances and a bare "yes" do not
+authorize a write. The ordinary button remains available. Preserve idempotency on retries; report confirmed
+success or failure back to the agent without sharing capabilities. Sharing, invitations, votes and saved-version
+revisions remain outside this UI command set until their own reviewed contracts cover spoken confirmation.
+
+Validation adds parser tests for quoted/negated/ambiguous prose and binding/expiry/edits, plus phone browser
+tests showing a requested save does not write, explicit confirmation writes only that card, and duplicate or
+cancelled confirmation does not write. Mocked text/SDK inputs do not establish real ASR or spoken acceptance.
