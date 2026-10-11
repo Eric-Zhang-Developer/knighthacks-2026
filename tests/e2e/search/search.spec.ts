@@ -59,11 +59,11 @@ test("the results panel folds away on a pick, a click on the map, or Escape, and
   await box.fill("anything");
   await page.getByRole("list", { name: "Similar projects" }).getByRole("button").first().click();
   await expect(panel).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Project" }).getByRole("heading")).toHaveText(fixture[0].title);
   await expect(box).toHaveValue("anything"); // folded, not cleared
 
   await box.click();
   await expect(panel).toBeVisible();
+  await expect(page.getByRole("list", { name: "Similar projects" }).getByRole("button").first()).toHaveAttribute("aria-current", "true");
   const map = (await page.getByRole("main", { name: "Galaxy" }).boundingBox())!;
   await page.mouse.click(map.x + map.width * 0.6, map.y + map.height * 0.6); // below the panel, above the voice bar
   await expect(panel).toHaveCount(0);
