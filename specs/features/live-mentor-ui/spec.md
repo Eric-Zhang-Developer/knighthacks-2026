@@ -29,7 +29,10 @@ tests must assert preserved behavior through the new entry rather than require t
   dock (the person, 2026-10-11: the "Ideas" and "Type / transcript" buttons beside it duplicated the Idea and Talk
   tabs, "there is no need for them"); only an End control joins it during a call. Closing the Talk panel leaves
   `#talk`, so the Talk tab always reopens it. On a phone the navigation is a floating glass pill like the desktop
-  one, and the map's layout toggle sits top right, clear of "Browse the map". During a connected call,
+  one, and the map's layout toggle sits top right, clear of "Browse the map". The bubble's face is Fred, the film's dragon
+  (`components/mentor/fred-pet.js`, a custom element drawn inside the voice button, which keeps the label, keyboard and
+  states): he talks while the mentor speaks, sleeps while muted and hops when tapped; 60px wide, 52px on a phone. His
+  12 fps line "boil" filter is left out, so an idle page doesn't redraw an SVG filter beside the galaxy. During a connected call,
   the bubble toggles mute; a separate persistent End control releases the session. Connecting, listening and
   speaking have distinct state-driven animations (decorative, not claimed audio amplitude), disabled under
   reduced motion. Denied/failed connections show a compact dismissible notice without opening the rail.

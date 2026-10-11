@@ -10,6 +10,15 @@ import { getState, setState } from "@/lib/store";
 import type { LiveControls } from "./Live";
 import { readFields, request } from "./protocol";
 import { addCandidate, type Candidate } from "./candidates";
+
+// Fred (./fred-pet.js) is a custom element; React only needs to know the tag.
+type FredPet = HTMLElement & { poke?: () => void };
+declare module "react" {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace JSX {
+    interface IntrinsicElements { "fred-pet": React.DetailedHTMLProps<React.HTMLAttributes<FredPet>, FredPet> }
+  }
+}
 import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
 import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, readIdeaIntent } from "./idea-management";
 import EvidenceCards, { type MentorProject } from "./EvidenceCards";
@@ -232,6 +241,14 @@ export default function Mentor() {
   }
 
   const activeAudio = ["Listening", "Speaking", "Connecting", "Muted"].includes(voiceState);
+  // Fred is defined in the browser only (his class extends HTMLElement, which the server doesn't have). Attributes, not
+  // properties, drive him: before his class loads, a property would shadow its setter.
+  const fred = useRef<FredPet>(null);
+  useEffect(() => { void import("./fred-pet.js"); }, []);
+  useEffect(() => {
+    fred.current?.toggleAttribute("talking", voiceState === "Speaking");
+    fred.current?.toggleAttribute("sleeping", voiceState === "Muted");
+  }, [voiceState]);
   return <div className={styles.host}>
     {evidenceMount && createPortal(<><NewsCards news={news} /><EvidenceCards projects={projects} onInspect={(projectId) => setState({ selectedProjectId: projectId })} /></>, evidenceMount)}
     <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNews={setNews} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
@@ -272,8 +289,8 @@ export default function Mentor() {
     </section>, notesMount)}
     {voiceNotice && <div className={styles.voiceNotice} role="status"><span>{voiceNotice}</span><button type="button" aria-label="Dismiss voice notice" onClick={() => setVoiceNotice("")}>×</button></div>}
     <div className={styles.dock}>
-      <button ref={launcher} className={styles.bubble} data-state={voiceState.toLowerCase()} type="button" disabled={!voiceReady} aria-label={voiceState === "Connecting" ? "Connecting live conversation" : activeAudio ? voiceState === "Muted" ? "Unmute conversation" : "Mute conversation" : "Start live voice conversation"} aria-describedby="voice-caption" onClick={() => { if (voiceState === "Connecting") return; if (activeAudio) live.current?.toggleMute(); else { close(); startVoice.current?.(); } }}>
-        <span className={styles.wave} aria-hidden="true"><i /><i /><i /><i /></span>
+      <button ref={launcher} className={styles.bubble} data-state={voiceState.toLowerCase()} type="button" disabled={!voiceReady} aria-label={voiceState === "Connecting" ? "Connecting live conversation" : activeAudio ? voiceState === "Muted" ? "Unmute conversation" : "Mute conversation" : "Start live voice conversation"} aria-describedby="voice-caption" onClick={() => { if (voiceState === "Connecting") return; fred.current?.poke?.(); if (activeAudio) live.current?.toggleMute(); else { close(); startVoice.current?.(); } }}>
+        <fred-pet ref={fred} aria-hidden="true" role="presentation" tabIndex={-1} />
       </button>
       {/* The bubble stands alone (the person: the side buttons duplicated the Talk and Idea tabs); a live call still needs a way to hang up. */}
       {activeAudio && <button className={styles.utility} type="button" onClick={() => live.current?.end()}>End conversation</button>}
