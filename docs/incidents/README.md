@@ -5,6 +5,7 @@ facts you can point to: a log line, an issue comment, a command's output. If the
 
 | When | Incident | Impact | Record |
 |---|---|---|---|
+| 2026-10-11 02:30–03:50 | Local e2e on a Mac at load average 21–57 (other agents' Playwright and embedding): runs timed out in setup, and a real failure was filed as load noise | About 70 min of the person's wait on a small UI fix. #399 shipped a bug (with reduced motion, clicking a project's name selected the wrong star) from 03:26 until #401 at 03:49 | [e2e-on-overloaded-mac](2026-10-11-e2e-on-overloaded-mac.md) |
 | 2026-10-11 03:40–04:05 | The planner ran bulk Gemini labelling without approval or an estimate, on the key production falls back to | ~28.3M input tokens spent on 20,650 labels, unapproved. The spare key hit 429 on its per-minute quota, putting live AI features at risk. The primary key was already out of credit (402) | [gemini-labelling-spend](2026-10-11-gemini-labelling-spend.md) |
 | 2026-10-11 02:35 | The 76,901 release was stopped by corpus-release's saved-idea gate: production held 14 saved idea versions | Publication paused about an hour while the person decided. Released only after their direct confirmation in the publisher's chat; saved rows left untouched | #262, comments from 06:35Z |
 | 2026-10-11 02:09 | The Mac growth fetch stopped, 51 minutes before its 03:00 deadline | Collection ended at 57,488 full projects. **Cause unknown.** The planner first blamed a full disk, but the traceback it read was the 00:12 crash's, in a log last written at 00:14 | data files last written 02:09 |
