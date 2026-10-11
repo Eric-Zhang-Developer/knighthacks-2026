@@ -8,6 +8,15 @@ const fixture = readFileSync("corpus/fixtures/sample.jsonl", "utf8")
   .slice(0, 3)
   .map((l) => JSON.parse(l) as { id: string; title: string });
 
+// These check search, not the map. A headless browser software-renders the whole galaxy (76k stars), which starved
+// the page's main thread: in #486's runs the results took 14.5 s to render after a 2.1 s response, and a screenshot
+// took 12.6 s. Like the drawer test, the page here gets a three-star map.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/corpus/stars.json", (r) =>
+    r.fulfill({ json: { corpus_version: "test", count: fixture.length, stars: fixture.map((f, i) => ({ id: f.id, x: i, y: 0, z: 0, title: f.title, event: null, year: null })) } }),
+  );
+});
+
 test("a fixture title finds that project first, by meaning", async ({ request }) => {
   for (const r of fixture) {
     const res = await request.get(`/api/search?q=${encodeURIComponent(r.title)}`);
@@ -26,10 +35,8 @@ test("type a query: results list; clear: list gone", async ({ page }) => {
   const box = page.getByRole("searchbox", { name: "Search projects" });
   await box.fill(fixture[0].title);
   const similar = page.getByRole("list", { name: "Similar projects" });
-  // The first search after load embeds the query cold while the page paints the galaxy: measured at ~4.2 s from
-  // request to results on a quiet machine (#486), past expect's 5 s default under any load. Meaning, not speed, is
-  // what this checks.
-  await expect(similar.getByRole("button").first()).toContainText(fixture[0].title, { timeout: 20_000 });
+  // The first search embeds the query cold (2.1 s server time in #486's run); expect's 5 s default left no margin.
+  await expect(similar.getByRole("button").first()).toContainText(fixture[0].title, { timeout: 15_000 });
   await page.screenshot({ path: test.info().outputPath("search-results.png") });
   await similar.getByRole("button").first().click();
   // Picking a result folds the panel away (#457); a click on the box brings it back with that result marked.
