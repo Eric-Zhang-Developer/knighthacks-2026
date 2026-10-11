@@ -95,6 +95,23 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    Measure actual response/interruption latency and document gaps rather than claiming an invented target.
 
 ## Validation
+0. User-requested idea management: a compact saved-idea selector with a clear Add idea action, selected title
+   and secondary per-idea Delete action. Reuse existing create/list APIs and the coordinated
+   `DELETE /api/ideas/:ideaId` contract. Keep desktop controls compact and phone controls in a readable sheet
+   or disclosure; no crowded repeated forms. Buttons must be keyboard accessible with visible focus and
+   comfortable touch targets. Confirm the exact title before deletion, explain all versions will be removed
+   and existing decision snapshots/shared exports remain, with access to existing share revocation.
+   Cancel performs no request. Keep state on failure and announce success only after the API succeeds.
+   Creating another preserves existing saved ideas. Switching clears stale version-specific evidence and
+   pending mutations; deletion removes its stars/history selection and selects a remaining idea or an empty
+   draft. Late callbacks must not restore deleted content or apply an old confirmation to a new selection.
+   Voice supports explicit add/list/select/delete intents through the same app state and authorized routes.
+   Resolve the target against current workspace ideas; ask when names are ambiguous. A voice deletion request
+   opens the same named confirmation; require the visible destructive confirmation button, never a bare yes,
+   transcript substring or provider tool mutation. Inform the mentor of the confirmed result/current selection.
+   Test two saved ideas, switching, deleting selected/unselected/last idea, cancellation, failure, duplicate or
+   stale voice callbacks, foreign IDs and reload at 390px and desktop. Real spoken acceptance stays separate
+   from mocked SDK tests. codex-conversation-ui owns these frontend changes; coordinate with kiro-agent-1.
 1. Real human/demo hardware: start -> spoken idea -> relevant spoken follow-up -> answer -> interrupt/correct
    -> inspect real related projects -> justified refinement -> explicit confirm -> correct persisted idea and
    map state -> existing decision/share journey. Record the actual voice/model and human feedback.
