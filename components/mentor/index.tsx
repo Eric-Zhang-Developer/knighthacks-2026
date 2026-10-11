@@ -13,6 +13,7 @@ import { addCandidate, type Candidate } from "./candidates";
 import { confirmedCandidate, readCommand, type PendingSave } from "./commands";
 import { IDEA_INTENT, IDEA_RESULT, IDEA_SELECTED, readIdeaIntent } from "./idea-management";
 import EvidenceCards, { type MentorProject } from "./EvidenceCards";
+import NewsCards, { type MentorNews } from "./NewsCards";
 import styles from "./mentor.module.css";
 
 const Live = dynamic(() => import("./Live"), { ssr: false });
@@ -35,6 +36,7 @@ export default function Mentor() {
   const [actionNotice, setActionNotice] = useState("");
   const pendingSave = useRef<PendingSave | null>(null);
   const [projects, setProjects] = useState<MentorProject[]>([]);
+  const [news, setNews] = useState<MentorNews | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +72,7 @@ export default function Mentor() {
   useEffect(() => {
     const selected = () => {
       selectionGeneration.current++; generation.current++; controller.current?.abort();
-      pendingSave.current = null; setProjects([]); setQuestion(null); setSaved(false);
+      pendingSave.current = null; setProjects([]); setNews(null); setQuestion(null); setSaved(false);
       initial.current = ""; answers.current = [];
       // A submitted save keeps the lock until its receipt; interpretation can be cancelled.
       if (controller.current) { lock.current = false; setBusy(false); controller.current = null; }
@@ -230,8 +232,8 @@ export default function Mentor() {
 
   const activeAudio = ["Listening", "Speaking", "Connecting", "Muted"].includes(voiceState);
   return <div className={styles.host}>
-    {evidenceMount && createPortal(<EvidenceCards projects={projects} onInspect={(projectId) => setState({ selectedProjectId: projectId })} />, evidenceMount)}
-    <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
+    {evidenceMount && createPortal(<><NewsCards news={news} /><EvidenceCards projects={projects} onInspect={(projectId) => setState({ selectedProjectId: projectId })} /></>, evidenceMount)}
+    <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={liveMessage} onProposal={proposed} onEvidence={setProjects} onNews={setNews} onNotice={setVoiceNotice} onState={(state) => { setVoiceState(state); if (["Connecting", "Ended", "Unavailable", "Disconnected"].includes(state)) pendingSave.current = null; }} onControls={(controls) => { live.current = controls; }} />
     {notesMount && createPortal(<section className={styles.panel} hidden={!open} aria-label="Brainstorm conversation" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
       <header className={styles.header}>
         <div><span className={styles.eyebrow}>UNCHARTED · LIVE VOICE</span><h2>{activeAudio ? voiceState === "Connecting" ? "Connecting your call…" : "We’re thinking together." : "Let’s think it through."}</h2></div>

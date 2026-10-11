@@ -15,10 +15,11 @@ describe("live connection compatibility and failure reporting", () => {
     expect(notice).not.toContain("wss:");
     expect(connectionFailureNotice({ token: "secret" })).not.toContain("secret");
   });
-  it("explains session limits without retrying, refunding or inventing a reset time", async () => {
+  it("reports provider rate limits without a hardcoded quota or invented reset time", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Mentor session limit reached" }), { status: 429 }));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(request("/api/mentor/session", {})).rejects.toThrow("Failed connections also count");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(request("/api/mentor/session", {})).rejects.toThrow("temporarily unavailable");
+    await expect(request("/api/mentor/session", {})).rejects.not.toThrow(/\d+ attempts|per hour|reset/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

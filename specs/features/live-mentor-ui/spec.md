@@ -155,6 +155,11 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    microphone request displays connecting animation, duplicate taps do not re-request, End cancels, and
    reduced-motion disables animation. Candidate cards remain reachable with the transcript closed. Check
    the rail and voice dock do not overlap. Speaking animation still requires the real SDK speaking callback.
+10. When the user asks for current news about their problem, the live client calls only `search_recent_news` and
+    renders its fresh seven-day result separately from corpus project cards. Show verified publication dates,
+    clickable resolved sources, supported claims, explicitly inferred relevance, the exact search window/as-of
+    date and every limitation. An empty result stays empty and says no verified recent news was found; never show
+    stale articles as a fallback or describe this non-exhaustive search as the absolute latest news.
 
 ## Hands-free confirmation amendment (human request)
 

@@ -73,3 +73,18 @@ After repairing a missing local pinned dependency, the full unit suite passed 58
 The production build passed; full lint and type checking are also required on the integration candidate.
 Full deletion UI acceptance (selected/unselected/last, failure and real voice), visual QA, and the previously
 outstanding real evidence -> confirmed save -> decision/share journey still block feature completion.
+
+Integration-only follow-up: this branch includes API448 at19280d6 and enables the named delete button for
+local testing against the dedicated TEST database. Type checking, scoped lint and60 combined mentor/idea
+unit tests pass. Selection also clears news cards, with live tool invalidation from mentor-quality454.
+This is not production approval or browser/voice acceptance; the UI feature branch keeps deletion disabled.
+The integration server enables this capability only in development when DATABASE_URL exactly equals the
+nonempty TEST_DATABASE_URL; hosted/production builds cannot enable it. Only a boolean reaches the browser.
+
+## Merge acceptance receipt (October 11)
+
+The human explicitly responded, "A good accept merge." This authorizes merging the prepared UI change; it is
+not evidence that the complete voice journey, interruption behavior, real-audio naturalness, or response latency
+was exercised. The focused news/provider readback suite passes 27 UI tests. The UI owner previously reported the
+full unit suite at 584 passed and two skipped. The browser, real-audio and end-to-end decision/share gaps above
+remain open and are not reclassified by this merge acceptance.

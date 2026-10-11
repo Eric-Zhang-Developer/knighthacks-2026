@@ -19,7 +19,7 @@ for (const width of [390, 1440]) {
     await page.getByRole("button", { name: "Delete this idea…", exact: true }).click();
     const confirm = page.getByRole("region", { name: "Confirm idea deletion" });
     await expect(confirm.getByRole("heading")).toHaveText("Delete “Study planner”?");
-    await expect(confirm.getByRole("button", { name: "Delete idea and all versions" })).toBeDisabled();
+    await expect(confirm.getByRole("button", { name: "Delete idea and all versions" })).toBeEnabled();
     await confirm.getByRole("button", { name: "Cancel", exact: true }).click();
     expect(deletes).toBe(0);
     await page.getByRole("button", { name: "+ Add idea", exact: true }).click();
@@ -47,4 +47,38 @@ test("a late initial list cannot leave the new draft and restore an old selectio
   await expect(page.getByRole("combobox", { name: "Select saved idea" })).toBeEnabled();
   await expect(page.getByRole("combobox", { name: "Select saved idea" })).toHaveValue("");
   await expect(page.getByRole("heading", { name: "Start with a conversation" })).toBeVisible();
+});
+
+test("deletion failure keeps the idea; successful selected and last deletes follow exact receipts", async ({ page }) => {
+  const a = { ideaId: "00000000-0000-4000-8000-000000000001", versionId: "00000000-0000-4000-8000-000000000011", title: "Study planner", description: null, problem: null, audience: null, workflow: null, constraints: null, parentId: null, x: 0, y: 0, z: 0, neighborIds: [], corpusVersion: "fixture", createdAt: "2026-10-11T01:00:00Z" };
+  const b = { ...a, ideaId: "00000000-0000-4000-8000-000000000002", versionId: "00000000-0000-4000-8000-000000000012", title: "Quiet campus", createdAt: "2026-10-11T00:00:00Z" };
+  let ideas = [a, b];
+  let fail = true;
+  await page.route("**/api/workspace", (route) => route.fulfill({ json: { workspaceId: "fixture-workspace", memberId: "fixture-member" } }));
+  await page.route("**/api/ideas", (route) => route.fulfill({ json: ideas }));
+  await page.route("**/api/ideas/*", (route) => {
+    if (route.request().method() !== "DELETE") return route.fulfill({ status: 404, json: {} });
+    if (fail) return route.fulfill({ status: 503, json: { error: "Unavailable" } });
+    const ideaId = new URL(route.request().url()).pathname.split("/").pop();
+    ideas = ideas.filter((idea) => idea.ideaId !== ideaId);
+    return route.fulfill({ json: { ideaId, deleted: true } });
+  });
+  await page.goto("/#idea");
+  const picker = page.getByRole("combobox", { name: "Select saved idea" });
+  await expect(picker).toHaveValue(a.ideaId);
+  await page.getByText("Manage this idea", { exact: true }).click();
+  await page.getByRole("button", { name: "Delete this idea…", exact: true }).click();
+  await page.getByRole("button", { name: "Delete idea and all versions", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Deletion was not confirmed" })).toBeVisible();
+  await expect(picker).toHaveValue(a.ideaId);
+  fail = false;
+  await page.getByRole("button", { name: "Delete idea and all versions", exact: true }).click();
+  await expect(picker).toHaveValue(b.ideaId);
+  await page.getByRole("button", { name: "Delete this idea…", exact: true }).click();
+  await page.getByRole("button", { name: "Delete idea and all versions", exact: true }).click();
+  await expect(picker).toHaveValue("");
+  await expect(page.getByRole("heading", { name: "Start with a conversation" })).toBeVisible();
+  await page.reload();
+  await expect(picker).toBeEnabled();
+  await expect(picker).toHaveValue("");
 });

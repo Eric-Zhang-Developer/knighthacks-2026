@@ -39,8 +39,8 @@ const postJson = (body: unknown, headers: Record<string, string> = {}) => ({
   body: JSON.stringify(body),
 });
 
-export default function Idea() {
-  return <><IdeaManager /><IdeaContent /></>;
+export default function Idea({ deletionAvailable = false }: { deletionAvailable?: boolean }) {
+  return <><IdeaManager deletionAvailable={deletionAvailable} /><IdeaContent /></>;
 }
 
 function IdeaContent() {
