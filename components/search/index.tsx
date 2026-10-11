@@ -64,8 +64,14 @@ export default function Search() {
       const hits = localMatches(stars, filters).filter(keep);
       setState({ highlightedIds: hits.map((h) => h.id) });
       setView({ state: "local", hits });
-      return;
     }
+  }, [q, filters, stars, keep]);
+
+  // A query's request depends on the query and filters only: stars and categories arriving after the first keystroke
+  // used to abort it and start over (#486). Category and prize apply to its results in `data` below.
+  useEffect(() => {
+    const query = q.trim();
+    if (!query) return;
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -80,7 +86,7 @@ export default function Search() {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [q, filters, stars, keep]);
+  }, [q, filters]);
 
   const data = useMemo(() => {
     if (view.state !== "done") return null;
