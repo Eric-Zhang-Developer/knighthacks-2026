@@ -270,11 +270,12 @@ input[type="range"] { accent-color: var(--accent); }
   color: var(--paper);
 }
 
-/* The idea path: each panel that appears gets its step number, as an instrument marking above the title. */
+/* The idea path: each panel that appears gets its step number, as an instrument marking above the title. The
+   selected project's sheet shares the column but isn't a step (#471). */
 aside[aria-label="Idea and evidence"] .ui-panel {
   animation: rise 0.4s var(--md-sys-motion-easing-emphasized-decelerate) both;
 }
-aside[aria-label="Idea and evidence"] .ui-heading::before {
+aside[aria-label="Idea and evidence"] .ui-heading:not(.shell-sheet *)::before {
   counter-increment: step;
   content: "Step " counter(step);
   display: block;

@@ -13,7 +13,7 @@
 .railControls { max-height: 55dvh; overflow: auto; padding: 0 12px 14px; }
 .railControls :global([aria-label="Universe"]) { display: none; }
 .composer { position: absolute; z-index: 10; bottom: 24px; left: 50%; transform: translateX(-50%); }
-.side { display: none; position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 284px); width: 350px; z-index: 3; overflow: auto; overscroll-behavior: contain; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
+.side { display: none; position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 384px); /* ends above the zoom stack */ width: 350px; z-index: 3; overflow: auto; overscroll-behavior: contain; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
 /* One contextual destination on every screen size; Explore keeps the map clear.
    A selected source can still open its inspection sheet from any destination. */
 .ideaPath, .decide, .plan { display: none; }
@@ -42,6 +42,9 @@
   /* "Browse the map" holds the map's top left, so the galaxy's layout toggle takes the top right. */
   .chart :global([aria-label="Arrange stars"]) { left: auto; right: 16px; transform: none; }
   .side { inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
+  /* An open project sheet is fixed to the viewport, but .side's backdrop-filter made .side its containing block: the
+     sheet sat clipped inside a 22px panel under the header, its Close under "Filters" (#473). */
+  .side:has(:global(.shell-sheet[data-open="true"])) { backdrop-filter: none; overflow: visible; z-index: 30; background: none; border: 0; padding: 0; }
   :global(html[data-dest="talk"]) .top, :global(html[data-dest="talk"]) .rail { display: none; }
   .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 340px); }
   :global(html[data-dest="idea"]) .top, :global(html[data-dest="decide"]) .top, :global(html[data-dest="plan"]) .top,
