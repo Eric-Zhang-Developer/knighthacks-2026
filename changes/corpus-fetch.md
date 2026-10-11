@@ -7,6 +7,7 @@ Since #360: a rerun skips gallery pages it already handled (`corpus/data/progres
 verify: `node scripts/verify.mjs corpus-fetch /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-fetch/20261010T100020Z` pass at 2c8dfe0 (uncommitted changes) (evidence: /Users/ericzhang/code/hackathons/knighthacks-2026/.git/agent-evidence/corpus-fetch/20261010T100020Z)
 Live run: `fetch --limit 100` -> `discovered 101, fetched 100, parsed 100, deduplicated 0, written 100, rejected 0`; 3 random records' titles matched their live pages.
 Gallery capture and rate: `verify.py --slug corpus-fetch` pass (20 tests: card parser on saved real HTML, summaries and resume, gallery-only skips project pages and counts --limit per card, 2/s pacing, 429 backoff incl. HTTP-date Retry-After, no request after the deadline, second 429 and 403 stop, `--rps` ceiling, and corpus/release's own parser still reads the stop line).
+Gallery resume: `verify.py --slug corpus-fetch` pass at 20261011T002720Z (30 tests; the 6 resume tests fail on origin/main's run.py).
 ## Gaps
 - The first run on this code still re-walks once: progress.jsonl starts empty, and isn't seeded from earlier runs.
 - The full corpus run hasn't happened yet: it's operations, not this PR. Size unknown until it runs.
