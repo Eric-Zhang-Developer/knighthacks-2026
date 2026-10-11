@@ -33,9 +33,16 @@ monospace labels, a camera that follows the action) and the prototype's screensh
 3. A "By category / By meaning" toggle on the map, mirrored in the URL (`?layout=clouds|nebula`). Switching flies
    every star from one layout to the other (about 1.4 s, centre first, rim last, each path bowing outward);
    switching again mid-flight turns them around from where they are.
-4. Look: soft additive stars with a hot core and a halo in the category's hue, depth-dimmed; a faint glow per
-   cloud; a far starfield and dust for depth; a single full-screen pass for glow and tone mapping. Labels are HTML
-   from 3D ("Health & wellbeing · 774"); far-side labels fade and overlapping labels yield to the nearer one.
+4. Look: over the whole map, soft additive stars with a hot core and a halo in the category's hue, depth-dimmed; a
+   faint glow per cloud; a far starfield and dust for depth; a single full-screen pass for glow and tone mapping.
+   Labels are HTML from 3D ("Health & wellbeing · 774"); far-side labels fade and overlapping labels yield to the
+   nearer one. Zooming in sharpens the stars (person, 2026-10-11: "the fuzziness when you're up close… kind of
+   sucks"): from 1.3x to 3.5x the whole-map view, each star turns into a solid disc a few pixels wide with a lighter
+   centre, every star equally bright and still, and the cloud glow, bloom and white bleach fade out, so a dense core
+   reads as separate projects; stars spread apart as the camera closes in rather than swelling. A prize winner is a
+   disc inside a thin ring of a fixed width, at full brightness. Past halfway, the stars nearest the map's centre are
+   named (their real title, cut at 28 characters): at most 10, near side only, none covering another or a cloud's
+   name, each a button that selects its project; none while a project is selected or the stars are flying.
 5. Idea focus: dotted arcs from the active idea (placed among its neighbours in the current layout) to each
    neighbour, with a pulsing ring at the idea; other stars dim. Selecting a project flies the camera to it and
    rings it; clearing the selection eases back to the whole view.
@@ -68,8 +75,14 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    point under the pointer to 0.5 px through a real three.js camera; selected, nothing pans; the drift waits 20 s.
 5. Picking a project in the list puts its star at the map's centre (±6 px) within 1.5 s; "fit" brings at least
    97% of stars inside the map in either layout.
-6. `tests/e2e/galaxy-3d/` covers 2-5 with desktop and phone screenshots, and the galaxy, galaxy-history,
+6. `tests/e2e/galaxy-3d/` covers 2-5 and 7 with desktop and phone screenshots, and the galaxy, galaxy-history,
    galaxy-classes-ui, galaxy-explainer and experience-shell suites still pass.
+7. Zoomed into a cloud, stars are separate points (`sharp.spec.ts`, into Productivity & work at about 5.8x): in a
+   240px box at the map's centre, the share blown out (brightest channel above half) is at most a third of before the
+   change (49.4% on cd9b1b7) and the bright local peaks are no fewer (398). Over the whole map no project is named;
+   zoomed in, 1 to 10 are, each a real title from `stars.json`, and clicking one selects that project. Unit
+   (`tests/galaxy-3d/sharp.test.ts`): sharpness is 0 at the fit view, 1 at the closest zoom, never falling as you zoom
+   in; the name picker returns at most 10 near-side stars with no two names overlapping, skipping a cloud's name.
 
 ## Defaults
 "By category" is the default because it reads at a glance; "By meaning" is one tap away. Undo: set the default

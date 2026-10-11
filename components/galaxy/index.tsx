@@ -10,7 +10,7 @@ import { colourOf, compactRegions, keyOf, loadClasses, matches, setFocus, useCla
 import { setState, useAppState } from "@/lib/store";
 import { layoutOf, type LayoutName } from "./layouts";
 import type { Hover, Idea } from "./Scene";
-import { createdLabel, loadStars, revealMask, yearsOf, type Star, type StarsFile } from "./stars";
+import { createdLabel, loadStars, NAME_MAX, revealMask, yearsOf, type Star, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
 import { Orbit } from "./view";
 
@@ -31,6 +31,7 @@ export default function Galaxy() {
   const focusOn = useClasses((s) => s.focus);
   const [neighbors, setNeighbors] = useState<string[] | null>(null);
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
+  const [nameLayer, setNameLayer] = useState<HTMLDivElement | null>(null);
   // The 3D camera, shared by the scene (input, drift) and the map buttons and keys.
   const view = useMemo(() => new Orbit(), []);
   // Which layout the stars sit in, from ?layout= (default clouds); switching flies every star across.
@@ -68,6 +69,7 @@ export default function Galaxy() {
   const stars = useMemo(() => (load.state === "ready" ? load.data.stars : []), [load]);
   const data: ClassesFile | null = classes.state === "ready" ? classes.data : null;
   const ids = useMemo(() => stars.map((s) => s.id), [stars]);
+  const titles = useMemo(() => stars.map((s) => s.title), [stars]);
   const positions = useMemo(() => layoutOf(layout, stars, data), [layout, stars, data]);
   const years = useMemo(() => yearsOf(stars), [stars]);
   const revealed = useMemo(() => revealMask(stars, reveal), [stars, reveal]);
@@ -108,6 +110,10 @@ export default function Galaxy() {
       years.length > 0 && <History years={years} reveal={reveal} onReveal={setReveal} shown={shown} total={stars.length} unknown={unknownYear} />,
     [years, reveal, shown, stars.length, unknownYear],
   );
+  // A wheel over a name zooms the map, as it would a hair to the side.
+  const passWheel = useCallback((e: React.WheelEvent) => {
+    e.currentTarget.parentElement?.querySelector("canvas")?.dispatchEvent(new WheelEvent("wheel", e.nativeEvent));
+  }, []);
   // Clicking empty space clears the selection, which also closes its panel and frees the camera.
   const onPick = useCallback((i: number) => setState({ selectedProjectId: i >= 0 ? ids[i] : null }), [ids]);
 
@@ -153,9 +159,17 @@ export default function Galaxy() {
         idea={idea}
         regions={regions}
         labelLayer={labelLayer}
+        titles={titles}
+        nameLayer={nameLayer}
       />
+      {/* Zoomed in, the nearest projects' names: filled and placed by the scene; a name selects its project. */}
+      <div ref={setNameLayer} className={styles.names} role="group" aria-label="Projects near the middle" onWheel={passWheel}>
+        {Array.from({ length: NAME_MAX }, (_, k) => (
+          <button key={k} type="button" onClick={(e) => onPick(Number(e.currentTarget.dataset.index))} />
+        ))}
+      </div>
       {/* A cloud's name flies the camera to that cloud. */}
-      <div ref={setLabelLayer} className={styles.regions}>
+      <div ref={setLabelLayer} className={styles.regions} onWheel={passWheel}>
         {regions.map((g) => (
           <span key={g.key} className={styles.region} style={{ "--hue": `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
             <button type="button" aria-label={`Go to ${g.label}, ${g.count.toLocaleString()} projects`} onClick={() => view.flyToCloud([g.at[0], g.at[1], g.at[2]])}>

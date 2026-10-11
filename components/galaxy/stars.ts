@@ -89,6 +89,33 @@ export function pickNearest(screen: Float32Array, px: number, py: number, radius
   return best;
 }
 
+// Zoomed in, the stars nearest the map's centre are named. `screen` holds x, y, farness per star in CSS pixels
+// (NaN = hidden, behind the camera or off the map; farness 0 near side, 1 far side). Nearest the centre first; a name
+// that would overlap one already placed, or a box in `taken` (the cloud names), is skipped, so at most `max` names,
+// none covering another.
+export const NAME_MAX = 10;
+const NAME_CHARS = 28;
+export const shortTitle = (t: string) => (t.length > NAME_CHARS ? `${t.slice(0, NAME_CHARS - 1).trimEnd()}…` : t);
+const NAME_PX_PER_CHAR = 6.6; // the label's mono text, measured at --text-xs
+type Box = { x0: number; x1: number; y0: number; y1: number };
+export function nearestNames(screen: Float32Array, titles: readonly string[], cx: number, cy: number, taken: Box[] = [], max = NAME_MAX): number[] {
+  const order: number[] = [];
+  for (let i = 0; i < titles.length; i++) if (screen[3 * i + 2] < 0.6) order.push(i); // NaN fails too
+  const d = (i: number) => (screen[3 * i] - cx) ** 2 + (screen[3 * i + 1] - cy) ** 2;
+  order.sort((a, b) => d(a) - d(b));
+  const placed = [...taken];
+  const out: number[] = [];
+  for (const i of order) {
+    if (out.length >= max) break;
+    const [x, y] = [screen[3 * i], screen[3 * i + 1]];
+    const box = { x0: x - 4, x1: x + 14 + shortTitle(titles[i]).length * NAME_PX_PER_CHAR, y0: y - 10, y1: y + 10 };
+    if (placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) continue;
+    placed.push(box);
+    out.push(i);
+  }
+  return out;
+}
+
 // `year` is the project's created year, not its event date (changes/corpus-embed.md), so it's always labelled that way.
 export const createdLabel = (year?: number | null) => (year == null ? "date unknown" : `created ${year}`);
 

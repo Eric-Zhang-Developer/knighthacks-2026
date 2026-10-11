@@ -19,6 +19,15 @@ const INERTIA_DECAY = 3.2; // per s
 
 type Goal = { dist: number; target: Vec3 };
 
+// How crisp the stars are drawn, 0 to 1, from how far in the camera is: soft glow over the whole map (below 1.3x),
+// separate sharp points once a cloud fills the view (3.5x and in). A cloud's label flies to 2.2x, about halfway.
+const SHARP_FROM = 1.3;
+const SHARP_AT = 3.5;
+export function sharpness(zoomOverFit: number) {
+  const t = Math.min(1, Math.max(0, Math.log(zoomOverFit / SHARP_FROM) / Math.log(SHARP_AT / SHARP_FROM)));
+  return t * t * (3 - 2 * t);
+}
+
 export class Orbit {
   yaw = 0.7;
   pitch = 0.38;
@@ -70,6 +79,9 @@ export class Orbit {
   // How far in from the whole-galaxy view (1 = fit).
   get zoomOverFit() {
     return this.fitDist / this.dist;
+  }
+  get sharp() {
+    return sharpness(this.zoomOverFit);
   }
   get moving() {
     return this.goal !== null || this.dragging || Math.abs(this.vYaw) + Math.abs(this.vPitch) > 1e-3 || Math.hypot(...this.vPan) > 1e-4;
