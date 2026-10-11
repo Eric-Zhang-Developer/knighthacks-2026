@@ -13,7 +13,14 @@
 .railControls { max-height: 55dvh; overflow: auto; padding: 0 12px 14px; }
 .railControls :global([aria-label="Universe"]) { display: none; }
 .composer { position: absolute; z-index: 10; bottom: 24px; left: 50%; transform: translateX(-50%); }
-.side { position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 284px); width: 350px; z-index: 3; overflow: auto; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
+.side { display: none; position: absolute; right: 20px; top: 166px; max-height: calc(100dvh - 284px); width: 350px; z-index: 3; overflow: auto; overscroll-behavior: contain; border-radius: 24px; background: #0e111acc; backdrop-filter: blur(18px); border: 1px solid #ffffff20; padding: 12px; }
+/* One contextual destination on every screen size; Explore keeps the map clear.
+   A selected source can still open its inspection sheet from any destination. */
+.ideaPath, .decide, .plan { display: none; }
+:global(html[data-dest="talk"]) .side, :global(html[data-dest="idea"]) .side, :global(html[data-dest="decide"]) .side, :global(html[data-dest="plan"]) .side,
+.side:has(:global(.shell-sheet[data-open="true"])) { display: block; }
+:global(html[data-dest="talk"]) .ideaPath, :global(html[data-dest="idea"]) .ideaPath,
+:global(html[data-dest="decide"]) .decide, :global(html[data-dest="plan"]) .plan { display: block; }
 .side :global(.ui-panel) { background: #121722; box-shadow: none; }
 .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 384px); }
 .empty { color: #aeb7c9; padding: 20px; font-size: 14px; }
@@ -32,10 +39,7 @@
   .rail > summary { padding: 10px 14px; min-height: 44px; }
   .railControls { max-height: 45dvh; }
   .composer { position: fixed; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
-  .side { display: none; inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
-  .ideaPath, .decide, .plan { display: none; }
-  :global(html[data-dest="talk"]) .side, :global(html[data-dest="idea"]) .side, :global(html[data-dest="decide"]) .side, :global(html[data-dest="plan"]) .side { display: block; }
-  :global(html[data-dest="talk"]) .ideaPath, :global(html[data-dest="idea"]) .ideaPath, :global(html[data-dest="decide"]) .decide, :global(html[data-dest="plan"]) .plan { display: block; }
+  .side { inset: 72px 12px auto; width: auto; max-height: calc(100dvh - 246px); padding: 10px; }
   :global(html[data-dest="talk"]) .top, :global(html[data-dest="talk"]) .rail { display: none; }
   .shell:has([aria-label="Voice"] [role="status"] > span) .side { max-height: calc(100dvh - 340px); }
   :global(html[data-dest="idea"]) .top, :global(html[data-dest="decide"]) .top, :global(html[data-dest="plan"]) .top,

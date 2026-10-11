@@ -47,3 +47,13 @@ Fresh browser automation is blocked by the session's browser access policy; no a
 was used. Human basic live audio was reported working, but the user explicitly has not tried the remaining
 real-evidence -> proposal -> explicit confirmed-save flow. Required live/phone and decision/share acceptance
 remain open; no completion note or production readiness is claimed.
+
+## Desktop screenshot follow-up
+
+The user's production `?layout=nebula` screenshot still shows the separate square/red theme and old dictation
+bar, not this unmerged mentor shell. Mac theme owner received the concrete feedback on PR #432. In this UI
+branch, destination-scoped panel visibility now applies to desktop as well as phone: Explore has no permanent
+idea rail, a selected project still opens inspection, and Idea/Decide/Plan no longer stack together. The existing
+mentor mount is unchanged. Added 390px/1440px browser assertions for destination isolation, bubble visibility
+and horizontal overflow. These new browser assertions are not run here because browser access is policy-blocked;
+Mac visual verification and production integration remain required. This is not a whole-app redesign completion.
