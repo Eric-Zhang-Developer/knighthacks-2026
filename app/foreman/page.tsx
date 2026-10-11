@@ -23,7 +23,7 @@ const mono = localFont({
 });
 
 // Unlisted: nothing links here and search engines are told to stay out. Everything shown is already public.
-export const metadata: Metadata = { title: "Foreman · Uncharted", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Foreman · Golden Egg", robots: { index: false, follow: false } };
 // One snapshot per build (specs/features/foreman/spec.md § Architecture): prerendered once, no GitHub call per view.
 // force-static keeps it static even though the collector's fetches say no-store (so Next never caches them).
 export const dynamic = "force-static";
@@ -64,7 +64,7 @@ export default async function ForemanPage() {
       <header className={styles.header}>
         {/* The main site's wordmark (components/shell), so the two read as one product; it leads back to the galaxy. */}
         <Link href="/" className={styles.brand}>
-          Uncharted
+          Golden Egg
           <small>How it was built</small>
         </Link>
         <span className={`${styles.sub} ${styles.survey}`} data-sha={board.sha} data-snapshot={board.fetchedAt}>
@@ -118,7 +118,7 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
       <p className={styles.intro} data-testid="intro">
         {board.prsKnown ? (
           <>
-            <b>Uncharted</b> was built by <b>{board.stats.crew}</b> agent workers in parallel, under one rulebook (
+            <b>Golden Egg</b> was built by <b>{board.stats.crew}</b> agent workers in parallel, under one rulebook (
             <a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>)
             {board.stats.firstPrAt && (
               <>
@@ -130,7 +130,7 @@ function Sections({ board, now, build, crew }: { board: Board; now: number; buil
         ) : (
           <>
             Agent workers under one rulebook (<a href={`https://github.com/${board.repo}/blob/main/AGENTS.md`}>AGENTS.md</a>) have
-            built <b>Uncharted</b>&apos;s <b>{done}</b> of <b>{scheduled.length}</b> planned features.
+            built <b>Golden Egg</b>&apos;s <b>{done}</b> of <b>{scheduled.length}</b> planned features.
           </>
         )}{" "}
         Every number here was read from the repo and GitHub at <b>{at(board.fetchedAt)}</b>.

@@ -17,7 +17,7 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Uncharted",
+  title: "Golden Egg",
   description: "A galaxy of hackathon projects that helps a team decide what to build.",
   // Inline, so no /favicon.ico request 404s: a pale-blue four-point star on the night sky.
   icons: {

@@ -48,7 +48,7 @@ test("one tap requests microphone; mount/hash never listen; denial keeps typing 
   const bubble = page.getByRole("button", { name: "Start live voice conversation", exact: true });
   await expect(bubble).toBeEnabled();
   expect(microphoneRequests).toBe(0);
-  await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start live conversation", exact: true })).toHaveCount(0);
   await bubble.click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
@@ -56,14 +56,14 @@ test("one tap requests microphone; mount/hash never listen; denial keeps typing 
   expect(microphoneRequests).toBe(1);
   await page.getByRole("link", { name: "Talk", exact: true }).click();
   await page.getByRole("button", { name: "Prefer to type?" }).click();
-  await page.getByRole("textbox", { name: "Message Uncharted" }).fill("Keep my idea while voice is unavailable.");
+  await page.getByRole("textbox", { name: "Message Golden Egg" }).fill("Keep my idea while voice is unavailable.");
   await page.getByRole("button", { name: "Minimize conversation", exact: true }).click();
   await page.getByRole("link", { name: "Talk", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveValue("Keep my idea while voice is unavailable.");
+  await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toHaveValue("Keep my idea while voice is unavailable.");
   await page.getByRole("link", { name: "Decide", exact: true }).click();
   await expect(page.getByRole("region", { name: "Brainstorm conversation" })).toBeHidden();
   await page.getByRole("link", { name: "Talk", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toHaveValue("Keep my idea while voice is unavailable.");
+  await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toHaveValue("Keep my idea while voice is unavailable.");
   expect(microphoneRequests).toBe(1);
   await page.screenshot({ path: test.info().outputPath("phone-voice-denied.png") });
 });
@@ -116,10 +116,10 @@ test("three proposals remain separate; only an explicit selected card is saved",
   await page.goto("/#talk");
   await page.getByRole("button", { name: "Prefer to type?" }).click();
   for (const text of ["Consider a study planner", "Also consider a study partner", "Also consider a practice coach"]) {
-    await page.getByRole("textbox", { name: "Message Uncharted" }).fill(text);
+    await page.getByRole("textbox", { name: "Message Golden Egg" }).fill(text);
     await page.getByRole("button", { name: "Send message", exact: true }).click();
     await expect(page.getByRole("heading", { name: `Fixture direction ${sequence || 1}`, exact: true })).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toBeEmpty();
+    await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toBeEmpty();
     await expect(page.getByText("Thinking through your idea…")).toHaveCount(0);
   }
   const cards = page.getByRole("region", { name: "Candidate ideas" });
@@ -131,9 +131,9 @@ test("three proposals remain separate; only an explicit selected card is saved",
   await expect(cards.getByRole("article")).toHaveCount(3);
   await expect(cards.getByRole("button", { name: "Proceed with this idea" })).toHaveCount(2);
   const say = async (text: string, keepsConversationOpen = true) => {
-    await page.getByRole("textbox", { name: "Message Uncharted" }).fill(text);
+    await page.getByRole("textbox", { name: "Message Golden Egg" }).fill(text);
     await page.getByRole("button", { name: "Send message", exact: true }).click();
-    if (keepsConversationOpen) await expect(page.getByRole("textbox", { name: "Message Uncharted" })).toBeEmpty();
+    if (keepsConversationOpen) await expect(page.getByRole("textbox", { name: "Message Golden Egg" })).toBeEmpty();
   };
   await say("save idea one");
   await expect(page.getByText(/To confirm within one minute/)).toBeVisible();
