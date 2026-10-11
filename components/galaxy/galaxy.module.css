@@ -290,5 +290,8 @@
    the voice bar's buttons, so it stays only for screen readers. */
 @media (max-width: 720px) {
   .layouts { left: auto; right: var(--space-3); transform: none; }
+  .layouts button { min-height: 44px; } /* a full tap target (#476) */
   .galaxy .status { clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap; }
 }
+/* A 360px phone: the toggle and "Browse the map" share one row, so the toggle's buttons slim down (#476). */
+@media (max-width: 380px) { .layouts button { padding: 0 var(--space-3); } }

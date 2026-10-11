@@ -102,7 +102,11 @@ export default function Galaxy() {
   const years = useMemo(() => yearsOf(stars), [stars]);
   const revealed = useMemo(() => revealMask(stars, reveal), [stars, reveal]);
   // The map, list and legend all use this one mask, so their counts agree under any filter.
-  const visible = useMemo(() => Uint8Array.from(revealed, (v, i) => (v && matches(data, ids[i], filter) ? 1 : 0)), [revealed, data, ids, filter]);
+  // The search's event filter narrows the stars too (#459: the list showed one event while every star stayed lit).
+  const visible = useMemo(
+    () => Uint8Array.from(revealed, (v, i) => (v && (!filter.event || stars[i].event === filter.event) && matches(data, ids[i], filter) ? 1 : 0)),
+    [revealed, data, ids, filter, stars],
+  );
   const events = useMemo(() => new Set(stars.flatMap((s) => (s.event ? [s.event] : []))).size, [stars]);
   const kept = plain ? neighbors : null;
   const colourAt = useMemo(() => {
@@ -434,7 +438,7 @@ const ProjectList = memo(function ProjectList(props: {
       onBlur={(e) => onHold(e.currentTarget.contains(e.relatedTarget as Node | null) || e.currentTarget.matches(":hover"))}
     >
       {/* Click (Enter on a summary is one) renders the rows at once: toggle fires a task later, after a quick Tab. */}
-      <summary onClick={(e) => setOpen(!(e.currentTarget.parentElement as HTMLDetailsElement).open)}>Projects ({stars.length})</summary>
+      <summary onClick={(e) => setOpen(!(e.currentTarget.parentElement as HTMLDetailsElement).open)}>Projects ({stars.length.toLocaleString()})</summary>
       {open && mode !== "all" && (
         <p ref={caption} tabIndex={-1} className={styles.listNote}>
           {mode === "clouds"

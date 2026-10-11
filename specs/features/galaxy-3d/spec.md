@@ -58,6 +58,12 @@ monospace labels, a camera that follows the action) and the prototype's screensh
    lights its matches against a plain field. Kept in the URL as `?colors=off`. "By meaning" shows no category labels:
    a category spans the whole map there, so its centre is the middle and the labels piled up on each other.
 
+9. Framing and filters (the planner's UI audit, #465 #459 #476 #472). The whole-map view frames the layout's median
+   star, not 0: the 76,316-project release sits low (median y -0.28), so "By meaning" had drawn at the bottom of the
+   screen. The search's event filter narrows the map's stars too, so the map, list and legend count the same stars.
+   On a phone the layout toggle is a 44 px tap target and fits beside "Browse the map" at 360 px. Counts are
+   formatted ("Projects (76,316)").
+
 ## Requirements
 - No new dependency: the camera, morph and glow pass are our own code on three.js and react-three-fiber.
 - Renders on real GPUs, not only software GL: the final pass writes premultiplied colour with a real alpha (alpha
