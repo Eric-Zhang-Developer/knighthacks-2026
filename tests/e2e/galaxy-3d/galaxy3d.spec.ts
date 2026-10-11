@@ -11,6 +11,16 @@ type Canvas = HTMLCanvasElement & {
 };
 
 const galaxy = (page: Page) => page.locator("[data-star-count]");
+// The project list shows clouds over the whole map when there are too many stars to list (specs/decisions/
+// galaxy-project-list.md): pick the first cloud, then the projects nearest the view are listed.
+async function listProjects(page: Page) {
+  const list = page.locator("[data-list-mode]");
+  if ((await list.getAttribute("data-list-mode")) === "clouds") await list.getByRole("list", { name: "Clouds" }).getByRole("button").first().click();
+  const rows = list.getByRole("list", { name: "Projects" }).getByRole("button");
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  return rows;
+}
+
 const canvas = (page: Page) => page.locator("canvas");
 const ready = async (page: Page) => {
   await expect.poll(() => canvas(page).evaluate((c) => "starMorph" in c && "starScreen" in c)).toBe(true);
@@ -137,7 +147,8 @@ test("picking a project centres it; fit shows the galaxy in both layouts", async
   await expect(galaxy(page)).toHaveAttribute("data-classes", "ready");
 
   await page.locator("summary", { hasText: /^Projects \(/ }).click();
-  await page.getByRole("list", { name: "Projects" }).getByRole("button").nth(40).click();
+  const rows = await listProjects(page);
+  await rows.nth(Math.min(10, (await rows.count()) - 1)).click();
   const id = await galaxy(page).getAttribute("data-selected-id");
   const index = await page.evaluate(
     (id) => fetch("/corpus/stars.json").then((r) => r.json()).then((s: { stars: { id: string }[] }) => s.stars.findIndex((x) => x.id === id)),
