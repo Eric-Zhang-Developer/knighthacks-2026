@@ -48,6 +48,23 @@ competes for pick order.
 
 Human work beside the agents: Figma frames (for the Figma track), the demo video, and Devpost.
 
+## Corpus goal (person, Sat 18:10)
+More real projects make every answer better: closer neighbours, fewer "nothing like it" gaps, stronger evidence.
+The goal is **every hackathon project on Devpost**; the person would be happy with **100,000**. Devpost lists
+13,862 ended hackathons (its API, Sat 18:05). The total project count isn't known yet; the gallery walk will
+measure it.
+- **Tonight, full records (#262):** title, tagline, description and technologies from each project page, at 2
+  requests per second until Sun 03:00, then one release with the 2D layout (`galaxy-2d`), so the map is re-laid
+  out once, not twice. Projected 45–55k; the release prints the real count.
+- **Stretch, summary records:** every gallery page already lists ~24 projects (title, tagline, winner badge;
+  `summaries.jsonl`, #310), so a gallery-only pass covers far more projects per request than project pages.
+  They become stars marked `summary` (no description, which stays unknown), with full records where we have them.
+  This needs embedding fast enough (local `bge-m3` if it passes the parity check in `corpus-embed`), a `detail`
+  column, a "summary only" label wherever a record is shown or quoted, and a star file that loads quickly at 100k+.
+  Specs follow once the embedding speed is measured; nothing here is scheduled yet.
+- **Rules that don't bend for size:** every star links to its source page, nothing is filled in, the fetch keeps
+  the 429 backoff and the 403 stop, and one machine fetches.
+
 ## Not doing
 - The V3 plan's process layer: the cross-machine coordinator, `automation/state` branch, supervisors and automated
   cross-model review. Both machines run brigade workers exactly as `AGENTS.md` says: a draft PR is the claim, and
