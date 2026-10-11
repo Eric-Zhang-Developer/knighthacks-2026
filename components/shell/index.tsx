@@ -32,6 +32,12 @@ export default function Nav() {
   }, []);
   useEffect(() => {
     document.documentElement.dataset.dest = dest;
+    if (matchMedia(PHONE).matches || dest === "explore") return;
+    const frame = requestAnimationFrame(() => {
+      const target = dest === "talk" ? "mentor-notes" : dest === "idea" ? "mentor-ideas" : `step-${dest}`;
+      document.getElementById(target)?.scrollIntoView({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [dest]);
 
   // On the phone an open project is a history entry, so Back closes it and leaves the destination alone.
@@ -67,10 +73,6 @@ export default function Nav() {
             setDest(d.id);
             window.dispatchEvent(new Event("hashchange"));
             if (d.id === "talk") window.dispatchEvent(new Event("mentor:open"));
-            if (!matchMedia(PHONE).matches) requestAnimationFrame(() => {
-              const target = d.id === "talk" ? "mentor-notes" : d.id === "idea" ? "mentor-ideas" : `step-${d.id}`;
-              document.getElementById(target)?.scrollIntoView({ block: "start" });
-            });
           }}
         >
           <span className="shell-nav-icon" aria-hidden>
