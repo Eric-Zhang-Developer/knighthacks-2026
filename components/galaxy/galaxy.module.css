@@ -48,23 +48,90 @@
 .list button:hover { background: var(--border); }
 .list button[aria-pressed="true"] { background: var(--border); font-weight: 600; }
 
-/* Region names over compact category clusters; positioned each frame by Scene.tsx. */
+/* Category names over their clouds, projected from 3D each frame by Scene.tsx: a hairline rises from the cloud's
+   centre to a thin name and a mono count, in the cloud's hue. */
 .regions { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .region {
   position: absolute;
   left: 0;
   top: 0;
-  display: grid;
-  justify-items: center;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--paper);
-  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg);
-  white-space: nowrap;
+  width: 0;
+  height: 0;
   visibility: hidden;
+  will-change: transform, opacity;
 }
-.region small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+.region::before {
+  content: "";
+  position: absolute;
+  left: -0.5px;
+  bottom: 0;
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(to top, transparent, var(--hue));
+  opacity: 0.6;
+}
+.region > span {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--md-sys-shape-corner-full);
+  /* A soft dark pool behind the name, so it reads over the brightest cloud without a hard box. */
+  background: radial-gradient(closest-side, rgb(7 9 16 / 0.72), rgb(7 9 16 / 0.35) 70%, transparent);
+  white-space: nowrap;
+  font: 350 13px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg), 0 0 2px var(--bg);
+}
+.region > span::before {
+  content: "";
+  align-self: center;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hue);
+  box-shadow: 0 0 8px var(--hue);
+}
+.region small { font: 400 10.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--muted); }
+@media (max-width: 720px) { .region > span { font-size: 11px; } .region small { font-size: 9.5px; } }
+
+/* By category / by meaning. A small segmented control at the top of the map. */
+.layouts {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--rule);
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+}
+.layouts button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: none;
+  color: var(--muted);
+  font: var(--md-sys-typescale-label-medium);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--md-sys-motion-easing-emphasized), color 0.2s var(--md-sys-motion-easing-emphasized);
+}
+.layouts button:hover { color: var(--text); }
+.layouts button[aria-pressed="true"] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
 
 /* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
 .railControls { display: contents; }

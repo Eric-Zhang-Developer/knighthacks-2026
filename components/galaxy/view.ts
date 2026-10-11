@@ -1,229 +1,184 @@
-// The 2D map's view: a centre in world units and a zoom in CSS pixels per world unit. Pure state and maths, so the
-// scene, the map buttons and the tests all drive the same object.
+// The 3D galaxy's camera. An orbit around a target point: yaw, pitch and distance. Pure state and maths,
+// so the scene, the map buttons and the keys all drive the same object.
 //
-// Motion follows the apple-design skill: a pan keeps the release velocity and decelerates like a scroll view
-// (rate 0.998 per ms); zoom-to and fly-to are critically damped springs (response 0.4 s) that start from wherever
-// the view is now, so any new input interrupts them. With reduced motion every change is a jump.
+// Motion: a drag rotates 1:1 and a release keeps its angular velocity, decaying like a scroll view; zoom-to, fit and
+// fly-to are critically damped springs that start from wherever the camera is now, so any new input interrupts them.
+// When nobody has touched the map for a few seconds the camera drifts round the galaxy, easing in rather than jumping
+// to speed. With reduced motion every change is a jump and nothing drifts.
 
-export type Box = { minX: number; minY: number; maxX: number; maxY: number };
-type Target = { x: number; y: number; zoom: number };
+export type Vec3 = [number, number, number];
 
-const DECELERATION = 0.998; // per ms
-const RESPONSE = 0.4; // s
-const OMEGA = (2 * Math.PI) / RESPONSE;
-const STOP_PX_PER_S = 8; // momentum below this, on screen, is done
-const FIT_MARGIN = 0.9; // the whole map fills 90% of the shorter side
-export const MAX_ZOOM_OVER_FIT = 40;
+export const FOV = 50; // vertical, degrees
+const SPRING_S = 0.7; // s, spring response
+const W = (2 * Math.PI) / SPRING_S;
+const AUTO_SPEED = (2 * Math.PI) / 105; // rad/s: one turn in 105 s
+const IDLE_RESUME = 3.5; // s without input before the drift starts again
+const RAD_PER_PX = 0.005;
+const PITCH_LIMIT = 1.35;
+const INERTIA_DECAY = 3.2; // per s
 
-export class Viewport {
-  x = 0;
-  y = 0;
-  zoom = 1;
-  width = 1;
-  height = 1;
+type Goal = { dist: number; target: Vec3 };
+
+export class Orbit {
+  yaw = 0.7;
+  pitch = 0.38;
+  dist = 2;
+  target: Vec3 = [0, 0, 0];
   reduced = false;
-  private fitView: Target = { x: 0, y: 0, zoom: 1 };
-  private vx = 0; // world units per second (momentum), or per-axis spring velocity
-  private vy = 0;
-  private vz = 0; // spring velocity of log(zoom)
-  private mode: "idle" | "momentum" | "spring" = "idle";
-  private target: Target | null = null;
+  dragging = false;
+  held = false; // a project is selected: panning does nothing, so it stays centred (turning still circles it)
+  fitDist = 2;
+  private radius = 0.55; // the galaxy's radius for framing (positions sit inside a unit cube centred on 0)
+  private aspect = { width: 1, height: 1 };
   private placed = false;
-  // Called whenever the view changes, so a scene that only draws on demand knows to draw.
-  onChange: () => void = () => {};
+  private goal: Goal | null = null;
+  private vDist = 0; // spring velocity of log(dist)
+  private vTarget: Vec3 = [0, 0, 0];
+  private vYaw = 0; // release inertia, rad/s
+  private vPitch = 0;
+  private idle = 0;
+  private auto = 0; // current drift speed, eases toward AUTO_SPEED
 
-  // The map's extent and the canvas size. The first call also places the view on the whole map; later calls (a
-  // resize, a rotated phone) keep how far in you were relative to the whole map, not the raw scale.
-  setBounds(box: Box, width: number, height: number) {
-    const over = this.placed ? this.zoomOverFit : 1;
-    this.width = Math.max(width, 1);
-    this.height = Math.max(height, 1);
-    const w = Math.max(box.maxX - box.minX, 1e-6);
-    const h = Math.max(box.maxY - box.minY, 1e-6);
-    this.fitView = {
-      x: (box.minX + box.maxX) / 2,
-      y: (box.minY + box.maxY) / 2,
-      zoom: FIT_MARGIN * Math.min(this.width / w, this.height / h),
-    };
-    if (!this.placed) {
-      Object.assign(this, { x: this.fitView.x, y: this.fitView.y });
-      this.placed = true;
-    }
-    this.zoom = this.fitView.zoom * over;
-    this.zoom = this.clampZoom(this.zoom);
-    this.onChange();
+  // The canvas size: the galaxy's sphere fits the narrower of the two fields of view.
+  setAspect(width: number, height: number) {
+    this.aspect = { width, height };
+    const over = this.placed ? this.dist / this.fitDist : 1;
+    const v = (FOV * Math.PI) / 360;
+    const h = Math.atan(Math.tan(v) * (Math.max(width, 1) / Math.max(height, 1)));
+    this.fitDist = this.radius / Math.sin(Math.min(v, h));
+    this.dist = this.fitDist * over;
+    this.placed = true;
   }
 
-  get minZoom() {
-    return this.fitView.zoom * 0.5;
+  // A new layout's size. A camera framing the whole galaxy eases to frame the new one; a closer look stays put.
+  setRadius(r: number) {
+    const framing = !this.goal && Math.abs(Math.log(this.zoomOverFit)) < 0.25 && Math.hypot(...this.target) < 0.05;
+    const dist = this.dist;
+    this.radius = r;
+    this.setAspect(this.aspect.width, this.aspect.height);
+    this.dist = dist;
+    if (framing) this.animateTo({ dist: this.fitDist, target: [0, 0, 0] });
   }
-  get maxZoom() {
-    return this.fitView.zoom * MAX_ZOOM_OVER_FIT;
+
+  get minDist() {
+    return this.fitDist * 0.06;
   }
-  // How far in from the whole-map view (1 = fit), for sizing stars as you zoom.
+  get maxDist() {
+    return this.fitDist * 2.4;
+  }
+  // How far in from the whole-galaxy view (1 = fit).
   get zoomOverFit() {
-    return this.zoom / this.fitView.zoom;
+    return this.fitDist / this.dist;
   }
-  private clampZoom(z: number) {
-    return Math.min(this.maxZoom, Math.max(this.minZoom, z));
+  get moving() {
+    return this.goal !== null || this.dragging || Math.abs(this.vYaw) + Math.abs(this.vPitch) > 1e-3;
   }
-
-  toWorld(sx: number, sy: number) {
-    return { x: this.x + (sx - this.width / 2) / this.zoom, y: this.y - (sy - this.height / 2) / this.zoom };
-  }
-  toScreen(wx: number, wy: number) {
-    return { x: (wx - this.x) * this.zoom + this.width / 2, y: (this.y - wy) * this.zoom + this.height / 2 };
+  private clampDist(d: number) {
+    return Math.min(this.maxDist, Math.max(this.minDist, d));
   }
 
-  // Any direct input stops whatever the view was doing, where it is.
+  // Any input: the drift stops and waits for the map to be left alone again.
+  poke() {
+    this.idle = 0;
+  }
+  // Grabbing the map stops whatever the camera was doing, where it is.
   interrupt() {
-    this.mode = "idle";
-    this.target = null;
-    this.vx = this.vy = this.vz = 0;
+    this.poke();
+    this.goal = null;
+    this.vDist = this.vYaw = this.vPitch = 0;
+    this.vTarget = [0, 0, 0];
+    this.auto = 0;
   }
 
-  // Drag by screen pixels: the map follows the pointer 1:1.
-  panBy(dx: number, dy: number) {
-    this.interrupt();
-    this.x -= dx / this.zoom;
-    this.y += dy / this.zoom;
-    this.onChange();
+  rotateBy(dxPx: number, dyPx: number) {
+    this.yaw -= dxPx * RAD_PER_PX;
+    this.pitch = Math.min(PITCH_LIMIT, Math.max(-PITCH_LIMIT, this.pitch + dyPx * RAD_PER_PX));
   }
-
-  // Release after a drag, with the pointer's velocity in px/s: the map keeps moving and slows down.
+  // Right-drag or shift-drag: slide the target across the screen, so what's under the pointer follows it.
+  panBy(dxPx: number, dyPx: number, heightPx: number) {
+    if (this.held) return;
+    const k = (2 * this.dist * Math.tan((FOV * Math.PI) / 360)) / Math.max(heightPx, 1);
+    const [sy, cy, sp, cp] = [Math.sin(this.yaw), Math.cos(this.yaw), Math.sin(this.pitch), Math.cos(this.pitch)];
+    const right: Vec3 = [cy, 0, -sy];
+    const up: Vec3 = [-sp * sy, cp, -sp * cy];
+    this.target = this.target.map((t, a) => t - (dxPx * right[a] - dyPx * up[a]) * k) as Vec3;
+  }
   release(vxPx: number, vyPx: number) {
-    if (this.reduced || Math.hypot(vxPx, vyPx) < STOP_PX_PER_S) return;
-    this.mode = "momentum";
-    this.vx = -vxPx / this.zoom;
-    this.vy = vyPx / this.zoom;
-    this.onChange();
+    if (this.reduced) return;
+    this.vYaw = -vxPx * RAD_PER_PX;
+    this.vPitch = vyPx * RAD_PER_PX;
+  }
+  // Wheel and pinch: immediate, about the target.
+  dollyBy(factor: number) {
+    this.poke();
+    this.goal = null;
+    this.vDist = 0;
+    this.dist = this.clampDist(this.dist / factor);
   }
 
-  // Zoom by a factor about a screen point, which stays under the pointer.
-  zoomAt(factor: number, sx: number, sy: number) {
-    this.interrupt();
-    const before = this.toWorld(sx, sy);
-    this.zoom = this.clampZoom(this.zoom * factor);
-    const after = this.toWorld(sx, sy);
-    this.x += before.x - after.x;
-    this.y += before.y - after.y;
-    this.onChange();
-  }
-
-  // Spring to a view (map buttons, keyboard, fly-to). Reduced motion jumps.
-  animateTo(t: Partial<Target>) {
-    const to = { x: t.x ?? this.x, y: t.y ?? this.y, zoom: this.clampZoom(t.zoom ?? this.zoom) };
+  // Spring to a framing (map buttons, keyboard, fly-to). Reduced motion jumps.
+  animateTo(g: Partial<Goal>) {
+    this.poke();
+    const to: Goal = { dist: this.clampDist(g.dist ?? this.goal?.dist ?? this.dist), target: g.target ?? this.goal?.target ?? this.target };
     if (this.reduced) {
       this.interrupt();
-      Object.assign(this, to);
-      this.onChange();
+      this.dist = to.dist;
+      this.target = [...to.target];
       return;
     }
-    if (this.mode !== "spring") this.vx = this.vy = this.vz = 0; // a momentum velocity isn't a spring velocity
-    this.mode = "spring";
-    this.target = to;
-    this.onChange();
+    this.goal = to;
   }
   zoomBy(factor: number) {
-    this.animateTo({ zoom: (this.target?.zoom ?? this.zoom) * factor });
+    this.animateTo({ dist: (this.goal?.dist ?? this.dist) / factor });
   }
   fit() {
-    this.animateTo(this.fitView);
+    this.animateTo({ dist: this.fitDist, target: [0, 0, 0] });
   }
-  flyTo(wx: number, wy: number, minZoomOverFit = 2) {
-    this.animateTo({ x: wx, y: wy, zoom: Math.max(this.zoom, this.fitView.zoom * minZoomOverFit) });
+  flyTo(p: Vec3) {
+    this.animateTo({ target: p, dist: Math.min(this.dist, this.fitDist * 0.32) });
   }
 
-  // Advance by dt seconds. Returns whether the view moved.
+  // Advance by dt seconds.
   step(dt: number) {
-    if (this.mode === "idle" || dt <= 0) return false;
-    if (this.mode === "momentum") {
-      this.x += this.vx * dt;
-      this.y += this.vy * dt;
-      const k = Math.pow(DECELERATION, dt * 1000);
-      this.vx *= k;
-      this.vy *= k;
-      if (Math.hypot(this.vx, this.vy) * this.zoom < STOP_PX_PER_S) this.interrupt();
-      return true;
+    if (dt <= 0) return;
+    if (!this.dragging) this.idle += dt;
+    const drift = !this.reduced && this.idle > IDLE_RESUME ? AUTO_SPEED : 0;
+    this.auto += (drift - this.auto) * (1 - Math.exp(-dt * 0.8));
+    this.yaw += this.auto * dt;
+    if (!this.dragging) {
+      this.yaw += this.vYaw * dt;
+      this.pitch = Math.min(PITCH_LIMIT, Math.max(-PITCH_LIMIT, this.pitch + this.vPitch * dt));
+      const k = Math.exp(-dt * INERTIA_DECAY);
+      this.vYaw *= k;
+      this.vPitch *= k;
     }
-    // Critically damped spring per axis (zoom in log space, so zooming in and out feel the same), in small
-    // substeps so a long frame can't overshoot.
-    const t = this.target!;
+    const g = this.goal;
+    if (!g) return;
+    // Critically damped, distance in log space so zooming in and out feel the same; small substeps so a long frame
+    // can't overshoot.
     for (let left = dt; left > 0; left -= 1 / 240) {
       const h = Math.min(left, 1 / 240);
-      this.vx += (-OMEGA * OMEGA * (this.x - t.x) - 2 * OMEGA * this.vx) * h;
-      this.vy += (-OMEGA * OMEGA * (this.y - t.y) - 2 * OMEGA * this.vy) * h;
-      const lz = Math.log(this.zoom);
-      this.vz += (-OMEGA * OMEGA * (lz - Math.log(t.zoom)) - 2 * OMEGA * this.vz) * h;
-      this.x += this.vx * h;
-      this.y += this.vy * h;
-      this.zoom = Math.exp(lz + this.vz * h);
+      const ld = Math.log(this.dist);
+      this.vDist += (-W * W * (ld - Math.log(g.dist)) - 2 * W * this.vDist) * h;
+      this.dist = Math.exp(ld + this.vDist * h);
+      for (let a = 0; a < 3; a++) {
+        this.vTarget[a] += (-W * W * (this.target[a] - g.target[a]) - 2 * W * this.vTarget[a]) * h;
+        this.target[a] += this.vTarget[a] * h;
+      }
     }
-    const off = Math.hypot(this.x - t.x, this.y - t.y) * this.zoom + Math.abs(Math.log(this.zoom / t.zoom)) * 100;
-    if (off < 0.25) {
-      Object.assign(this, { x: t.x, y: t.y, zoom: t.zoom });
-      this.interrupt();
-    }
-    return true;
-  }
-
-  get moving() {
-    return this.mode !== "idle";
-  }
-}
-
-// A uniform grid over star positions, so picking looks at the few stars near the pointer instead of all of them.
-export class StarGrid {
-  private cells = new Map<number, number[]>();
-  private cell: number;
-  private ox: number;
-  private oy: number;
-
-  constructor(
-    private positions: ArrayLike<number>,
-    box: Box,
-  ) {
-    this.cell = Math.max(box.maxX - box.minX, box.maxY - box.minY, 1e-6) / 256;
-    this.ox = box.minX;
-    this.oy = box.minY;
-    for (let i = 0; i < positions.length / 3; i++) {
-      const k = this.key(this.col(positions[3 * i]), this.col(positions[3 * i + 1], true));
-      const list = this.cells.get(k);
-      if (list) list.push(i);
-      else this.cells.set(k, [i]);
+    const off = Math.abs(Math.log(this.dist / g.dist)) + Math.hypot(...this.target.map((v, a) => v - g.target[a]));
+    if (off < 1e-4) {
+      this.dist = g.dist;
+      this.target = [...g.target];
+      this.goal = null;
+      this.vDist = 0;
+      this.vTarget = [0, 0, 0];
     }
   }
-  private col(v: number, y = false) {
-    return Math.floor((v - (y ? this.oy : this.ox)) / this.cell);
-  }
-  private key(cx: number, cy: number) {
-    return cx * 65536 + cy;
-  }
 
-  // The visible star nearest to (wx, wy) within r world units, or -1.
-  nearest(wx: number, wy: number, r: number, visible: ArrayLike<number>) {
-    let best = -1;
-    let bestD = r * r;
-    const [x0, x1, y0, y1] = [this.col(wx - r), this.col(wx + r), this.col(wy - r, true), this.col(wy + r, true)];
-    // ponytail: a huge radius (zoomed far out) walks many empty cells; fine at 256 cells across.
-    for (let cx = x0; cx <= x1; cx++)
-      for (let cy = y0; cy <= y1; cy++)
-        for (const i of this.cells.get(this.key(cx, cy)) ?? []) {
-          if (visible[i] !== 1) continue;
-          const d = (this.positions[3 * i] - wx) ** 2 + (this.positions[3 * i + 1] - wy) ** 2;
-          if (d <= bestD) [best, bestD] = [i, d];
-        }
-    return best;
+  // Where the camera sits.
+  eye(): Vec3 {
+    const c = Math.cos(this.pitch);
+    return [this.target[0] + this.dist * c * Math.sin(this.yaw), this.target[1] + this.dist * Math.sin(this.pitch), this.target[2] + this.dist * c * Math.cos(this.yaw)];
   }
-}
-
-export function boundsOf(positions: ArrayLike<number>): Box {
-  const box = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
-  for (let i = 0; i < positions.length; i += 3) {
-    box.minX = Math.min(box.minX, positions[i]);
-    box.maxX = Math.max(box.maxX, positions[i]);
-    box.minY = Math.min(box.minY, positions[i + 1]);
-    box.maxY = Math.max(box.maxY, positions[i + 1]);
-  }
-  return positions.length ? box : { minX: -1, minY: -1, maxX: 1, maxY: 1 };
 }

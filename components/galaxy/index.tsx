@@ -8,10 +8,11 @@ import History from "@/components/history";
 import { initWorkspace } from "@/components/workspace/api";
 import { colourOf, compactRegions, keyOf, loadClasses, matches, setFocus, useClasses, wins, type ClassesFile } from "@/lib/classes";
 import { setState, useAppState } from "@/lib/store";
-import type { Hover } from "./Scene";
+import { layoutOf, type LayoutName } from "./layouts";
+import type { Hover, Idea } from "./Scene";
 import { createdLabel, loadStars, revealMask, yearsOf, type Star, type StarsFile } from "./stars";
 import styles from "./galaxy.module.css";
-import { Viewport } from "./view";
+import { Orbit } from "./view";
 
 // WebGL only exists in the browser.
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
@@ -30,8 +31,19 @@ export default function Galaxy() {
   const focusOn = useClasses((s) => s.focus);
   const [neighbors, setNeighbors] = useState<string[] | null>(null);
   const [labelLayer, setLabelLayer] = useState<HTMLDivElement | null>(null);
-  // The 2D view, shared by the scene (input, camera) and the map buttons and keys.
-  const view = useMemo(() => new Viewport(), []);
+  // The 3D camera, shared by the scene (input, drift) and the map buttons and keys.
+  const view = useMemo(() => new Orbit(), []);
+  // Which layout the stars sit in, from ?layout= (default clouds); switching flies every star across.
+  const [layout, setLayout] = useState<LayoutName>("clouds");
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("layout") === "nebula") setLayout("nebula");
+  }, []);
+  const switchLayout = useCallback((to: LayoutName) => {
+    setLayout(to);
+    const url = new URL(location.href);
+    url.searchParams.set("layout", to);
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
   // The page's discovery rail (experience-shell), if there is one; without it the controls float over the map.
   const [rail, setRail] = useState<HTMLElement | null>(null);
   useEffect(() => setRail(document.getElementById("discovery-rail")), []);
@@ -56,7 +68,7 @@ export default function Galaxy() {
   const stars = useMemo(() => (load.state === "ready" ? load.data.stars : []), [load]);
   const data: ClassesFile | null = classes.state === "ready" ? classes.data : null;
   const ids = useMemo(() => stars.map((s) => s.id), [stars]);
-  const positions = useMemo(() => new Float32Array(stars.flatMap((s) => [s.x, s.y, s.z])), [stars]);
+  const positions = useMemo(() => layoutOf(layout, stars, data), [layout, stars, data]);
   const years = useMemo(() => yearsOf(stars), [stars]);
   const revealed = useMemo(() => revealMask(stars, reveal), [stars, reveal]);
   // The map, list and legend all use this one mask, so their counts agree under any filter.
@@ -67,18 +79,22 @@ export default function Galaxy() {
   // Idea focus: the active idea's stored neighbours keep their colour, every other star dims, and one line runs to each.
   const focus = useMemo(() => (neighbors && focusOn ? new Set(neighbors) : null), [neighbors, focusOn]);
   const dimAt = useMemo(() => (focus ? (i: number) => !focus.has(ids[i]) : undefined), [focus, ids]);
-  const lines = useMemo(() => {
+  // The active idea: placed among its stored neighbours in whichever layout is showing, with an arc to each while
+  // focused.
+  const idea = useMemo((): Idea | null => {
     const from = ideaStars.find((s) => s.versionId === activeIdea);
-    if (!from || !focus) return undefined;
+    if (!from) return null;
     const index = new Map(ids.map((id, i) => [id, i]));
-    return new Float32Array(
-      [...focus].flatMap((id) => {
-        const i = index.get(id);
-        return i === undefined ? [] : [from.x, from.y, from.z, positions[3 * i], positions[3 * i + 1], positions[3 * i + 2]];
-      }),
-    );
-  }, [ideaStars, activeIdea, focus, ids, positions]);
-  const regions = useMemo(() => (data ? compactRegions(data, ids, positions, (i) => visible[i] === 1) : []), [data, ids, positions, visible]);
+    const neighbours = (neighbors ?? []).flatMap((id) => index.get(id) ?? []);
+    return { neighbours, own: [from.x, from.y, from.z], lines: focus !== null };
+  }, [ideaStars, activeIdea, neighbors, focus, ids]);
+  const regions = useMemo(
+    () =>
+      data
+        ? compactRegions(data, ids, positions, (i) => visible[i] === 1).map((g) => ({ ...g, colour: colourOf(data, { domain: g.key, status: "clear", prizes: [] }) ?? [1, 1, 1] }))
+        : [],
+    [data, ids, positions, visible],
+  );
   const ringCount = useMemo(() => (ringAt ? ids.filter((_, i) => visible[i] && ringAt(i)).length : 0), [ringAt, ids, visible]);
   const shown = useMemo(() => visible.reduce((n, v) => n + v, 0), [visible]);
   const dimmed = useMemo(() => (focus ? ids.filter((id, i) => visible[i] && !focus.has(id)).length : 0), [focus, ids, visible]);
@@ -112,10 +128,11 @@ export default function Galaxy() {
       data-selected-id={selectedId ?? ""}
       data-classes={classes.state}
       data-ring-count={ringCount}
-      data-line-count={lines ? lines.length / 6 : 0}
+      data-line-count={idea?.lines ? idea.neighbours.length : 0}
+      data-layout={layout}
       data-dimmed-count={dimmed}
       tabIndex={0}
-      aria-label="Star map. Drag to move, scroll or pinch to zoom; plus, minus and 0 keys zoom in, out and fit."
+      aria-label="Star map. Drag to turn it, scroll or pinch to zoom; plus, minus and 0 keys zoom in, out and fit."
       onKeyDown={(e) => {
         const act = ({ "+": () => view.zoomBy(1.6), "=": () => view.zoomBy(1.6), "-": () => view.zoomBy(1 / 1.6), "0": () => view.fit() } as Record<string, () => void>)[e.key];
         if (!act || e.target !== e.currentTarget) return;
@@ -133,20 +150,34 @@ export default function Galaxy() {
         colourAt={colourAt}
         ringAt={ringAt}
         dimAt={dimAt}
-        lines={lines}
+        idea={idea}
         regions={regions}
         labelLayer={labelLayer}
       />
       <div ref={setLabelLayer} className={styles.regions} aria-hidden>
         {regions.map((g) => (
-          <span key={g.key} className={styles.region}>
-            {g.label}
-            <small>{g.count.toLocaleString()}</small>
+          <span key={g.key} className={styles.region} style={{ "--hue": `rgb(${g.colour.map((c) => Math.round(c * 255)).join(" ")})` } as React.CSSProperties}>
+            <span>
+              {g.label}
+              <small> · {g.count.toLocaleString()}</small>
+            </span>
           </span>
         ))}
       </div>
+      <div className={styles.layouts} role="group" aria-label="Arrange stars">
+        {(
+          [
+            ["clouds", "By category"],
+            ["nebula", "By meaning"],
+          ] as const
+        ).map(([name, label]) => (
+          <button key={name} type="button" aria-pressed={layout === name} onClick={() => switchLayout(name)}>
+            {label}
+          </button>
+        ))}
+      </div>
       <p role="status" className={styles.status}>
-        {stars.length} projects indexed
+        {stars.length.toLocaleString()} projects indexed
       </p>
       <div className={styles.mapControls} role="group" aria-label="Map controls">
         <button type="button" aria-label="Zoom in" onClick={() => view.zoomBy(1.6)}>
