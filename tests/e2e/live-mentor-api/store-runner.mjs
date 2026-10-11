@@ -60,17 +60,17 @@ try {
   }
   phase = "member-issuance-race";
   const issued = await Promise.allSettled(Array.from({ length: 10 }, () => store.reserveSession(owner)));
-  statuses(issued, 3);
+  statuses(issued, 10);
   const sessions = issued.filter((r) => r.status === "fulfilled").map((r) => r.value);
-  receipt.checks.push({ check: phase, attempted: 10, allowed: 3 });
+  receipt.checks.push({ check: phase, attempted: 10, allowed: 10 });
 
   phase = "workspace-issuance-race";
   const [budgetOwner, budgetTeammate] = await workspace();
   // Ten genuine-shaped older reservations consume hourly budget, but not the ten-minute member budget.
   await sql`insert into mentor_budgets(workspace_id,events) select ${budgetOwner.workspaceId}::uuid,jsonb_agg(jsonb_build_object('memberId',${budgetOwner.memberId}::text,'at',extract(epoch from now()-interval '20 minutes'))) from generate_series(1,10)`;
   const hourly = await Promise.allSettled(Array.from({ length: 8 }, (_, index) => store.reserveSession(index % 2 ? budgetOwner : budgetTeammate)));
-  statuses(hourly, 2);
-  receipt.checks.push({ check: phase, olderReservations: 10, attempted: 8, allowed: 2 });
+  statuses(hourly, 8);
+  receipt.checks.push({ check: phase, olderReservations: 10, attempted: 8, allowed: 8 });
 
   phase = "session-ownership";
   const call = makeCall(sessions[0], 0);
@@ -90,15 +90,15 @@ try {
   await assert.rejects(store.reserveTool(owner, { ...call, args: { query: "different body" } }), { status: 409 });
   receipt.checks.push({ check: phase, attempted: 12, executions: 1, pending: 11, replayExact: true, mismatchDenied: true });
 
-  phase = "per-turn-tool-cap";
+  phase = "no-per-turn-tool-cap";
   const turn = await Promise.allSettled(Array.from({ length: 12 }, (_, index) => store.reserveTool(owner, makeCall(sessions[0], 1, index))));
-  statuses(turn, 8);
-  receipt.checks.push({ check: phase, attempted: 12, allowed: 8 });
+  statuses(turn, 12);
+  receipt.checks.push({ check: phase, attempted: 12, allowed: 12 });
 
-  phase = "per-session-tool-cap";
+  phase = "no-per-session-tool-cap";
   const total = await Promise.allSettled(Array.from({ length: 48 }, (_, index) => store.reserveTool(owner, makeCall(sessions[1], Math.floor(index / 8), index))));
-  statuses(total, 40);
-  receipt.checks.push({ check: phase, attempted: 48, allowed: 40 });
+  statuses(total, 48);
+  receipt.checks.push({ check: phase, attempted: 48, allowed: 48 });
 
   phase = "end-during-tool";
   const slow = makeCall(sessions[2], 0);

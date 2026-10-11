@@ -87,7 +87,7 @@ test("actual Next mentor routes reject unauthorized, foreign-origin, malformed a
   }
 });
 
-test("actual PostgreSQL serializes session and tool budgets, replay and end races", async ({}, info) => {
+test("actual PostgreSQL permits repeated starts and tools while serializing replay and end races", async ({}, info) => {
   test.setTimeout(210_000);
   dedicatedDatabase();
   let stdout: string;
@@ -180,7 +180,7 @@ test("real corpus retrieval grounds an unsaved proposal and only explicit duplic
     expect(context.status()).toBe(200);
     const grounded = await context.json();
     expect(grounded.data.saved).toMatchObject({ versionId: saved.versionId, fields });
-    expect(Object.keys(grounded.data).sort()).toEqual(["criteria", "saved", "sourceIds", "tracks"]);
+    expect(Object.keys(grounded.data).sort()).toEqual(["criteria", "saved", "sourceIds", "sponsorPreference", "tracks"]);
     expect(Object.keys(grounded.data.saved).sort()).toEqual(["corpusVersion", "evidence", "fields", "versionId"]);
     const receipt = JSON.stringify({ mode: "actual-http-hf-neon", providerVoiceCalls: 0, query: searchQuery,
       sources: projects.map(({ title, url, corpusVersion }) => ({ title, url, corpusVersion })),

@@ -7,7 +7,7 @@ import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 export async function setupMentor(args = process.argv.slice(2), env: Record<string, string | undefined> = process.env) {
   if (args.length > 1 || (args.length === 1 && !["--create", "--update"].includes(args[0]))) throw new Error("Use no flag (dry run), --create, or --update.");
   // A URL import keeps this CLI runnable with Node's native TypeScript support, without a new TS runner.
-  const { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG } = await import(new URL("./agent-config.ts", import.meta.url).href) as typeof import("./agent-config");
+  const { buildAgentDefinition, MENTOR_AGENT_NAME, MENTOR_AGENT_TAG, withCurrentMentorPolicy } = await import(new URL("./agent-config.ts", import.meta.url).href) as typeof import("./agent-config");
   const definition = buildAgentDefinition(env);
   if (!args.length) return { action: "dry-run", definition };
   const apiKey = env.ELEVENLABS_API_KEY?.trim();
@@ -28,6 +28,17 @@ export async function setupMentor(args = process.argv.slice(2), env: Record<stri
     }
     const current = await agents.get(target!, {}, options);
     if (current.name !== MENTOR_AGENT_NAME || !current.tags?.includes(MENTOR_AGENT_TAG)) throw new Error("Target is not the managed mentor");
+    // Preserve the operator-selected TTS model and unrelated turn/conversation
+    // settings; only the reviewed naturalness and duration fields are changed.
+    definition.conversationConfig.tts = { ...current.conversationConfig?.tts, ...definition.conversationConfig.tts };
+    definition.conversationConfig.turn = { ...current.conversationConfig?.turn, ...definition.conversationConfig.turn };
+    definition.conversationConfig.conversation = { ...current.conversationConfig?.conversation, ...definition.conversationConfig.conversation };
+    // Retain operator additions (including named two-step confirmation) instead
+    // of replacing the live agent prompt wholesale. The managed block is idempotent.
+    const existingPrompt = current.conversationConfig?.agent?.prompt?.prompt;
+    if (existingPrompt && definition.conversationConfig.agent?.prompt) {
+      definition.conversationConfig.agent.prompt.prompt = withCurrentMentorPolicy(existingPrompt);
+    }
     await agents.update(target!, definition, options);
     return { action: "updated", agentId: target, instruction: "Verify effective provider configuration and a real interrupted session before release." };
   } catch {
