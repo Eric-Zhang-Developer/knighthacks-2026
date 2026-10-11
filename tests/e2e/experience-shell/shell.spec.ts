@@ -14,6 +14,11 @@ test("desktop: top bar, rails and composer at their sizes, the galaxy between th
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  // The canvas starts at the browser's default 300px and is sized from a ResizeObserver after first render, so
+  // measure once it fills the box react-three-fiber gives it (#377: "300 vs 808" in 1 of 3 runs on main).
+  await expect
+    .poll(() => page.locator("canvas").evaluate((c) => c.getBoundingClientRect().width === c.parentElement!.getBoundingClientRect().width), { timeout: 10_000 })
+    .toBe(true);
   const top = await box(page, "div:has(> header[aria-label=Search])");
   const rail = await box(page, RAIL);
   const side = await box(page, "aside[aria-label='Idea and evidence']");
