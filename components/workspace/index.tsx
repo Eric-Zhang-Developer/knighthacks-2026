@@ -37,13 +37,16 @@ function HomeWorkspace() {
 
   if (failed || !identity) {
     return (
-      <section className={`ui-panel ${styles.status}`} aria-label="Workspace">
+      <details className={styles.workspace} aria-label="Workspace">
+        <summary className={styles.menu}>{failed ? "Team offline" : "Team"}</summary>
+        <div className={styles.menuContent}>
         {failed ? (
           <PanelState kind="failed" message={`Couldn't start your workspace: ${failed}`} onRetry={start} />
         ) : (
           <PanelState kind="loading" message="Starting your workspace…" />
         )}
-      </section>
+        </div>
+      </details>
     );
   }
   return (

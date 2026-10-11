@@ -228,7 +228,7 @@ export default function Idea() {
     <section className={`ui-panel ${styles.idea}`} aria-label="Your idea">
       <h2 className="ui-heading">Start with a conversation</h2>
       <p>Explore a problem, question an assumption, or find a direction. Nothing is saved without your confirmation.</p>
-      <button type="button" onClick={() => window.dispatchEvent(new Event("mentor:open"))}>Brainstorm together</button>
+      <button type="button" className={styles.primary} onClick={() => window.dispatchEvent(new Event("mentor:open"))}>Brainstorm together</button>
       <details><summary>Write a standalone draft</summary>
       <form
         className={styles.form}
