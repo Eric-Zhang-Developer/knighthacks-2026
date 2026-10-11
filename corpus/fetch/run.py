@@ -2,13 +2,13 @@
 
   python corpus/fetch/run.py discover [--pages 20] [--min-registrations 200] [--search TEXT]
                                                          add ended hackathons to sources.jsonl
-  python corpus/fetch/run.py fetch [--limit N] [--deadline ISO] [--rps 2] [--gallery-only]
+  python corpus/fetch/run.py fetch [--limit N] [--deadline ISO] [--rps 2] [--workers 1] [--gallery-only]
                                                          walk galleries, fetch project pages
 
 Every gallery page's cards (title, tagline, winner badge) also go to corpus/data/summaries.jsonl, one line per
 project per event, at no extra request. --gallery-only stops there: ~24 projects per request instead of one.
 
-Polite by construction: at most --rps requests per second (2 at most), one retry, and every source is on
+Polite by construction: at most --rps requests per second (default 2, at most 5; --workers pages in flight), one retry, and every source is on
 devpost.com. The first 429 waits as asked (Retry-After, else 60 s) and drops to 1 request per second for the rest
 of the run; a second 429, or any 403, stops the run. Rerunning resumes: work already written is skipped.
 """
@@ -18,10 +18,12 @@ import hashlib
 import json
 import math
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -36,7 +38,8 @@ OUT, REJECTED, SUMMARIES = DATA / "projects.jsonl", DATA / "rejected.jsonl", DAT
 UA = "Mozilla/5.0 (compatible; uncharted-knighthacks-research; +https://github.com/Eric-Zhang-Developer/knighthacks-2026)"
 HEADERS = {"User-Agent": UA, "Accept": "*/*"}
 API = "https://devpost.com/api/hackathons?status[]=ended&order_by=recently-added&page={page}"
-MAX_RPS = 2.0  # Devpost publishes no limit and robots.txt sets no crawl delay; this is our own ceiling
+DEFAULT_RPS = 2.0  # Devpost publishes no limit and robots.txt sets no crawl delay; this is our own default
+MAX_RPS, MAX_WORKERS = 5.0, 5  # person's ceiling (2026-10-10): a project page takes ~1 s, so one in flight caps at ~1/s
 BACKOFF_DEFAULT, BACKOFF_MAX = 60, 300  # seconds to wait on a 429 without, or with too long, a Retry-After
 
 
@@ -59,8 +62,10 @@ def retry_after(headers, now=None) -> int:
 
 
 class Fetcher:
-    def __init__(self, rps=MAX_RPS, sleep=time.sleep, clock=time.monotonic, opener=None):
+    def __init__(self, rps=DEFAULT_RPS, sleep=time.sleep, clock=time.monotonic, opener=None):
         self.min_interval, self.last, self.backed_off = 1.0 / rps, 0.0, False
+        self.lock = threading.Lock()  # pacing and the backoff are shared by every worker
+        self.backoff_started = 0.0
         self.deadline: datetime | None = None  # a backoff never sleeps past it
         self.sleep, self.clock = sleep, clock
         self.open = opener or (lambda req: urllib.request.urlopen(req, timeout=30))
@@ -73,24 +78,31 @@ class Fetcher:
         attempt = 0
         while True:
             attempt += 1
-            wait = self.last + self.min_interval - self.clock()
-            if wait > 0:
-                self.sleep(wait)
-            if self.deadline and datetime.now(timezone.utc) >= self.deadline:
-                raise Stop("deadline")  # pacing or a backoff can carry us past it; never request after it
-            self.last = self.clock()
+            with self.lock:
+                wait = self.last + self.min_interval - self.clock()
+                if wait > 0:
+                    self.sleep(wait)
+                if self.deadline and datetime.now(timezone.utc) >= self.deadline:
+                    raise Stop("deadline")  # pacing or a backoff can carry us past it; never request after it
+                self.last = started = self.clock()
             try:
                 with self.open(urllib.request.Request(url, headers=HEADERS)) as r:
                     return r.read().decode("utf-8", "replace")
             except urllib.error.HTTPError as e:
+                if e.code == 429 and self.backed_off and started < self.backoff_started:
+                    attempt -= 1  # sent before the backoff began: part of the same 429, not a second one
+                    continue
                 if e.code == 429 and not self.backed_off:
                     # Once per run: wait as asked, then stay at 1 request per second. Losing the whole night's
-                    # fetch to one 429 costs more than a minute's pause.
-                    self.backed_off, self.min_interval = True, max(self.min_interval, 1.0)
-                    wait = retry_after(e.headers)
-                    if self.deadline and datetime.now(timezone.utc) + timedelta(seconds=wait) >= self.deadline:
-                        raise Stop(f"HTTP 429 on {url}; its {wait} s backoff would pass the deadline") from e
-                    self.sleep(wait)
+                    # fetch to one 429 costs more than a minute's pause. Holding the lock pauses every worker.
+                    with self.lock:
+                        self.backed_off, self.min_interval = True, max(self.min_interval, 1.0)
+                        self.backoff_started = self.clock()
+                        wait = retry_after(e.headers)
+                        if self.deadline and datetime.now(timezone.utc) + timedelta(seconds=wait) >= self.deadline:
+                            raise Stop(f"HTTP 429 on {url}; its {wait} s backoff would pass the deadline") from e
+                        self.sleep(wait)
+                        self.last = self.clock()
                     attempt -= 1  # the backoff isn't the one retry
                     continue
                 if e.code in (403, 429):
@@ -170,6 +182,13 @@ def fetch(args, f: Fetcher) -> int:
     def at_limit() -> bool:
         return bool(args.limit and (summarized if gallery_only else counts["written"]) >= args.limit)
 
+    def get_page(url: str):
+        try:
+            return f.get(url)
+        except (Stop, urllib.error.URLError, TimeoutError) as e:
+            return e  # returned, not raised, so pool.map keeps page order and this thread decides
+
+    pool = ThreadPoolExecutor(max(1, min(getattr(args, "workers", 1), MAX_WORKERS)))
     try:
         with OUT.open("a") as out, REJECTED.open("a") as rej, SUMMARIES.open("a") as summ:
             for src in sources:
@@ -192,19 +211,24 @@ def fetch(args, f: Fetcher) -> int:
                     summ.flush()
                     if gallery_only:
                         continue
+                    todo = []
                     for url in urls:
                         if url in seen or url in done:
                             counts["deduplicated"] += url in seen  # the same project in another gallery
                             seen.add(url)
                             continue
                         seen.add(url)
-                        counts["discovered"] += 1
-                        if out_of_time() or at_limit():
-                            raise StopIteration
-                        try:
-                            html = f.get(url)
-                        except (urllib.error.URLError, TimeoutError) as e:
-                            reason = f"fetch failed: {getattr(e, 'code', type(e).__name__)}"
+                        todo.append(url)
+                    if args.limit:
+                        todo = todo[:max(args.limit - counts["written"], 0)]
+                    if todo and (out_of_time() or at_limit()):
+                        raise StopIteration
+                    counts["discovered"] += len(todo)
+                    for url, html in zip(todo, pool.map(get_page, todo)):
+                        if isinstance(html, Stop):
+                            raise html
+                        if isinstance(html, Exception):
+                            reason = f"fetch failed: {getattr(html, 'code', type(html).__name__)}"
                         else:
                             counts["fetched"] += 1
                             record, reason = parse_project(html, url, now(), event_dates)
@@ -220,6 +244,8 @@ def fetch(args, f: Fetcher) -> int:
         stop_reason = "deadline" if out_of_time() else "limit"
     except Stop as e:
         stop_reason = str(e)
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
     rate = f" at {f.rate}" if isinstance(f, Fetcher) else ""
     print(f"fetch: summarized {summarized} gallery cards{rate}")
     print(f"fetch: stopped ({stop_reason}); " + ", ".join(f"{k} {v}" for k, v in counts.items())
@@ -237,11 +263,12 @@ def main(argv=None) -> int:
     fe = sub.add_parser("fetch")
     fe.add_argument("--limit", type=int, default=0, help="stop after writing this many records (0 = no limit)")
     fe.add_argument("--deadline", help="ISO time with offset; stop when it passes")
-    fe.add_argument("--rps", type=float, default=MAX_RPS, help=f"requests per second, at most {MAX_RPS:g}")
+    fe.add_argument("--rps", type=float, default=DEFAULT_RPS, help=f"requests per second, at most {MAX_RPS:g}")
+    fe.add_argument("--workers", type=int, default=1, help=f"project pages in flight at once, at most {MAX_WORKERS}")
     fe.add_argument("--gallery-only", action="store_true",
                     help="write gallery cards to summaries.jsonl and skip project pages (--limit counts summaries)")
     args = ap.parse_args(argv)
-    rps = getattr(args, "rps", MAX_RPS)
+    rps = getattr(args, "rps", DEFAULT_RPS)
     if not 0 < rps <= MAX_RPS:
         ap.error(f"--rps must be above 0 and at most {MAX_RPS:g}")
     f = Fetcher(rps)
