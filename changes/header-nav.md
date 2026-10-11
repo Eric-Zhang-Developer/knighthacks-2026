@@ -1,5 +1,5 @@
 ## What shipped
-The header is navigation only: the Uncharted wordmark, Explore / Build tabs (`#build` survives a reload), and one compact workspace line. Search moved to a dock under the map, beside push-to-talk. The four filter selects sit behind a Filters button that shows an active count, with category first and Clear filters. Build gives the idea path a wide centred column over the dimmed galaxy.
+The header is navigation only: the Uncharted wordmark, Explore / Build tabs (`#build` survives a reload), and one compact workspace line. Search moved to a dock under the map, beside push-to-talk. The four filter selects sit behind a Filters button that shows an active count, with category first and Clear filters. When the popover is closed, each active filter shows as a removable chip over the search bar. Build gives the idea path a wide centred column over the dimmed galaxy.
 ## Where it lives
 `app/page.tsx`, `app/page.module.css`, `components/shell/Tabs.tsx`, `components/shell/shell.css`, `components/search/`, `components/workspace/`, `tests/e2e/header-nav/`
 ## How to check it

@@ -114,6 +114,17 @@ export default function Search() {
     setClassFilter(NO_FILTER);
   };
 
+  // With the popover closed, each active filter shows as a chip over the bar; its × clears just that one.
+  const PRIZES: Record<string, string> = { win: "Prize winners", "1": "1st place", "2": "2nd place", "3": "3rd place", sponsor: "Sponsor prize" };
+  const category = (key: string) =>
+    key === MIXED ? "Mixed" : key === UNCLEAR ? "Not enough text" : (classData?.domains.find((d) => d.id === key)?.label ?? key);
+  const chips = [
+    classFilter.key && { label: category(classFilter.key), off: () => setClassFilter({ key: null }) },
+    classFilter.prize && { label: PRIZES[classFilter.prize] ?? classFilter.prize, off: () => setClassFilter({ prize: "" }) },
+    filters.event && { label: filters.event, off: () => (setFilters({ ...filters, event: "" }), setClassFilter({ event: null })) },
+    filters.year && { label: `created ${filters.year}`, off: () => setFilters({ ...filters, year: "" }) },
+  ].filter((c): c is { label: string; off: () => void } => Boolean(c));
+
   return (
     <div ref={root} className={styles.search} role="search">
       <div className={styles.bar}>
@@ -143,6 +154,18 @@ export default function Search() {
       {/* Above the bar (under it on the phone): the results, then the filters next to the button that opened them. The
           filters come first in the DOM so they follow the button in tab order; CSS puts them nearest the bar. */}
       <div className={styles.above}>
+        {!open && chips.length > 0 && (
+          <ul className={styles.chips} aria-label="Active filters">
+            {chips.map((c) => (
+              <li key={c.label}>
+                <button type="button" className={styles.chip} aria-label={`Remove filter: ${c.label}`} onClick={c.off}>
+                  {c.label}
+                  <span aria-hidden>×</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {open && stars.length > 0 && (
           <div id="search-filters" className={`ui-panel ${styles.filters}`} aria-label="Filters" role="group">
             {classData && (

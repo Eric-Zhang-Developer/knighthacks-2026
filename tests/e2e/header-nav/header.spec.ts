@@ -36,8 +36,15 @@ test("desktop: a navigation-only header, search in the dock, filters behind one 
   await page.screenshot({ path: info.outputPath("filters.png") });
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(toggle).toHaveText("Filters");
+  // Closed with a filter set: it shows as a chip over the bar, and its × clears just that filter.
+  await page.getByRole("combobox", { name: "Event" }).selectOption({ index: 1 });
   await page.keyboard.press("Escape");
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  const chip = page.getByRole("list", { name: "Active filters" }).getByRole("button");
+  await expect(chip).toHaveCount(1);
+  await chip.click();
+  await expect(chip).toHaveCount(0);
+  await expect(toggle).toHaveText("Filters");
 
   // 4. Build: the discovery rail and dock give way to the idea path in a wide column; #build survives a reload.
   const draft = "A tool that helps roommates split chores fairly";
