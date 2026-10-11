@@ -124,3 +124,19 @@ Browser automation rejected binding the localhost tab under its URL security pol
 automation bypass was attempted. Human was asked to refresh, tap the bubble, allow the microphone and confirm
 the audible greeting. Successful speech playback, interruption, grounded dialogue and full save/share acceptance
 remain unverified until that check. Do not turn HTTP token success into a claim that a person heard speech.
+
+## Signaling failure follow-up (2026-10-11)
+
+Human reported `error reading from signal stream {}` and no audible response. Server logs confirm three
+HTTP 200 session issuances followed by 429s. The isolated database shows those sessions ended within a second;
+the member's three slots return at 06:34:01–06:34:30 UTC. Limits are unchanged (3/member/10 min, 12/workspace/hour),
+including failed reservations. Provider conversation listing returned 200 with no retained conversations;
+given the zero-day retention setting, that alone cannot prove whether a call started.
+
+Installed client 1.27.0 / LiveKit 2.22.4 exposes `webRtc.singlePeerConnection`. The UI now explicitly selects
+false to use the supported dual-peer handshake without replacing packages, using public agents or switching
+tokens to the wrong transport. This is a compatibility mitigation, not a proven root-cause diagnosis: we do not
+have the failing browser network status. Anonymous checks of both validate paths returned 401 as expected.
+Sanitized connection notices never display raw capability-bearing errors; session 429 explains the real limits
+instead of encouraging immediate retries. Focused tests: 20 passed; typecheck passed. Real audible greeting and
+continuous conversation remain pending the next human attempt. No production deployment or acceptance claim.

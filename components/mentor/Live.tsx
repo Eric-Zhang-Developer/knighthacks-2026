@@ -6,6 +6,7 @@ import { initWorkspace } from "@/components/workspace/api";
 import { getState } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
 import { readFields, request, toolIdentity } from "./protocol";
+import { LIVE_CONNECTION, connectionFailureNotice } from "./live-connection";
 
 export type LiveControls = { send: (text: string) => void; context: (text: string) => void; end: () => void; toggleMute: () => void };
 type Props = {
@@ -104,7 +105,7 @@ function Session(props: Props) {
         finally { requests.current.delete(controller); }
       }
       conversation.startSession({
-        conversationToken: result.conversationToken, connectionType: "webrtc",
+        conversationToken: result.conversationToken, ...LIVE_CONNECTION,
         clientTools: {
           get_context: (args) => tool("get_context", args),
           find_projects: (args) => tool("find_projects", args),
@@ -130,7 +131,7 @@ function Session(props: Props) {
         },
         onModeChange: ({ mode }) => active() && callbacks.current.onState(muted.current ? "Muted" : mode === "speaking" ? "Speaking" : "Listening"),
         onDisconnect: () => { if (active()) { release(); callbacks.current.onState("Disconnected"); } },
-        onError: () => { if (active()) { release(); setNotice("Live connection failed. Your text conversation is still available."); callbacks.current.onState("Unavailable"); } },
+        onError: (message) => { if (active()) { release(); setNotice(connectionFailureNotice(message)); callbacks.current.onState("Unavailable"); } },
       });
     } catch (error) {
       if (generation !== epoch.current) return;
