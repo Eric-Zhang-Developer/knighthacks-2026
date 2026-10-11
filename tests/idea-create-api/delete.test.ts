@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 const { lookupSession, deleteIdea } = vi.hoisted(() => ({ lookupSession: vi.fn(), deleteIdea: vi.fn() }));
 vi.mock("@/lib/workspace/service", () => ({ lookupSession }));
@@ -15,7 +15,18 @@ const request = (cookie = true, origin = "https://uncharted.test") => new NextRe
   } });
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubEnv("DATABASE_URL", "test-database");
+  vi.stubEnv("TEST_DATABASE_URL", "test-database");
   lookupSession.mockResolvedValue({ workspaceId: "workspace-a", memberId: "member-a" });
+});
+afterEach(() => vi.unstubAllEnvs());
+
+test.each([undefined, "", " ", "another-database"])("unapproved database configuration prevents deletion (%s)", async (testDatabase) => {
+  vi.stubEnv("TEST_DATABASE_URL", testDatabase);
+  const response = await DELETE(request(), context());
+  expect(response.status).toBe(503);
+  expect(deleteIdea).not.toHaveBeenCalled();
+  expect(await response.text()).not.toMatch(/test-database|another-database|DATABASE_URL/);
 });
 
 test("deletion uses the authenticated workspace and returns a no-store committed receipt", async () => {

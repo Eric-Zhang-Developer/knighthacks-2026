@@ -1,5 +1,13 @@
 # Confirmed idea deletion verification
 
+## Temporary rollout boundary
+Hosted previews can point at production data. Until separately approved production rollout and verification,
+the DELETE route returns safe 503 unless DATABASE_URL equals the nonblank TEST_DATABASE_URL. This server-side
+check is independent of UI visibility and does not serialize either value. It allows the normal production-build
+verifier on the dedicated test database; NODE_ENV alone is not evidence of database identity. No enable switch
+or production mutation is introduced. Removing this temporary restriction requires the coordinated production
+rollout, not a UI-only change; ordinary production idea creation/listing are unaffected.
+
 Plan #443; implementation #448, worker kiro-agent-1. The baseline main abbd5c0 has no
 `app/api/ideas/[ideaId]/route.ts` (`git cat-file -e` fails). The new route returns an authenticated,
 same-origin, workspace-scoped deletion receipt and retains independent snapshot/share exports.
