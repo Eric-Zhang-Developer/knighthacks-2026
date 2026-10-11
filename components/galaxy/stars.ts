@@ -15,7 +15,24 @@ const Stars = z.object({ corpus_version: z.string(), count: z.number(), stars: z
 export type Star = z.infer<typeof Star>;
 export type StarsFile = z.infer<typeof Stars>;
 
-export const parseStars = (data: unknown): StarsFile => Stars.parse(data);
+// The schema checks each star with a plain loop that mirrors `Star` above (keep them in step: tests/galaxy-3d pins
+// the two against each other); zod on every star took ~250 ms of a 100k-star load at 4x CPU and built a copy of each.
+// A star the loop rejects goes through zod, so the error says what was wrong.
+const Head = Stars.extend({ stars: z.array(z.unknown()) });
+const num = (v: unknown) => typeof v === "number" && Number.isFinite(v); // z.number() refuses NaN and Infinity
+const nullish = (v: unknown, ok: (v: unknown) => boolean) => v == null || ok(v);
+export const isStar = (s: unknown): s is Star => {
+  const o = s as Record<string, unknown> | null;
+  return (
+    typeof o === "object" && o !== null && typeof o.id === "string" && num(o.x) && num(o.y) && num(o.z) &&
+    typeof o.title === "string" && nullish(o.event, (v) => typeof v === "string") && nullish(o.year, num)
+  );
+};
+export function parseStars(data: unknown): StarsFile {
+  const head = Head.parse(data);
+  for (const s of head.stars) if (!isStar(s)) Star.parse(s);
+  return head as StarsFile;
+}
 
 // One fetch and one parse per page, shared by the galaxy and search, which each used to fetch and parse their own copy.
 // A failure isn't cached, so the next caller tries again.
