@@ -36,8 +36,11 @@ export default function Snapshot() {
   const [history, setHistory] = useState<{ snapshots: ListedSnapshot[]; shares: ListedShare[] }>({ snapshots: [], shares: [] });
   useRememberedVersion();
 
-  // Past snapshots and their links, newest first, from the workspace's saved state.
+  // Past snapshots and their links, newest first, from the workspace's saved state. Read only once the shared guest
+  // workspace has started: on a first visit an earlier read raced it and got a 401 (#288). Without a workspace there's
+  // no history; the workspace badge reports that failure.
   const loadHistory = useCallback(async () => {
+    if (!(await initWorkspace()).ok) return;
     const res = await fetch("/api/workspace/state").catch(() => null);
     if (res?.ok) {
       const { snapshots, shares } = await res.json();
