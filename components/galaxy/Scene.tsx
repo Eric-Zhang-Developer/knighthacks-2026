@@ -695,8 +695,12 @@ function Labels({ regions, layer, idea, morph, view }: { regions: Region[]; laye
     at.forEach(({ i, s }) => {
       const el = layer.children[i] as HTMLElement | undefined;
       if (!el) return;
-      const w = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 120;
-      const box = { x0: s.x - w / 2, x1: s.x + w / 2, y0: s.y - 50, y1: s.y - 24 };
+      // The name's real box: it sits 24px above the anchor (galaxy.module.css `.region > button { bottom }`). Its
+      // height is measured, not assumed: a fixed 26px went stale when the label's padding grew, and names 27px
+      // apart overlapped while the check called them clear (#352).
+      const name = el.firstElementChild as HTMLElement | null;
+      const [w, h] = [name?.offsetWidth ?? 120, name?.offsetHeight ?? 30];
+      const box = { x0: s.x - w / 2, x1: s.x + w / 2, y0: s.y - 24 - h, y1: s.y - 24 };
       const clash = placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0);
       const onMap = s.depth > 0.05 && s.x > 0 && s.y > 0 && s.x < size.width && s.y < size.height;
       const covers = ideaS && Math.hypot(s.x - ideaS.x, s.y - ideaS.y) < 56;
