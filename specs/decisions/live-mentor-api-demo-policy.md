@@ -5,10 +5,12 @@ Choice: remove usage-count quotas while retaining authentication, duplicate-call
 The owned schema expands only mentor_session_duration from 20 minutes to 2 hours. Existing rows remain valid; no table or data is removed. Existing test/production deployments require the following separately coordinated constraint replacement before new code issues two-hour sessions (the create-only checker deliberately does not repair it automatically):
 
 ```sql
+BEGIN;
 ALTER TABLE public.mentor_sessions
   DROP CONSTRAINT mentor_session_duration,
   ADD CONSTRAINT mentor_session_duration CHECK
     (expires_at > created_at AND expires_at <= created_at + interval '2 hours');
+COMMIT;
 ```
 
 Provider configuration uses the existing chosen voice/model and privacy choices, preserves operator prompt text and adds an idempotent current-policy block. Setup must be applied to the exact managed agent only once the matching client tools are deployed. Human audio acceptance remains necessary. No other agent or provider privacy configuration is changed implicitly.

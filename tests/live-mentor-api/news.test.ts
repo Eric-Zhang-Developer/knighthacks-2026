@@ -38,6 +38,9 @@ test("keeps only cited, relevant pages with verified dates in the rolling window
   expect(result).toMatchObject({ asOf: now.toISOString(), windowStart: "2026-10-04T15:00:00.000Z", model: "gemini-test" });
   expect(result.items.map((item) => item.source.title)).toEqual(["Today report", "New report"]);
   expect(result.items.every((item) => item.claim.label === "supported" && item.claim.sourceIds[0] === item.source.id)).toBe(true);
+  expect(result.items.every((item) => item.relevance.label === "inferred" && item.relevance.sourceIds[0] === item.source.id)).toBe(true);
+  expect(mocks.groundedSearch.mock.calls[0][0].text).toContain(now.toISOString());
+  expect(mocks.groundedSearch.mock.calls[0][0].text).toContain(result.windowStart);
   expect(mocks.resolveSource).toHaveBeenCalledTimes(5);
   expect(mocks.groundedSearch.mock.calls[0][0].text).toContain("Do not supply or infer publication dates");
 });

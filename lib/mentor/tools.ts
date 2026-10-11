@@ -81,6 +81,8 @@ export async function executeTool(identity: Identity, call: ToolCall, sourceIds:
     if (error instanceof MentorError) throw error;
     throw new MentorError(503, call.tool === "find_projects"
       ? "Project sources are temporarily unavailable. Please retry."
-      : "Saved mentor context is temporarily unavailable. Please retry.");
+      : call.tool === "search_recent_news"
+        ? "Recent news search is temporarily unavailable. No fresh reports were verified."
+        : "Saved mentor context is temporarily unavailable. Please retry.");
   }
 }

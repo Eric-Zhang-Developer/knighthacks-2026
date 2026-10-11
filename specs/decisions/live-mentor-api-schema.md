@@ -4,7 +4,7 @@ Context: the human removed application issuance/tool quotas on 2026-10-11; dupli
 
 Choice: authenticated sessions are inserted directly; existing budget rows no longer block starts. Each session row serializes tool reservations, results and ending through guarded `UPDATE`. Session expiry matches the provider-supported two-hour maximum. Workspace deletion cascades both tables, and member deletion cascades that member's sessions. No additional indexes are declared; primary keys create PostgreSQL's implicit unique indexes.
 
-The following is the complete additive SQL, matching the application schema. It assumes the existing `public.workspaces` and `public.members` tables. `IF NOT EXISTS` does not establish compatibility: the checker validates the actual existing column types, nullability, defaults, primary keys, foreign keys with cascade deletion, and check constraints after application.
+The following is the complete CREATE SQL for a fresh database, matching the application schema. It does not upgrade existing tables. For an existing twenty-minute constraint, first apply the separately reviewed transaction in `live-mentor-api-demo-policy.md`; otherwise two-hour session insertion fails. The `schema-check.mjs --apply` command intentionally does not perform this upgrade. It assumes the existing `public.workspaces` and `public.members` tables. `IF NOT EXISTS` does not establish compatibility: the checker validates the actual existing column types, nullability, defaults, primary keys, foreign keys with cascade deletion, and check constraints after application.
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.mentor_budgets (

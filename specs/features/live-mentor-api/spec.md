@@ -62,7 +62,7 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
 ## Requirements
 - The application API owns state. Provider sessions must not create/accept an idea on the user's behalf.
   Private-agent configuration uses `platformSettings.auth.enableAuth=true` and
-  `conversationConfig.conversation.maxDurationSeconds=1200`; first-message interruption stays enabled.
+  `conversationConfig.conversation.maxDurationSeconds=7200`; first-message interruption stays enabled.
   `recordVoice:false` does not by itself disable transcript retention; verify the separate privacy fields.
 - Each tool response carries session/turn/call identity and one payload for speech and visible cards; clients
   suppress stale turns. Client cancellation is not trusted as authorization or as proof of a saved mutation.
@@ -75,7 +75,7 @@ satisfy this feature. Use the existing ElevenLabs packages and Next/Neon stack; 
 
 ## Validation
 1. Actual test server/database: unauthorized/origin/foreign-workspace requests fail without a provider call;
-   concurrent session/tool requests cannot exceed caps, and ended/expired sessions cannot run tools.
+   concurrent session/tool requests are not rejected by application usage quotas, and ended/expired sessions cannot run tools.
 2. Stub only provider boundaries: verify conversation capability secrecy, safe error bodies, call replay/mismatch,
    cancellation during slow tool work, source-ID validation and no idea/version writes from any agent tool.
 3. Real retrieval returns traceable corpus sources; get_context never exposes hidden votes/capabilities.
