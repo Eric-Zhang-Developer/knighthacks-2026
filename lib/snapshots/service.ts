@@ -11,7 +11,9 @@ export async function createSnapshot(workspaceId: string, versionId: string) {
   await createEvidence(workspaceId, versionId, false);
   const snapshotId = randomUUID();
   // One statement sees one consistent source snapshot and persists only this
-  // explicit allowlist. No joins to votes or transcript copying.
+  // explicit allowlist. No joins to votes or transcript copying. The latest committed
+  // scope (decision-context-api) is frozen here too: feature ids, titles, demo steps and
+  // choices only, never the profile or its explanations; no saved scope adds no key.
   const result = await db().execute(sql`insert into "snapshots" ("id", "workspace_id", "data")
     select ${snapshotId}::uuid, i."workspace_id", jsonb_build_object(
       'versionId', v."id", 'idea', jsonb_build_object('title', v."title", 'description', v."description",
@@ -32,7 +34,13 @@ export async function createSnapshot(workspaceId: string, versionId: string) {
           and left(r."source"->>'text', 15) = 'Proposed test: '
           and length(trim(substring(r."source"->>'text' from 16))) > 0
         order by s."created_at" desc, s."id" desc, r."round" desc limit 1)
-    ) from "idea_versions" v join "ideas" i on i."id" = v."idea_id"
+    ) || coalesce((select jsonb_build_object('scope', jsonb_build_object('selectionId', sel."id",
+        'features', (select jsonb_agg(jsonb_build_object('id', f->>'id', 'title', f->'title', 'demoStep', f->'demoStep') order by o)
+          from jsonb_array_elements(rec."features") with ordinality as x(f, o)),
+        'choices', sel."choices", 'demoSketch', sel."demo_sketch"))
+      from "scope_selections" sel join "scope_recommendations" rec on rec."id" = sel."recommendation_id"
+      where sel."version_id" = v."id" order by sel."revision" desc limit 1), '{}'::jsonb)
+    from "idea_versions" v join "ideas" i on i."id" = v."idea_id"
     where v."id" = ${versionId}::uuid and i."workspace_id" = ${workspaceId}::uuid returning "data"`);
   if (!result.rows[0]) throw new SnapshotError(404, "Idea version not found");
   return { snapshotId, data: result.rows[0].data as SnapshotData };
