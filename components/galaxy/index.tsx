@@ -312,7 +312,7 @@ export default function Galaxy() {
   }, [story, drive, director, view]);
   // ponytail: cast because story.ts types `twins` as the literal 3 (its default is TWINS.length, `as const`); drop it
   // once play() declares `twins: number`.
-  const playStory = useCallback(() => story.play(performance.now() / 1000, twins.length as 3), [story, twins.length]);
+  const playStory = useCallback(() => story.play(performance.now() / 1000, twins.length), [story, twins.length]);
   const storyAsked = useRef(false);
   useEffect(() => {
     if (storyAsked.current || load.state !== "ready" || classes.state === "loading" || !new URLSearchParams(location.search).has("story")) return;
