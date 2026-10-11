@@ -8,6 +8,7 @@ import { initWorkspace } from "@/components/workspace/api";
 import { getState, setState } from "@/lib/store";
 import type { LiveControls } from "./Live";
 import { readFields, request } from "./protocol";
+import { addCandidate, type Candidate } from "./candidates";
 import styles from "./mentor.module.css";
 
 const Live = dynamic(() => import("./Live"), { ssr: false, loading: () => <p>Loading conversation controls…</p> });
@@ -16,11 +17,13 @@ type Project = { projectId: string; title: string; url: string; excerpt: string 
 
 export default function Mentor() {
   const [open, setOpen] = useState(false);
-  const [loadVoice, setLoadVoice] = useState(false);
-  const [voiceState, setVoiceState] = useState("Text ready");
+  const [voiceReady, setVoiceReady] = useState(false);
+  const [voiceState, setVoiceState] = useState("Ready to talk");
+  const [typing, setTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [proposal, setProposal] = useState<Fields | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [candidatePage, setCandidatePage] = useState(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,17 +31,18 @@ export default function Mentor() {
   const [saved, setSaved] = useState(false);
   const initial = useRef("");
   const answers = useRef<Answer[]>([]);
-  const saveKey = useRef("");
   const lock = useRef(false);
   const generation = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const live = useRef<LiveControls | null>(null);
+  const startVoice = useRef<(() => void) | null>(null);
   const launcher = useRef<HTMLButtonElement>(null);
+  const minimize = useRef<HTMLButtonElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const log = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const show = () => { setOpen(true); setLoadVoice(true); };
+    const show = () => { setOpen(true); };
     const hash = () => { if (location.hash === "#talk") show(); };
     window.addEventListener("mentor:open", show);
     window.addEventListener("hashchange", hash);
@@ -46,15 +50,28 @@ export default function Mentor() {
     const token = generation;
     return () => { window.removeEventListener("mentor:open", show); window.removeEventListener("hashchange", hash); controller.current?.abort(); token.current++; };
   }, []);
-  useEffect(() => { if (open) textarea.current?.focus(); }, [open]);
+  useEffect(() => { if (open) { if (typing) textarea.current?.focus(); else minimize.current?.focus(); } }, [open, typing]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "instant" }); }, [messages, busy]);
 
   function message(role: Message["role"], text: string) { setMessages((old) => [...old, { role, text }]); }
-  function proposed(fields: Fields) { if (lock.current) return; setProposal(fields); setSaved(false); saveKey.current = crypto.randomUUID(); }
+  function proposed(fields: Fields) {
+    const id = crypto.randomUUID();
+    setCandidates((old) => addCandidate(old, fields, id));
+  }
   function close() { setOpen(false); launcher.current?.focus(); }
   function navigate(destination: string) {
     location.hash = destination;
     close();
+  }
+  function anotherDirection() {
+    if (lock.current || voiceState === "Connecting") return;
+    if (live.current) {
+      live.current.send("Let's explore another distinct idea alongside our current candidates. Keep the earlier ideas available and help me compare their assumptions.");
+      return;
+    }
+    initial.current = ""; answers.current = []; setQuestion(null);
+    setTyping(true); setInput(""); setError("");
+    message("mentor", "Starting a separate draft. Your earlier candidate cards are kept. What other problem would you like to explore?");
   }
 
   async function send() {
@@ -78,7 +95,7 @@ export default function Mentor() {
       if (id !== generation.current) return;
       initial.current = nextInitial; answers.current = nextAnswers;
       setState({ ideaDraft: context }); setInput(""); message("user", text);
-      setProposal(fields); saveKey.current = crypto.randomUUID();
+      proposed(fields);
       // The API remains the authority for the interview's bounded answer policy.
       const response = await request("/api/ideas/questions", { fields, answers: nextAnswers }, abort.signal) as Round;
       if (id !== generation.current) return;
@@ -90,59 +107,66 @@ export default function Mentor() {
     } finally { if (id === generation.current) { lock.current = false; setBusy(false); } }
   }
 
-  async function save() {
-    if (!proposal || lock.current || saved) return;
+  async function save(candidate: Candidate) {
+    if (lock.current || candidate.versionId) return;
     lock.current = true; setBusy(true); setError("");
-    live.current?.end();
-    const fields = { ...proposal };
+    const fields = { ...candidate.fields };
     try {
       const workspace = await initWorkspace();
       if (!workspace.ok) throw new Error("Your workspace could not start. Please retry.");
-      const version = await request("/api/ideas", fields, undefined, { "Idempotency-Key": saveKey.current }) as Version;
+      const version = await request("/api/ideas", fields, undefined, { "Idempotency-Key": candidate.saveKey }) as Version;
       if (!version?.versionId || !Array.isArray(version.neighborIds)) throw new Error("The save response was incomplete. Retry uses the same save key.");
       setState({ ideaStars: [...getState().ideaStars.filter((s) => s.versionId !== version.versionId), { versionId: version.versionId, x: version.x, y: version.y, z: version.z }], activeIdeaVersionId: version.versionId, highlightedIds: version.neighborIds, ideaDraft: "" });
       window.dispatchEvent(new CustomEvent("mentor:saved", { detail: version }));
       setSaved(true); setQuestion(null);
+      setCandidates((old) => old.map((item) => item.id === candidate.id ? { ...item, versionId: version.versionId } : item));
+      live.current?.context(`The user explicitly chose and saved this idea in the app: ${JSON.stringify({ versionId: version.versionId, ...fields })}. Continue the live conversation about next steps. Other candidate cards remain available; do not assume they were discarded.`);
       message("mentor", "Saved as a new idea. You can now inspect its evidence, refine it, or make a decision with your teammate.");
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Save failed. Your proposal is kept."); }
     finally { lock.current = false; setBusy(false); }
   }
 
-  const activeAudio = ["Listening", "Speaking", "Connecting"].includes(voiceState);
+  const activeAudio = ["Listening", "Speaking", "Connecting", "Muted"].includes(voiceState);
   return <div className={styles.host}>
     <section className={styles.panel} hidden={!open} aria-label="Brainstorm conversation" onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>UNCHARTED</span><h2>Let’s think it through.</h2></div>
-        <button type="button" className={styles.close} aria-label="Minimize conversation" onClick={close}>×</button>
+        <div><span className={styles.eyebrow}>UNCHARTED · LIVE VOICE</span><h2>{activeAudio ? voiceState === "Connecting" ? "Connecting your call…" : "We’re thinking together." : "Let’s think it through."}</h2></div>
+        <button ref={minimize} type="button" className={styles.close} aria-label="Minimize conversation" onClick={close}>×</button>
       </header>
       <div className={styles.scroll} ref={log}>
-        <p className={styles.intro}>Start with a problem, not a perfect pitch. We’ll explore who it helps, what could fail, and what to test.</p>
+        <p className={styles.intro}>{activeAudio ? "Speak naturally. No buttons between turns. You can explore the map while the call continues." : "One tap on the bubble starts a voice call. Explore possibilities, question assumptions, and choose what to build."}</p>
         <div className={styles.audio}>
-          {!loadVoice ? <><button type="button" onClick={() => setLoadVoice(true)}>Talk live with ElevenLabs</button><p>Or type below. No microphone needed.</p></> : <Live onMessage={message} onProposal={proposed} onEvidence={setProjects} onState={setVoiceState} onControls={(controls) => { live.current = controls; }} />}
+          <Live onReady={(start) => { startVoice.current = start; setVoiceReady(!!start); }} onMessage={message} onProposal={proposed} onEvidence={setProjects} onState={setVoiceState} onControls={(controls) => { live.current = controls; }} />
         </div>
-        <div role="log" aria-label="Conversation transcript" aria-live="polite">
+        <details className={styles.transcript} open={typing}><summary>Conversation transcript{messages.length > 0 ? ` (${messages.length})` : ""}</summary><div role="log" aria-label="Conversation transcript" aria-live="polite">
           {messages.map((item, index) => <div key={index} className={item.role === "user" ? styles.user : styles.reply}><span>{item.role === "user" ? "You" : "Uncharted"}</span><p>{item.text}</p></div>)}
-        </div>
+        </div></details>
         {projects.length > 0 && <section className={styles.sources} aria-label="Conversation sources"><h3>Related projects</h3>{projects.map((project) => <article key={project.projectId}><strong>{project.title}</strong><p>{project.excerpt}</p>{/^https?:\/\//.test(project.url) && <a href={project.url} target="_blank" rel="noopener noreferrer">View source ↗</a>}</article>)}</section>}
-        {proposal && <section className={styles.proposal} aria-label="Idea proposal"><span className={styles.eyebrow}>{saved ? "SAVED" : "UNSAVED DRAFT"}</span><h3>{proposal.title || "Your emerging idea"}</h3><p>{proposal.description || proposal.problem || "Some details are still unknown."}</p>
-          <details><summary>Edit details (optional)</summary>{FIELDS.map(({name,label}) => <label key={name}>{label}<textarea disabled={busy || saved} value={proposal[name] ?? ""} onChange={(event) => { setProposal({ ...proposal, [name]: event.target.value || null }); saveKey.current = crypto.randomUUID(); }} /></label>)}</details>
-          {!saved && <button type="button" disabled={busy} onClick={save}>Save as new idea</button>}
-          <p className={styles.fine}>Saving creates a separate idea. It does not revise an existing one.</p>
+        {candidates.length > 0 && <section aria-label="Candidate ideas" className={styles.candidates}><h3>Your possibilities</h3><p className={styles.fine}>Compare directions. Only the idea you proceed with is saved. Drafts stay in this tab.</p><button type="button" disabled={busy || voiceState === "Connecting"} onClick={anotherDirection}>Explore another direction</button>
+          {candidates.slice(candidatePage * 3, candidatePage * 3 + 3).map((candidate) => <article key={candidate.id} className={styles.proposal}>
+            <span className={styles.eyebrow}>{candidate.versionId ? "SAVED IDEA" : "CANDIDATE · UNSAVED"}</span><h3>{candidate.fields.title || "Untitled direction"}</h3>
+            <dl>{([ ["audience", "For"], ["problem", "Problem"], ["workflow", "Approach"], ["constraints", "Constraints"] ] as const).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{candidate.fields[key] || "Not yet discussed"}</dd></div>)}</dl>
+            <details><summary>Review / edit full idea</summary>{FIELDS.map(({name,label}) => <label key={name}>{label}<textarea disabled={busy || !!candidate.versionId} value={candidate.fields[name] ?? ""} onChange={(event) => { const value = event.target.value; const saveKey = crypto.randomUUID(); setCandidates((old) => old.map((item) => item.id === candidate.id ? { ...item, saveKey, fields: { ...item.fields, [name]: value || null } } : item)); }} /></label>)}</details>
+            {!candidate.versionId && <button type="button" disabled={busy} onClick={() => void save(candidate)}>Proceed with this idea</button>}
+            <button type="button" disabled={!activeAudio || voiceState === "Connecting"} onClick={() => live.current?.send(`Let's discuss this candidate, including its risks and alternatives: ${JSON.stringify(candidate.fields)}`)}>Discuss this idea</button>
+          </article>)}
+          {candidates.length > 3 && <div className={styles.next}><button disabled={candidatePage === 0} onClick={() => setCandidatePage((page) => page - 1)}>Previous ideas</button><span>{candidatePage + 1} / {Math.ceil(candidates.length / 3)}</span><button disabled={(candidatePage + 1) * 3 >= candidates.length} onClick={() => setCandidatePage((page) => page + 1)}>Next ideas</button></div>}
         </section>}
         {busy && <p role="status">Thinking through your idea…</p>}
         {error && <p role="alert" className={styles.error}>{error}</p>}
         {(messages.length >= 2 || saved) && <div className={styles.next}><button type="button" onClick={() => navigate("explore")}>Explore the map</button>{saved && <button type="button" onClick={() => navigate("idea")}>See evidence</button>}<button type="button" onClick={() => { close(); const team = document.querySelector<HTMLDetailsElement>('details[aria-label="Workspace"]'); if (team) { team.open = true; team.querySelector<HTMLElement>("summary")?.focus(); } }}>Add a teammate</button></div>}
       </div>
-      <form className={styles.compose} onSubmit={(event) => { event.preventDefault(); void send(); }}>
+      <button type="button" className={styles.typeToggle} aria-expanded={typing} onClick={() => setTyping(!typing)}>{typing ? "Hide typing" : "Prefer to type?"}</button>
+      {typing && <form className={styles.compose} onSubmit={(event) => { event.preventDefault(); void send(); }}>
         <textarea ref={textarea} aria-label="Message Uncharted" placeholder="What are you thinking about?" maxLength={8000} rows={2} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send message">↑</button>
-      </form>
+      </form>}
       <div className={styles.status} role="status">{voiceState}{activeAudio && <button type="button" onClick={() => live.current?.end()}>End conversation</button>}</div>
     </section>
-    <button ref={launcher} className={styles.bubble} type="button" aria-label={open ? "Minimize conversation" : "Open conversation"} aria-expanded={open} onClick={() => { if (open) close(); else { setOpen(true); setLoadVoice(true); } }}>
+    <button ref={launcher} className={styles.bubble} type="button" disabled={!voiceReady} aria-label={activeAudio ? open ? "Minimize live conversation" : "Show live conversation" : "Start live voice conversation"} aria-expanded={open} onClick={() => { if (activeAudio) { if (open) close(); else setOpen(true); } else { setOpen(true); startVoice.current?.(); } }}>
       <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 12v8m6-14v20m6-17v14m6-11v8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
     </button>
-    <span className={styles.caption}>{activeAudio ? voiceState : "Let’s brainstorm"}</span>
+    <span className={styles.caption}>{activeAudio ? voiceState : voiceReady ? "Tap to talk · ElevenLabs" : "Preparing voice…"}</span>
     {!open && activeAudio && <button className={styles.end} type="button" onClick={() => { live.current?.end(); if (voiceState === "Connecting") setOpen(true); }}>End conversation</button>}
   </div>;
 }

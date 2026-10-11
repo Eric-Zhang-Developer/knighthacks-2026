@@ -18,15 +18,20 @@ This section supersedes experience-shell's dictation composer and form-first pla
 empty-start sparks, only when this feature ships. Existing functional controls remain reachable; acceptance
 tests must assert preserved behavior through the new entry rather than require the obsolete placement.
 
-- Open on the full map with real project points. A circular, keyboard-accessible bottom-center bubble opens
-  a conversation surface with typing and an explicit Start live conversation action. Never start the microphone
+- Open on the full map with real project points. A circular, keyboard-accessible bottom-center bubble starts
+  a live ElevenLabs call in one tap, with no hold gesture or second Start button. Typing and transcript are optional
+  disclosures, not the primary call surface. Explain microphone use on the entry. Never start the microphone
   on page load. The launcher stays reachable across Explore, Talk, Idea, Decide and Plan, including phone safe
   areas; navigation must not remount an active session or discard an unsaved draft. Closing the surface is
   distinct from ending the session: show a persistent active-state indicator and accessible End control.
 - The side panel contains conversation outputs: proposed idea, sourced neighbors, risks/unknowns and next
   actions. Do not require a sequence of fields before brainstorming. Existing editable fields are optional
-  refinement controls, and explicit confirmation still governs saves/revisions. Keep one canonical draft and
-  proposal, not independent form and conversation copies that diverge.
+  refinement controls, and explicit confirmation still governs saves/revisions. Retain multiple distinct candidate
+  ideas, showing up to three compact cards per page with title, audience, problem, approach and known constraints.
+  Unknowns stay explicit; do not invent risks. Keep full fields available without truncating the card's main facts.
+  Deduplicate exact proposal redelivery. Preserve earlier candidates when more arrive; never silently evict one.
+  Each card's Proceed with this idea action saves that candidate only, with its own stable retry key, without
+  ending the live call. Update the agent's context only after a confirmed save. No automatic candidate selection.
 - Ask one contextual question at a time about audience, motivation, constraints, evidence and alternatives.
   Challenge weak assumptions constructively, including why the idea might fail or succeed and what is missing.
   Never default to praise or present unsupported confidence. After roughly two or three useful exchanges offer
@@ -57,7 +62,7 @@ tests must assert preserved behavior through the new entry rather than require t
   conversation. Offer Skip/Explore/Review proposal without saving implicitly. Respect the API's answer-count
   limit and show an honest completion/limit state; do not reset counters silently for an endless interview.
 - Keep detailed idea fields behind an optional Edit details disclosure. The default proposal is a readable
-  summary with unknowns visible and an explicit Save as new idea action. Do not hide an unchanged required
+  summary with unknowns visible and an explicit Proceed with this idea action. Do not hide an unchanged required
   form behind the bubble or overwrite edits when an older request completes.
 
 The backend dependency and real-provider acceptance below remain required. This ownership change does not
@@ -65,7 +70,9 @@ authorize out-of-order shipping, production schema/configuration changes or merg
 
 ## Plan
 1. Start brainstorming is an obvious entry action, with a text alternative. Explain microphone use before
-   permission; never listen automatically on page load. Await guest initialization before requesting a session.
+   permission; never listen automatically on page load. Request microphone access directly from the user's tap;
+   await guest initialization before reserving a provider session. Loading or direct #talk navigation only opens
+   the surface; it must not grant microphone consent. Duplicate taps cannot reserve multiple sessions.
    Use `ConversationProvider` and `useConversation` from installed `@elevenlabs/react` 1.17.0; start with the
    authorized `conversationToken` and `connectionType:"webrtc"` from live-mentor-api. Never combine a signed
    WebSocket URL with WebRTC. Pinned startSession/endSession return void: connection/error callbacks establish
@@ -84,7 +91,7 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    speech cannot claim a tool succeeded while the UI shows a failure. Keep untrusted evidence as data.
 5. Mentor remembers current conversation goals/constraints and loads only authorized selected-version context
    on resume. Corrections update the proposed idea visibly. `propose_idea` is a preview, never an automatic save.
-   A visible explicit Save as new idea action invokes existing POST /api/ideas with stable idempotency; then update
+   A visible explicit Proceed with this idea action invokes existing POST /api/ideas with stable idempotency; then update
    existing app state so the star, evidence and history reflect the confirmed version. Cancel changes nothing.
    Show that saving from a selected existing idea creates a separate idea, not a revision. Existing revision
    controls remain unchanged; conversational editing of a persisted revision is not claimed by this slice.
@@ -117,3 +124,8 @@ authorize out-of-order shipping, production schema/configuration changes or merg
    proposal. Keyboard focus returns to the launcher after closing; text and controls stay usable with the phone
    software keyboard open. Tests use provider fixtures only for deterministic failure/race cases, not as proof
    of real conversation quality. See acceptance.md for the baseline gaps and required evidence.
+8. One bubble tap attempts microphone/session connection without opening a required composer or second Start.
+   Mount, reload and hash navigation never start audio. Minimize/navigation retain the same active call; explicit
+   End releases it. Three distinct proposals yield three separately actionable cards; duplicate delivery adds
+   none. Selecting one saves its exact fields once and retains the others and the live connection. More than
+   three candidates are paginated without losing data. These fixtures are not a real ElevenLabs audio receipt.

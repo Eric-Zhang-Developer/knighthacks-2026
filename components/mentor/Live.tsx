@@ -7,8 +7,9 @@ import { getState } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
 import { readFields, request, toolIdentity } from "./protocol";
 
-export type LiveControls = { send: (text: string) => void; end: () => void };
+export type LiveControls = { send: (text: string) => void; context: (text: string) => void; end: () => void };
 type Props = {
+  onReady: (start: (() => void) | null) => void;
   onMessage: (role: "user" | "mentor", text: string) => void;
   onProposal: (fields: Fields) => void;
   onEvidence: (projects: { projectId: string; title: string; url: string; excerpt: string }[]) => void;
@@ -25,14 +26,21 @@ function Session(props: Props) {
   const [starting, setStarting] = useState(false);
   const session = useRef<string | null>(null);
   const epoch = useRef(0);
+  const startingRef = useRef(false);
+  const connectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const turn = useRef(0);
   const requests = useRef(new Set<AbortController>());
   const conversation = useConversation();
+  const muted = useRef(conversation.isMuted);
+  muted.current = conversation.isMuted;
   const endRef = useRef(conversation.endSession);
   endRef.current = conversation.endSession;
 
   function release() {
     epoch.current++;
+    startingRef.current = false;
+    if (connectionTimer.current) clearTimeout(connectionTimer.current);
+    connectionTimer.current = null;
     for (const controller of requests.current) controller.abort();
     requests.current.clear();
     const id = session.current;
@@ -42,23 +50,35 @@ function Session(props: Props) {
     callbacks.current.onControls(null);
   }
   function end() { release(); setStarting(false); callbacks.current.onState("Ended"); }
-  useEffect(() => () => { release(); }, []);
+  const startRef = useRef(start);
+  startRef.current = start;
+  useEffect(() => {
+    callbacks.current.onReady(() => { void startRef.current(); });
+    return () => { callbacks.current.onReady(null); release(); };
+  }, []);
 
   async function start() {
-    if (starting || session.current) return;
+    if (startingRef.current || session.current) return;
+    startingRef.current = true;
     const generation = ++epoch.current;
-    callbacks.current.onControls({ send: () => undefined, end });
+    callbacks.current.onControls({ send: () => undefined, context: () => undefined, end });
     setStarting(true); setNotice(""); callbacks.current.onState("Connecting");
+    connectionTimer.current = setTimeout(() => {
+      if (generation !== epoch.current) return;
+      release(); setStarting(false); callbacks.current.onState("Unavailable");
+      setNotice("The call did not connect. Tap the bubble to retry, or choose Prefer to type.");
+    }, 30_000);
     try {
-      const workspace = await initWorkspace();
-      if (!workspace.ok) throw new Error("Your workspace could not start. Please retry.");
       // Explicit click only. A denied microphone must not spend a provider session reservation.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
       if (generation !== epoch.current) return;
+      const workspace = await initWorkspace();
+      if (!workspace.ok) throw new Error("Your workspace could not start. Please retry.");
+      if (generation !== epoch.current) return;
       const result = await request("/api/mentor/session", {});
       if (generation !== epoch.current) {
-        if (result?.sessionId) void fetch(`/api/mentor/session/${encodeURIComponent(result.sessionId)}`, { method: "DELETE" });
+        if (result?.sessionId) void fetch(`/api/mentor/session/${encodeURIComponent(result.sessionId)}`, { method: "DELETE" }).catch(() => undefined);
         return;
       }
       if (typeof result?.sessionId !== "string" || typeof result?.conversationToken !== "string" || result.transport !== "webrtc") throw new Error("Live conversation is not configured yet.");
@@ -90,16 +110,18 @@ function Session(props: Props) {
         },
         onConnect: () => {
           if (!active()) return endRef.current();
+          if (connectionTimer.current) clearTimeout(connectionTimer.current);
+          connectionTimer.current = null;
           setStarting(false); callbacks.current.onState("Listening");
-          conversation.sendContextualUpdate(`Selected saved version: ${getState().activeIdeaVersionId ?? "none"}. Ask one useful question at a time. Avoid automatic praise; examine motivations, failure modes and missing evidence. Never save without an explicit app confirmation.`);
-          callbacks.current.onControls({ send: (text) => conversation.sendUserMessage(text), end });
+          conversation.sendContextualUpdate(`Selected saved version: ${getState().activeIdeaVersionId ?? "none"}. Have a natural spoken conversation: ask one useful question at a time, listen and respond without requiring button presses. Avoid automatic praise; examine motivations, failure modes and missing evidence. Help compare two or three candidate ideas when useful. Call propose_idea separately for each distinct candidate with a concise title, audience, problem, workflow and known constraints; leave unknown fields null. Proposals are unsaved cards, never claim they are saved. Never save without an explicit app confirmation.`);
+          callbacks.current.onControls({ send: (text) => conversation.sendUserMessage(text), context: (text) => conversation.sendContextualUpdate(text), end });
         },
         onMessage: (message) => {
           if (!active()) return;
           if (message.source === "user") turn.current++;
           callbacks.current.onMessage(message.source === "user" ? "user" : "mentor", message.message);
         },
-        onModeChange: ({ mode }) => active() && callbacks.current.onState(mode === "speaking" ? "Speaking" : "Listening"),
+        onModeChange: ({ mode }) => active() && callbacks.current.onState(muted.current ? "Muted" : mode === "speaking" ? "Speaking" : "Listening"),
         onDisconnect: () => { if (active()) { release(); setStarting(false); callbacks.current.onState("Disconnected"); } },
         onError: () => { if (active()) { release(); setStarting(false); setNotice("Live connection failed. Your text conversation is still available."); callbacks.current.onState("Unavailable"); } },
       });
@@ -112,11 +134,10 @@ function Session(props: Props) {
 
   return <div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {!session.current && !starting && <button type="button" onClick={start}>Start live conversation</button>}
       {(starting || conversation.status === "connected") && <button type="button" onClick={end}>Stop and end</button>}
-      {conversation.status === "connected" && <button type="button" aria-pressed={conversation.isMuted} onClick={() => conversation.setMuted(!conversation.isMuted)}>{conversation.isMuted ? "Unmute" : "Mute"}</button>}
+      {conversation.status === "connected" && <button type="button" aria-pressed={conversation.isMuted} onClick={() => { const next = !conversation.isMuted; muted.current = next; conversation.setMuted(next); callbacks.current.onState(next ? "Muted" : conversation.mode === "speaking" ? "Speaking" : "Listening"); }}>{conversation.isMuted ? "Unmute" : "Mute"}</button>}
     </div>
-    <p style={{ fontSize: 12, color: "#b9c3d4", marginTop: 8 }}>Live audio uses ElevenLabs. Your microphone starts only when you choose it.</p>
+    <p style={{ fontSize: 12, color: "#b9c3d4", marginTop: 8 }}>ElevenLabs voice call · Tap the bubble to connect. No holding or repeated recording.</p>
     {notice && <p role="status">{notice}</p>}
   </div>;
 }

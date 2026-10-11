@@ -24,3 +24,29 @@ Map-label collision work is not included. Do not merge/mark complete on unit tes
 Next: authenticate the hosted preview or configure an isolated local test workspace, then run the typed
 conversation -> proposal -> explicit save -> evidence/decision/share journey. Complete dependency #355 and
 actual private-agent audio/interruption validation before declaring live mentorship functional.
+
+## User correction: one tap and parallel candidates
+
+The next user review explicitly rejected a second Start button and chatbot-first entry. The launcher now
+invokes a preloaded SDK controller directly from its click; mounting/hash navigation never requests a mic.
+Typing and the transcript are optional disclosures. A synchronous duplicate-start guard and connection timeout
+protect session startup; mute/end stay explicit. Selecting a candidate no longer ends the live connection.
+
+Distinct `propose_idea` payloads become retained candidate cards (three per page, older pages kept). Exact
+redelivery is deduplicated. Each candidate has its own save key, full optional fields, and an explicit Proceed
+action. Confirmed saves update selected-version context without discarding other candidates. Explore another
+direction starts an explicitly separate text draft or asks the connected agent for another direction.
+The existing provider tool contract has no candidate identity/refinement field: changed proposals are retained
+as separate candidates, not guessed replacements. This is a UI capability, not proof the remote agent obeys it.
+
+The feature's own Validation was expanded for this user correction, not weakened. Unit suite: 405 passed,
+2 opt-in skipped. Browser boundary tests deliberately mock denial, workspace, interpretation and save; they
+cannot establish provider speech, genuine model reasoning, database persistence or human audio acceptance.
+Initial verify run failed during Next build (`no direct app page entry found for /_not-found`) with dev running;
+the dev process was stopped and its generated cache moved outside the checkout for a clean verification retry.
+
+Clean retry: both 390px browser boundary tests passed against the production build. Receipt:
+`verify: node scripts/verify.mjs live-mentor-ui C:\Users\kirol\OneDrive\Desktop\Knighthack\.git\agent-evidence\live-mentor-ui\20261011T014931Z pass at c6da3a8 (uncommitted changes)`.
+Screenshots in that evidence directory show the denied-mic fallback and fixture candidate cards. The initial
+build failure is retained above rather than omitted. Typecheck and lint also pass. Live provider, full SDK
+disconnect/interruption races, real generation/save, and human audio acceptance remain unverified; keep #369 draft.
