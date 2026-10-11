@@ -51,10 +51,10 @@ test("a saved idea is scanned: arcs land closest first, each tag shows the API's
   await expect(galaxy(page)).toHaveAttribute("data-scan", "drain", { timeout: 20_000 });
   await page.screenshot({ path: info.outputPath("1-drain.png") });
   await expect(galaxy(page)).toHaveAttribute("data-scan", "reach");
-  // Mid-scan, the tags that have landed are the closest ones, in order.
-  await expect.poll(() => tags(page).count()).toBeGreaterThanOrEqual(2);
-  const early = await tags(page).allInnerTexts();
-  early.forEach((t, k) => expect(t.replace(/\s+/g, " ")).toBe(`${SIMS[k].toFixed(2)} ${short(near[k].title)}`));
+  // Mid-scan, the links logged so far are the closest ones, in order (a landed tag can be off screen mid-flight).
+  await expect.poll(() => readout(page).getByRole("listitem").count()).toBeGreaterThanOrEqual(2);
+  const early = await readout(page).getByRole("listitem").allInnerTexts();
+  early.forEach((t, k) => expect(t.replace(/\s+/g, " ").trim()).toBe(`LINK ${SIMS[k].toFixed(2)} ${near[k].title}`));
   await page.screenshot({ path: info.outputPath("2-reach.png") });
   await expect(galaxy(page)).toHaveAttribute("data-scan", "done", { timeout: 8_000 });
   await expect(tags(page)).toHaveCount(5);
@@ -109,7 +109,7 @@ test("the intro lights every category in turn, only when asked", async ({ page }
   await expect(galaxy(page)).toHaveAttribute("data-classes", "ready", { timeout: 20_000 });
   await page.waitForTimeout(500);
   await expect(galaxy(page)).toHaveAttribute("data-intro", "idle");
-  await page.getByRole("button", { name: "Play the intro" }).click();
+  await page.getByRole("button", { name: "Run the intro" }).click();
   await expect(galaxy(page)).toHaveAttribute("data-intro", "play");
 });
 
