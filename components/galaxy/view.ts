@@ -192,6 +192,13 @@ export class Orbit {
   flyTo(p: Vec3) {
     this.animateTo({ target: p, dist: Math.min(this.dist, this.fitDist * 0.32) });
   }
+  // A group of points, centred and framed whole with a margin: the idea scan's flight to an idea and its neighbours.
+  frameGroup(center: Vec3, radius: number) {
+    const v = (FOV * Math.PI) / 360;
+    const h = Math.atan(Math.tan(v) * (Math.max(this.aspect.width, 1) / Math.max(this.aspect.height, 1)));
+    const dist = (Math.max(radius, 0.02) * 1.6) / Math.sin(Math.min(v, h));
+    this.animateTo({ target: center, dist: Math.min(this.fitDist * 0.9, Math.max(this.fitDist * 0.16, dist)) });
+  }
   // A category's cloud: framed whole, a little closer than the galaxy.
   flyToCloud(p: Vec3) {
     this.animateTo({ target: p, dist: this.fitDist * 0.45 });

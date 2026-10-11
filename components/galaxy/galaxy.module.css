@@ -222,3 +222,50 @@
 .mapControls button:active { transform: scale(0.94); }
 .mapControls svg { width: 18px; height: 18px; fill: currentColor; }
 @media (max-width: 720px) { .mapControls button { width: 44px; height: 44px; } }
+
+/* The idea scan's tags (specs/features/idea-scan): beside each neighbour, on the side away from the idea, tied to its
+   star by a hairline; the similarity in the idea cyan, then the title. Placed by Scene.tsx every frame. */
+.tags { position: absolute; inset: 0; pointer-events: none; overflow: clip; }
+.tags > button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  opacity: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: -0.8em 0 0 var(--space-4);
+  padding: 3px var(--space-2);
+  border: 1px solid rgb(79 214 232 / 0.45);
+  border-radius: 0;
+  background: rgb(4 6 11 / 0.8);
+  box-shadow: 0 0 0 1px rgb(4 6 11 / 0.4), 0 4px 14px rgb(0 0 0 / 0.4);
+  white-space: nowrap;
+  font: 400 var(--text-xs)/1.2 var(--font-mono);
+  color: var(--paper);
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: transform;
+  transition: opacity 180ms, visibility 0s linear 180ms, border-color 150ms, box-shadow 150ms;
+}
+.tags > button[data-side="left"] { margin-left: calc(-1 * var(--space-4)); translate: -100% 0; }
+.tags > button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 14px;
+  height: 1px;
+  background: linear-gradient(to left, rgb(79 214 232 / 0.7), transparent);
+}
+.tags > button[data-side="left"]::before { right: auto; left: 100%; background: linear-gradient(to right, rgb(79 214 232 / 0.7), transparent); }
+.tags > button[data-on] { visibility: visible; opacity: 1; transition: opacity 180ms, border-color 150ms, box-shadow 150ms; animation: tag-in 460ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.tags > button:hover { border-color: var(--idea); box-shadow: 0 0 14px rgb(79 214 232 / 0.35); }
+.tags > button:focus-visible { outline: 1px solid var(--idea); outline-offset: 2px; }
+.tags b { color: var(--idea); font-weight: 600; font-variant-numeric: tabular-nums; }
+.tags span { color: var(--paper); }
+.tags > button[data-side="left"][data-on] { animation-name: tag-in-left; } /* types out from the star's side */
+@keyframes tag-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -20px 0 -20px); } }
+@keyframes tag-in-left { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 -20px 0 -20px); } }
+@media (prefers-reduced-motion: reduce) { .tags > button[data-on] { animation: none; } }
