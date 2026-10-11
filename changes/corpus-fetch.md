@@ -1,5 +1,5 @@
 ## What shipped
-Resumable Devpost discovery/fetch with source links, gallery summaries, shared pacing/backoff (default 2, ceiling 5 requests/s; up to 5 workers), isolated source/output paths and known-project URL/ID exclusions. A validated atomic merge keeps one project per canonical URL and preserves event/source observations.
+Resumable Devpost discovery/fetch with source links, gallery summaries, shared pacing/backoff (default 2, ceiling 8 requests/s; up to 8 workers), isolated source/output paths and known-project URL/ID exclusions. A validated atomic merge keeps one project per canonical URL and preserves event/source observations.
 ## Where it lives
 `corpus/fetch/` (`run.py`, `parse.py`, `merge.py`, `PARALLEL.md`, tests and real saved HTML); `corpus/fixtures/sample.jsonl`; `specs/decisions/corpus-fetch-parallel.md`.
 ## How to check it
