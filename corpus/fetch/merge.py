@@ -1,7 +1,11 @@
 """Merge stable collector snapshots, preserving source observations and event memberships.
 
 python corpus/fetch/merge.py mac/projects.jsonl windows/projects.jsonl --output combined.jsonl \
-    --summaries mac/summaries.jsonl --summaries windows/summaries.jsonl
+    --summaries mac/summaries.jsonl --summaries windows/summaries.jsonl [--include-summary-only]
+
+--include-summary-only also writes each gallery card with no full record as a summary-only record in the full shape:
+description "" (never filled in), technologies [], date null, date_kind "unknown", detail "summary". The empty
+description is how the app tells them apart; a full record always has one.
 
 Stop/snapshot writers first. Output must differ from every input. No database writes.
 """
@@ -67,11 +71,30 @@ def unique_observations(items):
     return [keyed[key] for key in sorted(keyed)]
 
 
-def merge(inputs, summaries, output):
+def summary_only_record(url, cards):
+    """One record from every gallery card of a project we have no page for. The newest card supplies the text."""
+    cards = sorted(cards, key=lambda c: (timestamp(c["fetched_at"]), json.dumps(c, sort_keys=True)))
+    for card in cards:  # every card, not just the newest: each one contributes its event and badge
+        if not card.get("title"):
+            raise ValueError("summary card requires a title")
+        text = f"{card['title']}\n{card.get('tagline') or ''}"
+        if card.get("content_hash") != hashlib.sha256(text.encode()).hexdigest():
+            raise ValueError("summary content_hash does not match its text")
+    newest = cards[-1]
+    # Oldest first, so union_events lets the newest card's name and dates win whatever the input order.
+    events = [{**{key: c["event"].get(key) for key in ("name", "url", "dates")}, "prizes": []}
+              | ({"winner": True} if c["event"].get("winner") else {}) for c in cards]
+    return {"id": newest["id"], "url": url, "title": newest["title"], "tagline": newest.get("tagline"),
+            "description": "", "technologies": [], "events": union_events([], events), "date": None,
+            "date_kind": "unknown", "source": "devpost", "fetched_at": newest["fetched_at"],
+            "content_hash": newest["content_hash"], "detail": "summary", "observations": unique_observations(cards)}
+
+
+def merge(inputs, summaries, output, include_summary_only=False):
     paths = [*inputs, *summaries]
     if output.resolve() in {path.resolve() for path in paths}:
         raise ValueError("output must not overwrite an input checkpoint")
-    records, total, cards, summary_only = {}, 0, 0, set()
+    records, total, cards, summary_only = {}, 0, 0, {}
     for path in inputs:
         for raw in read(path):
             record = deepcopy(raw)
@@ -104,14 +127,18 @@ def merge(inputs, summaries, output):
                 raise ValueError("summary input requires detail=summary")
             cards += 1
             if url not in records:
-                summary_only.add(url)
-                continue  # no invented description: keep summary-only data in its own original snapshot
+                summary_only.setdefault(url, []).append(card)
+                continue  # never merged into a full record's text; written apart only with include_summary_only
             record = records[url]
             event = {key: card["event"].get(key) for key in ("name", "url", "dates")}
             record["events"] = union_events(record["events"], [event])
             record["observations"] = unique_observations(record["observations"] + [card])
     if not records:
         raise ValueError("empty corpus: refusing to produce a publication input")
+    full = len(records)
+    if include_summary_only:
+        for url, project_cards in summary_only.items():
+            records[url] = summary_only_record(url, project_cards)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
@@ -124,8 +151,10 @@ def merge(inputs, summaries, output):
     finally:
         if temporary:
             temporary.unlink(missing_ok=True)
-    result = {"input_records": total, "unique_projects": len(records), "duplicates_merged": total - len(records),
+    result = {"input_records": total, "unique_projects": full, "duplicates_merged": total - full,
               "gallery_observations": cards, "summary_only_projects": len(summary_only), "output": str(output)}
+    if include_summary_only:
+        result["summary_only_written"] = len(records) - full
     print("merge: " + json.dumps(result))
     return result
 
@@ -135,8 +164,10 @@ def main():
     parser.add_argument("inputs", nargs="+", type=Path)
     parser.add_argument("--summaries", action="append", default=[], type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--include-summary-only", action="store_true",
+                        help="also write gallery cards with no full record as summary-only records")
     args = parser.parse_args()
-    merge(args.inputs, args.summaries, args.output)
+    merge(args.inputs, args.summaries, args.output, args.include_summary_only)
 
 
 if __name__ == "__main__":
