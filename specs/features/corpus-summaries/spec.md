@@ -1,7 +1,7 @@
 ---
 name: Publish gallery-card projects as summary-only stars, toward the 100k corpus goal
 depends_on: [corpus-fetch, corpus-embed]
-owns: [corpus/fetch/merge.py, corpus/fetch/test_merge.py, tests/corpus-summaries/]
+owns: [corpus/fetch/merge.py, corpus/fetch/test_merge.py, corpus/summaries/]
 assignee: ""
 ---
 
@@ -31,7 +31,8 @@ now keeps up (#363 measured up to 8.5 records/s), which #317 named as the condit
 - Ids stay `sha1(canonical url)`, the same id a later full fetch of that project would get.
 
 ## Validation
-1. Unit tests (`corpus/fetch/test_merge.py`, `tests/corpus-summaries/`), each failing on origin/main first:
+1. Unit tests in `corpus/summaries/` (where `verify.py` runs pytest for this slug) and `corpus/fetch/test_merge.py`,
+   each failing on origin/main first:
    a card with no full record -> one summary record with `description ""` and the shape above; the same URL in two
    events -> one record, two events; a URL with a full record -> the full record only; the badge -> `winner: true`
    and `prizes: []`; without the flag the output is identical to today's.
@@ -39,6 +40,12 @@ now keeps up (#363 measured up to 8.5 records/s), which #317 named as the condit
    counts. Then `corpus/embed/run.py --input <merged>` against a test database (never production) -> keep the row
    count, a sample summary row (`description = ''`) and its star in the written `stars.json`.
 3. `corpus/release/check.py` passes on that output (star count equals row count, ids match).
+4. Scale, measured on this machine and kept in the done note: the summary-only count the real snapshot would add,
+   the embedding rate on a batch of at least 1,000 of them, and from those the hours to embed, project, classify
+   and load them all. If that can't finish by Sun 07:30 (an hour before the 08:30 freeze), say so in the note:
+   the release then publishes full records only, and summary records wait.
 
-## Defaults
+## Requirements for publishing
 - Publishing is the growth release's step (#262), not this PR's: this PR ships the code and the test-database run.
+- A release may include summary-only records only once `changes/summary-records-api.md` and
+  `changes/summary-records-ui.md` are on main, so no tagline reaches a user or the model unlabelled.

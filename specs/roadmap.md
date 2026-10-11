@@ -106,9 +106,10 @@ measure it.
 - **Stretch, summary records:** every gallery page already lists ~24 projects (title, tagline, winner badge;
   `summaries.jsonl`, #310), so a gallery-only pass covers far more projects per request than project pages.
   They become stars marked `summary` (no description, which stays unknown), with full records where we have them.
-  This needs embedding fast enough (local `bge-m3` if it passes the parity check in `corpus-embed`), a `detail`
-  column, a "summary only" label wherever a record is shown or quoted, and a star file that loads quickly at 100k+.
-  Specs follow once the embedding speed is measured; nothing here is scheduled yet.
+  This needs embedding fast enough (local `bge-m3` if it passes the parity check in `corpus-embed`), a summary
+  marker (an empty `description`, per `corpus-summaries`: a `detail` column would need a migration db-sync won't run), a "summary only" label wherever a record is shown or quoted, and a star file that loads quickly at 100k+.
+  Scheduled after #363 measured embedding (up to 8.5 records/s): `corpus-summaries`, `summary-records-api`,
+  `summary-records-ui`. A release publishes summary records only once both summary-records features are done.
 - **Rules that don't bend for size:** every star links to its source page, nothing is filled in, the fetch keeps
   the 429 backoff and the 403 stop, and one machine fetches.
 
