@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import NewsCards, { type MentorNews } from "../../components/mentor/NewsCards";
+import { readNewsData } from "../../components/mentor/protocol";
 
 const news: MentorNews = { query: "Recent reporting about: study rooms", asOf: "2026-10-11T15:00:00.000Z", windowStart: "2026-10-04T15:00:00.000Z", model: "test",
   items: [{ claim: { text: "Students reported a shortage.", label: "supported", sourceIds: ["news-0-0"] },
@@ -10,6 +11,13 @@ const news: MentorNews = { query: "Recent reporting about: study rooms", asOf: "
   limitations: ["Fresh and non-exhaustive."] };
 
 describe("recent mentor news cards", () => {
+  it("accepts valid news but rejects failed replays and malformed payloads before state update", () => {
+    expect(readNewsData(news)).toEqual(news);
+    expect(readNewsData({ status: "failed", error: "Provider unavailable" })).toBeNull();
+    expect(readNewsData({ ...news, asOf: undefined })).toBeNull();
+    expect(readNewsData({ ...news, items: [{ ...news.items[0], claim: { ...news.items[0].claim, label: "unverified" } }] })).toBeNull();
+    expect(readNewsData({ ...news, items: [{ ...news.items[0], publishedAt: "unknown" }] })).toBeNull();
+  });
   it("renders verified dates, supported claims, inferred relevance, sources, and limitations", () => {
     const html = renderToStaticMarkup(createElement(NewsCards, { news }));
     expect(html).toContain('aria-label="Recent problem news"');

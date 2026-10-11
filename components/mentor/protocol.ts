@@ -1,5 +1,36 @@
 import { FIELDS, type Fields } from "@/components/idea/fields";
 
+type InferredRelevance = { text: string; label: "inferred"; sourceIds: string[] };
+export type MentorNews = {
+  query: string; asOf: string; windowStart: string; model: string;
+  items: { claim: { text: string; label: "supported"; sourceIds: string[] };
+    source: { id: string; title: string; url: string }; publishedAt: string; relevance?: string | InferredRelevance }[];
+  limitations: string[];
+};
+
+const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === "string");
+const dated = (value: unknown): value is string => typeof value === "string" && Number.isFinite(Date.parse(value));
+export function readNewsData(value: unknown): MentorNews | null {
+  if (!value || typeof value !== "object") return null;
+  const data = value as Record<string, unknown>;
+  if (typeof data.query !== "string" || !dated(data.asOf) || !dated(data.windowStart) || typeof data.model !== "string" ||
+    !Array.isArray(data.items) || !strings(data.limitations)) return null;
+  const items: MentorNews["items"] = [];
+  for (const raw of data.items) {
+    if (!raw || typeof raw !== "object") return null;
+    const item = raw as Record<string, unknown>, claim = item.claim as Record<string, unknown> | null,
+      source = item.source as Record<string, unknown> | null, relevance = item.relevance;
+    if (!claim || claim.label !== "supported" || typeof claim.text !== "string" || !strings(claim.sourceIds) ||
+      !source || typeof source.id !== "string" || typeof source.title !== "string" || typeof source.url !== "string" || !dated(item.publishedAt)) return null;
+    if (relevance !== undefined && typeof relevance !== "string" &&
+      (!relevance || typeof relevance !== "object" || (relevance as Record<string, unknown>).label !== "inferred" ||
+        typeof (relevance as Record<string, unknown>).text !== "string" || !strings((relevance as Record<string, unknown>).sourceIds))) return null;
+    items.push(item as MentorNews["items"][number]);
+  }
+  return { query: data.query, asOf: data.asOf, windowStart: data.windowStart, model: data.model,
+    items, limitations: [...data.limitations] };
+}
+
 export function readFields(value: unknown): Fields {
   if (!value || typeof value !== "object") throw new Error("The idea response was incomplete. Your message is kept.");
   const source = value as Record<string, unknown>;

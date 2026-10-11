@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { initWorkspace } from "@/components/workspace/api";
 import { getState } from "@/lib/store";
 import type { Fields } from "@/components/idea/fields";
-import { readFields, request, toolIdentity } from "./protocol";
+import { readFields, readNewsData, request, toolIdentity } from "./protocol";
 import { LIVE_CONNECTION, connectionFailureNotice } from "./live-connection";
 import type { MentorNews } from "./NewsCards";
 
@@ -102,7 +102,10 @@ function Session(props: Props) {
           if (response.sessionId !== result.sessionId || response.turnId !== turnId || response.callId !== callId) throw new Error("The tool response did not match this turn.");
           if (response.data?.status === "pending_confirmation") callbacks.current.onProposal(readFields(response.data.fields));
           if (Array.isArray(response.data?.projects)) callbacks.current.onEvidence(response.data.projects);
-          if (name === "search_recent_news" && response.data && typeof response.data === "object") callbacks.current.onNews(response.data as MentorNews);
+          if (name === "search_recent_news") {
+            const news = readNewsData(response.data);
+            if (news) callbacks.current.onNews(news);
+          }
           return JSON.stringify(response);
         } catch { return JSON.stringify({ error: "Tool unavailable. Do not claim success." }); }
         finally { requests.current.delete(controller); }

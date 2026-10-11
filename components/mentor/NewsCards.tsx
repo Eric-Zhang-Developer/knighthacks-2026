@@ -1,20 +1,7 @@
 import { ClaimBadge } from "@/components/ui";
 import styles from "./mentor.module.css";
-
-type InferredRelevance = { text: string; label: "inferred"; sourceIds: string[] };
-export type MentorNews = {
-  query: string;
-  asOf: string;
-  windowStart: string;
-  model: string;
-  items: {
-    claim: { text: string; label: "supported"; sourceIds: string[] };
-    source: { id: string; title: string; url: string };
-    publishedAt: string;
-    relevance?: string | InferredRelevance;
-  }[];
-  limitations: string[];
-};
+import type { MentorNews } from "./protocol";
+export type { MentorNews } from "./protocol";
 
 function safeUrl(raw: string) {
   try {
