@@ -17,8 +17,8 @@ const PHONE = "(max-width: 720px)";
 
 const fromHash = (): Dest => DESTINATIONS.find((d) => `#${d.id}` === location.hash)?.id ?? "explore";
 
-// The phone's bottom navigation. The destination lives in the URL hash and on <html data-dest>, which
-// app/page.module.css reads to show one destination at a time; desktop hides this bar and shows everything.
+// Shared destinations: bottom bar on phone, compact rail navigation on desktop.
+// Hash changes never remount the persistent mentor session.
 export default function Nav() {
   const [dest, setDest] = useState<Dest>("explore");
   const selected = useAppState((s) => s.selectedProjectId);
@@ -32,6 +32,12 @@ export default function Nav() {
   }, []);
   useEffect(() => {
     document.documentElement.dataset.dest = dest;
+    if (matchMedia(PHONE).matches || dest === "explore") return;
+    const frame = requestAnimationFrame(() => {
+      const target = dest === "talk" ? "mentor-notes" : dest === "idea" ? "mentor-ideas" : `step-${dest}`;
+      document.getElementById(target)?.scrollIntoView({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [dest]);
 
   // On the phone an open project is a history entry, so Back closes it and leaves the destination alone.

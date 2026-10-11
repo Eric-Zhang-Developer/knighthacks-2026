@@ -124,22 +124,30 @@ test("phone: a quick flick up closes the project sheet; a slow short drag spring
   await open();
   await page.screenshot({ path: info.outputPath("phone-sheet.png") });
   const handle = page.getByRole("button", { name: "Drag up to close" });
-  let b = (await handle.boundingBox())!;
+  // The gestures carry device timestamps, as a finger's do: Chrome delivers moves once per frame, and with the 3D
+  // galaxy drawn in software (headless) frames can be 100+ ms apart, which made Playwright's "quick" flick arrive
+  // over most of a second, with zero velocity at release (#391). The sheet reads velocity from event.timeStamp.
+  const cdp = await page.context().newCDPSession(page);
+  const gesture = async (dys: number[], stepMs: number, holdMs: number) => {
+    const b = (await handle.boundingBox())!;
+    const [x, y] = [b.x + b.width / 2, b.y + b.height / 2];
+    let t = Date.now() / 1000;
+    const send = (type: string, dy: number, extra = {}) => cdp.send("Input.dispatchMouseEvent", { type, x, y: y + dy, button: "left", timestamp: t, ...extra } as never);
+    await send("mousePressed", 0, { clickCount: 1, buttons: 1 });
+    for (const dy of dys) {
+      t += stepMs / 1000;
+      await send("mouseMoved", dy, { buttons: 1 });
+    }
+    t += holdMs / 1000;
+    await send("mouseReleased", dys[dys.length - 1], { clickCount: 1 });
+  };
   // Slow and short: 40px over half a second, then a pause: it stays.
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2 - 40, { steps: 20 });
-  await page.waitForTimeout(200);
-  await page.mouse.up();
+  await gesture(Array.from({ length: 20 }, (_, i) => -2 * (i + 1)), 25, 200);
   await page.waitForTimeout(700);
   await expect(page.getByRole("region", { name: "Project" })).toBeVisible();
   expect(await page.locator(".shell-sheet").evaluate((e) => (e as HTMLElement).style.transform)).toBe("");
-  // Quick: 120px in a few frames: it closes.
-  b = (await handle.boundingBox())!;
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2 - 120, { steps: 3 });
-  await page.mouse.up();
+  // Quick: 120px in three frames: it closes.
+  await gesture([-40, -80, -120], 16, 16);
   await expect(page.getByRole("region", { name: "Project" })).toHaveCount(0, { timeout: 2000 });
   await page.screenshot({ path: info.outputPath("phone-explore.png") });
 });
@@ -168,4 +176,14 @@ test("a failed panel is a calm hiccup: readable words, the glyph in the error co
   expect(contrast(s.text, s.bg)).toBeGreaterThanOrEqual(4.5);
   expect(s.retry).toBe("9999px");
   await state.screenshot({ path: info.outputPath("failed-state.png") });
+});
+
+// The galaxy turns in 3D (galaxy-3d), so a flat ring pattern painted behind it no longer lines up with anything.
+test("no flat rings painted behind the galaxy", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("canvas")).toBeVisible();
+  const ringed = await page.evaluate(() =>
+    [...document.querySelectorAll("*")].some((e) => getComputedStyle(e).backgroundImage.includes("repeating-radial-gradient")),
+  );
+  expect(ringed).toBe(false);
 });

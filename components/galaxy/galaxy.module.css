@@ -1,87 +1,210 @@
 .galaxy { position: absolute; inset: 0; }
-.status { padding: 16px; color: var(--muted); }
-.galaxy .status { position: absolute; right: 0; bottom: 0; padding: 8px 12px; font-size: 12px; pointer-events: none; }
+.status { padding: var(--space-4); color: var(--muted); }
+/* The count in the map's corner is an instrument marking, not a sentence. */
+.galaxy .status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
 
 .tooltip {
   position: absolute;
   max-width: 280px;
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--panel);
+  border-radius: var(--radius-field);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  box-shadow: var(--lift);
   pointer-events: none;
 }
-.tooltip strong { display: block; font-size: 14px; }
-.meta { display: block; font-size: 12px; color: var(--muted); }
+.tooltip strong { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--paper); }
+.meta { display: block; font-size: var(--text-xs); color: var(--muted); }
 
 /* Reveal controls and the project list stack top-left, leaving the rest of the canvas clear. */
 .controls {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  width: min(280px, calc(100% - 16px));
+  top: var(--space-2);
+  left: var(--space-2);
+  width: min(280px, calc(100% - var(--space-4)));
   max-height: calc(100% - 64px);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .list {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--panel);
 }
-.list summary { padding: 8px 12px; cursor: pointer; font-size: 14px; }
-.list ul { list-style: none; }
+.list summary { padding: var(--space-3) var(--space-4); cursor: pointer; font-size: var(--text-sm); font-weight: 500; color: var(--text); }
+.list summary::marker { color: var(--brass); }
+.list ul { list-style: none; padding-bottom: var(--space-2); }
 .list button {
   width: 100%;
-  padding: 6px 12px;
+  padding: var(--space-2) var(--space-4);
   border: 0;
+  border-radius: 0;
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
 }
-.list button:hover { background: var(--border); }
-.list button[aria-pressed="true"] { background: var(--border); font-weight: 600; }
+.list button:hover { background: var(--rule); }
+.list button[aria-pressed="true"] { background: var(--rule); box-shadow: inset 2px 0 0 var(--accent); font-weight: 600; }
 
-/* Region names over compact category clusters; positioned each frame by Scene.tsx. */
+/* Category names over their clouds, projected from 3D each frame by Scene.tsx: a hairline rises from the cloud's
+   centre to a thin name and a mono count, in the cloud's hue. */
 .regions { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .region {
   position: absolute;
   left: 0;
   top: 0;
-  display: grid;
-  justify-items: center;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--paper);
-  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg);
-  white-space: nowrap;
+  width: 0;
+  height: 0;
   visibility: hidden;
+  will-change: transform, opacity;
 }
-.region small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+.region::before {
+  content: "";
+  position: absolute;
+  left: -0.5px;
+  bottom: 0;
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(to top, transparent, var(--hue));
+  opacity: 0.6;
+}
+.region > button {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-round);
+  /* A soft dark pool behind the name, so it reads over the brightest cloud without a hard box. */
+  background: radial-gradient(closest-side, rgb(4 6 11 / 0.74), rgb(4 6 11 / 0.36) 70%, transparent);
+  white-space: nowrap;
+  font: 400 var(--text-sm)/1 var(--font-sans);
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  text-shadow: 0 0 12px var(--bg), 0 0 4px var(--bg), 0 0 2px var(--bg);
+}
+.region > button {
+  border: 0;
+  pointer-events: auto; /* the layer lets drags through to the map; only the names take clicks */
+  cursor: pointer;
+  transition: color 150ms var(--md-sys-motion-easing-emphasized), transform 150ms var(--md-sys-motion-easing-emphasized);
+}
+.region > button:hover { color: var(--hue); }
+.region > button:active { transform: translateX(-50%) scale(0.97); }
+.region > button:focus-visible { outline: 2px solid var(--hue); outline-offset: 2px; }
+.region > button::before {
+  content: "";
+  align-self: center;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hue);
+  box-shadow: 0 0 8px var(--hue);
+}
+.region small { font: 400 var(--text-xs)/1 var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
+
+/* Zoomed in, the nearest projects' names: small and dim beside their star, so they label without crowding it. */
+.names { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.names > button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  margin: -0.6em 0 0 var(--space-2); /* beside the star, centred on it */
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: rgb(4 6 11 / 0.5);
+  white-space: nowrap;
+  font: 400 var(--text-xs)/1.2 var(--font-mono);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-shadow: 0 0 6px var(--bg), 0 0 2px var(--bg);
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: translate;
+  opacity: 0;
+  transition: opacity 200ms, visibility 0s linear 200ms; /* fade out, then stop taking clicks */
+}
+.names > button[data-on] { visibility: visible; opacity: 1; transition: opacity 200ms; }
+.names > button:hover { color: var(--paper); }
+.names > button:focus-visible { outline: 2px solid var(--idea); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .names > button, .names > button[data-on] { transition: none; } }
+
+/* By category / by meaning: a segmented control floating at the top of the map, glass over the sky. */
+.layouts {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-round);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  box-shadow: var(--lift);
+}
+.layouts button {
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: none;
+  color: var(--muted);
+  font: var(--md-sys-typescale-label-large);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--md-sys-motion-easing-emphasized), color 0.2s var(--md-sys-motion-easing-emphasized);
+}
+.layouts button:hover { color: var(--text); }
+.layouts button[aria-pressed="true"] {
+  background: rgba(79, 214, 232, 0.14);
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px rgba(79, 214, 232, 0.45);
+}
 
 /* In the page's discovery rail the controls are part of the rail's column, not floating over the map. */
 .railControls { display: contents; }
 
 /* Keyboard focus on the map itself (for + - 0) shows as an inset ring, not a box around the page. */
-.galaxy:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+.galaxy:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-/* Zoom in / out / whole map: small icon buttons stacked at the map's bottom-right, above the count. */
+/* Zoom in / out / whole map: one glass instrument at the map's bottom-right, above the count. */
 .mapControls {
   position: absolute;
   bottom: 40px;
-  right: 12px;
+  right: var(--space-3);
   display: grid;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
-  background: var(--panel);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  box-shadow: var(--lift);
 }
 .mapControls button {
   display: grid;
@@ -89,6 +212,7 @@
   width: 40px;
   height: 40px;
   border: 0;
+  border-radius: 0;
   background: none;
   color: var(--text);
   cursor: pointer;
@@ -96,5 +220,5 @@
 .mapControls button + button { border-top: 1px solid var(--border); }
 .mapControls button:hover { background: var(--rule); }
 .mapControls button:active { transform: scale(0.94); }
-.mapControls svg { width: 20px; height: 20px; fill: currentColor; }
+.mapControls svg { width: 18px; height: 18px; fill: currentColor; }
 @media (max-width: 720px) { .mapControls button { width: 44px; height: 44px; } }

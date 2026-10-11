@@ -67,3 +67,77 @@ pass the same validators, the store records each label's model, and `classes.jso
 it (`specs/decisions/corpus-classify-agent-labels.md`).
 Batch size 25, concurrency 4. If the largest domain holds more than 30%, inspect its descriptions before shipping;
 don't split it just to balance the chart.
+
+
+## Proposed Jev provider and incremental labeling (2026-10-11)
+
+Requested by the person after approving six Luna classification workers and merges after roughly 10,000 new
+labels. This extends the existing offline classifier; the taxonomy, label schema, evidence rules and release
+checks above remain binding. Implementation follows this plan's human merge, in a separate
+`fix(corpus-classify): ...` PR. No API credential or live Jev result exists in this plan.
+
+### Implementation
+1. Add `--provider jev` to `corpus/classify/run.py`, with a small provider module under `corpus/classify/`.
+   Use Python's existing standard-library HTTP client and `OPENROUTER_API_KEY` from the environment, calling
+   `https://openrouter.ai/api/alpha/decisions` with pinned model `typesafe/jev-1.13`. No SDK or dependency change.
+   Keep Gemini and agent modes working. Provider code receives the original records, not parsed prompt prose.
+2. Express the 14 domains plus insufficient evidence as typed choices with explicit descriptions. Ask separately
+   about clear/mixed/insufficient status and the runner-up; disagreement between answers goes to review, not a
+   guessed repair. Select coding-assistant use versus non-use versus unknown using the existing semantic rules.
+3. Jev produces choices, not prose. For a reported tool state, select from numbered verbatim source passages
+   plus a no-evidence option, then resolve the selected ID back to the exact description substring. Ask whether
+   the passage establishes BUILD-tool use, not product integration. Too many candidates, inconsistent answers,
+   unsupported input size or uncertain evidence go to the agent queue. Never invent, paraphrase or silently
+   truncate evidence. Summary-only records keep their empty description and cannot acquire a tool-use quote.
+4. Deduplicate prize strings globally and classify kind and explicit placement. Sponsor names must be selected
+   from source-derived candidates; ambiguous extraction goes to agent review. Run all translated responses
+   through the existing `validate_batch`, `project_value` and `prize_value` functions before saving labels.
+   A validator downgrade of purported evidence is reported and queued for review, not counted as a successful
+   evidence extraction. A close domain probability alone does not establish `mixed`.
+5. Start at four concurrent requests, with bounded timeouts, one bounded retry honoring Retry-After for transient
+   errors, and a shared pause on rate limits. Authentication, exhausted credit and configuration errors stop the
+   run. Refusals, exhausted retries and unresolved questions remain pending; they are not stored as genuine
+   `insufficient_text`. Log actual usage, latency, error counts and the provider's returned model identifier.
+6. Reuse only source-hash-matching existing labels. Cache raw answers by source, pinned model and question
+   revision, save completed validated chunks atomically, and resume without repeating completed paid work.
+   Write through the existing per-project/per-prize label store. Record actual model provenance; never label
+   Jev output as Luna output. Shared label-store merging has one writer.
+
+### Pilot and acceptance
+- Before bulk spending, run 200 distinct real records, including at least 50 summary-only records, all available
+  domains, mixed/insufficient examples and positive/negative coding-tool cases. Tune questions on a separate
+  development sample; keep the acceptance sample held out. Existing model labels are comparisons, not truth.
+- Use six `gpt-6-luna` workers in two waves of three for independent source review and exception handling.
+  Reviewers first classify without seeing Jev's answers; the parent adjudicates disagreements against sources.
+  Report per-field agreement, errors by domain and record tier, reviewed coverage and unresolved cases.
+- Proposed bulk gate: at least 90% domain agreement with adjudicated acceptance labels, all emitted quotes exact
+  and semantically supported, no invented prize facts, and no unresolved schema/ID errors. Check minority-domain
+  failures rather than hiding them in the aggregate. Derive any confidence threshold on the development sample;
+  Jev confidence is not assumed to equal probability of correctness. A failed gate parks bulk Jev work.
+- Measure request count, tokens, actual billed cost, p50/p95 latency and validated records/second. Estimate the
+  remaining full and summary runs separately from these measurements; publish no benchmark-derived promise.
+- Add focused tests for API-to-label translation, invalid IDs/options, contradictory choices, quote selection,
+  summary evidence, refusal, rate limits, credit exhaustion, checkpoint resume and provider provenance. Existing
+  classification tests, repository Checks and `verify.py --slug corpus-classify` must still pass.
+
+### Incremental PRs and release
+- Process the frozen 76,901 full-project snapshot first, then summary-only records separately. Confirm source
+  hashes against the release owner's exact input; counts in coordination comments are not cache validation.
+- After approximately each 10,000 newly validated labels, publish a separate `fix(corpus-classify): ...` PR
+  containing label-store updates and a review/measurement receipt under `specs/decisions/corpus-classify-*`.
+  Smaller final batches are allowed. Each PR reports new, reused, reviewed, pending and cumulative counts.
+- Each checkpoint gets schema/source/evidence validation and the existing spec review sample (50 random,
+  3 per represented domain, 20 mixed/insufficient where available), plus review of every newly added distinct
+  prize string. Small batches review all available records when a sample quota cannot be met; document counts.
+- Wait for green CI and the repository's whole PR verdict before merging each checkpoint. The person explicitly
+  requested these data-sized PRs; explain the generated diff size instead of weakening review or checks.
+- Label checkpoints do not modify `public/classify/classes.json` or publish production. The sole release owner
+  assembles that file after complete coverage and exact corpus-version/ID checks, shipping it with matching
+  stars. Existing saved-idea, deployment, summary-support and milestone gates remain unchanged.
+
+References: [Jev model and pricing](https://openrouter.ai/typesafe/jev-1.13),
+[classification cookbook](https://openrouter.ai/docs/cookbook/evaluate-and-optimize/jev-classification),
+[confidence evaluation](https://openrouter.ai/blog/insights/jev-vs-claude-opus-5-classification/).
+OpenAI's [Decisions API](https://developers.openai.com/api/docs/guides/decisions) is an alternative reviewed by
+request; this plan implements Jev only. Undo by removing Jev-origin labels and selecting the existing provider;
+previous valid labels and the published corpus remain available.

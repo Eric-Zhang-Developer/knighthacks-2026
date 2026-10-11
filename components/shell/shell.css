@@ -1,6 +1,27 @@
 /* Global on purpose: these rules size <body> and the workspace badge (layout.tsx), outside the page's module, and
    style the shell's own small components. */
-.shell-nav { display: none; }
+.shell-nav {
+  position: absolute;
+  top: 94px;
+  right: 20px;
+  z-index: 7;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 350px;
+  padding: 4px;
+  border: 1px solid #ffffff26;
+  border-radius: 20px;
+  background: #10141de8;
+  backdrop-filter: blur(18px);
+}
+.shell-nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 52px; border-radius: 15px; color: #cbd5e5; font-size: 11px; text-decoration: none; }
+.shell-nav-icon { display: grid; place-items: center; }
+.shell-nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
+.shell-nav a[aria-current="page"] { color: #fff; background: #30435f; }
+.shell-nav a:focus-visible { outline: 2px solid #dceaff; outline-offset: -2px; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .shell-nav { background: #10141d; backdrop-filter: none; border-color: #a6afc1; }
+}
 
 /* The step index: sticky at the top of the contextual rail, Material filter chips; the current step is filled. */
 .shell-steps {
@@ -70,6 +91,10 @@
     left: 0;
     right: 0;
     bottom: 0;
+    top: auto;
+    width: auto;
+    border: 0;
+    border-radius: 0;
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, 1fr);

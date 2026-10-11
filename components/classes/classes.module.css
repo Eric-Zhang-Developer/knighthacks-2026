@@ -1,28 +1,40 @@
-.legend { padding: var(--space-3); display: grid; gap: var(--space-2); font-size: var(--text-sm); max-height: 46vh; overflow-y: auto; }
-.universe { display: flex; gap: var(--space-4); margin: 0; }
-.universe dt { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
-.universe dd { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--paper); line-height: 1.1; }
-.entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+/* The legend: the universe's three totals as instrument readouts, then one row per category. Rows never overflow the
+   rail: the label truncates, the count stays whole and right-aligned. */
+.legend { padding: var(--space-3); display: grid; gap: var(--space-3); font-size: var(--text-sm); max-height: 46vh; overflow: hidden auto; grid-template-columns: minmax(0, 1fr); }
+/* Columns sized to their words, spread across the row: "Categories" is the widest readout and fits the 224px rail. */
+.universe { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: var(--space-1); margin: 0; padding: 0 var(--space-1); }
+.universe dt {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.universe dd { margin: 0; font-family: var(--font-display); font-size: var(--heading); font-weight: 600; color: var(--paper); line-height: 1.1; font-variant-numeric: lining-nums; }
+.entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; min-width: 0; }
 .entry {
   display: grid;
-  grid-template-columns: 14px 1fr auto;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  padding: 3px var(--space-2);
+  min-height: 30px;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-field);
   background: none;
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
+:root .entries .entry { border-radius: var(--radius-field); }
 .entry:hover { background: var(--rule); }
-.entry[aria-pressed="true"] { border-color: var(--brass); background: var(--rule); }
-.swatch { width: 10px; height: 10px; border-radius: 50%; justify-self: center; }
+.entry[aria-pressed="true"] { border-color: rgba(79, 214, 232, 0.45); background: rgba(79, 214, 232, 0.08); }
+.swatch { width: 8px; height: 8px; border-radius: 50%; justify-self: center; box-shadow: 0 0 6px currentColor; }
 .ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--brass); justify-self: center; }
 .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.count { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-.reset { justify-self: start; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text); padding: 2px var(--space-3); font: inherit; cursor: pointer; }
-.muted { margin: 0; color: var(--muted); font-size: 12px; }
+.count { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.reset { justify-self: start; min-height: 32px; border: 1px solid var(--border); background: none; color: var(--text); padding: 0 var(--space-3); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.muted { margin: 0; color: var(--muted); font-size: var(--text-sm); }

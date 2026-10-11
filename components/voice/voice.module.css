@@ -1,16 +1,20 @@
 .bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-2) var(--space-3); }
 .talk, .end {
+  min-height: 40px;
   border: 1px solid var(--border);
-  background: var(--panel);
+  background: none;
   color: var(--text);
-  border-radius: 999px;
-  padding: 8px 16px;
-  font: inherit;
+  padding: 0 var(--space-4);
+  font: var(--md-sys-typescale-label-large);
   cursor: pointer;
   touch-action: none;
   user-select: none;
 }
-.talk[aria-pressed="true"] { border-color: var(--idea); color: var(--idea); }
-.end:disabled { opacity: 0.5; cursor: default; }
+/* Hold to talk is the bar's one action: the accent's outline, filled while listening. */
+.talk { border-color: rgba(79, 214, 232, 0.55); color: var(--paper); }
+.talk[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+/* End is only an action during a session; otherwise it recedes to quiet text. */
+.end { color: var(--muted); }
+.end:disabled { border-color: transparent; opacity: 0.6; cursor: default; }
 .transcript { flex: 1; min-width: 12ch; color: var(--muted); font-style: italic; }
 .added { flex: 1; min-width: 12ch; color: var(--text); }

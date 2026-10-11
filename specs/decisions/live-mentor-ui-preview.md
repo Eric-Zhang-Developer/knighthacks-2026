@@ -140,3 +140,18 @@ have the failing browser network status. Anonymous checks of both validate paths
 Sanitized connection notices never display raw capability-bearing errors; session 429 explains the real limits
 instead of encouraging immediate retries. Focused tests: 20 passed; typecheck passed. Real audible greeting and
 continuous conversation remain pending the next human attempt. No production deployment or acceptance claim.
+
+## Human live confirmation and shared desktop entry (2026-10-11)
+
+Human explicitly reported: "the voice assistant now is working and live" on localhost:3107 and requested this
+experience in the actual desktop/mobile app. This confirms live voice, not the unreported interruption,
+grounded-tool, confirmed-save or decision/share steps. Latest main was integrated; the only conflict was in
+owned app/page.module.css, retaining the conversation-first layout rather than restoring the dictation shell.
+Desktop now exposes the same five destinations above the contextual rail; the same persistent bubble remains
+bottom-center and no destination starts the microphone. Phone retains its safe-area bottom navigation.
+Backend owner was asked to strengthen progressive, evidence-first questioning and update the managed agent.
+Canonical browser verification remains unavailable under the previously reported automation-policy block.
+Integrated candidate checks: typecheck and focused shell lint passed; 534 unit tests passed with 2 opt-in
+tests skipped. Graphify AST update completed (SQL grammar unavailable; no semantic/provider calls).
+The issue-fix chat relayed human success for the requested greeting, interruption/correction and End/mic-release
+check (issue #357 comment 6107137036). This is relayed human evidence, not an instrumented production receipt.
