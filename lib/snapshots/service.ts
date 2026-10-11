@@ -20,18 +20,20 @@ export async function createSnapshot(workspaceId: string, versionId: string) {
     to_regclass('public.scope_recommendations') is not null as "scopeRecommendations",
     to_regclass('public.experiments') is not null as "experiments"`);
   const available = capabilities.rows[0] as { scopeSelections?: boolean; scopeRecommendations?: boolean; experiments?: boolean } | undefined;
-  if (available?.scopeSelections !== available?.scopeRecommendations) {
+  if (!available || available.scopeSelections !== available.scopeRecommendations) {
     throw new SnapshotError(503, "Snapshots are temporarily unavailable");
   }
   const nextTest = available?.experiments ? sql`coalesce(
     (select jsonb_build_object('text', e."procedure", 'label', 'unverified', 'sourceIds', '[]'::jsonb)
       from "experiments" e join "challenge_sessions" es on es."id" = e."session_id"
-      where es."version_id" = v."id"
+      where es."version_id" = v."id" and e."result" is null
       order by e."updated_at" desc, e."id" desc limit 1),
     (select r."source" from "challenge_sessions" s join "challenge_rounds" r on r."session_id" = s."id"
       where s."version_id" = v."id" and r."source"->>'label' = 'unverified' and r."source"->'sourceIds' = '[]'::jsonb
         and left(r."source"->>'text', 15) = 'Proposed test: '
         and length(trim(substring(r."source"->>'text' from 16))) > 0
+        and not exists (select 1 from "experiments" completed where completed."session_id" = r."session_id"
+          and completed."round" = r."round" and completed."result" is not null)
       order by s."created_at" desc, s."id" desc, r."round" desc limit 1))` : sql`
     (select r."source" from "challenge_sessions" s join "challenge_rounds" r on r."session_id" = s."id"
       where s."version_id" = v."id" and r."source"->>'label' = 'unverified' and r."source"->'sourceIds' = '[]'::jsonb

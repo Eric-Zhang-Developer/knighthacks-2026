@@ -55,13 +55,20 @@ test("partial scope rollout fails instead of silently omitting a saved selection
   await expect(createSnapshot("workspace", "version")).rejects.toMatchObject({ status: 503 });
   expect(execute).toHaveBeenCalledTimes(1);
 });
-test("a started experiment is frozen as the selected next test before challenge fallbacks", async () => {
+test("an unavailable capability check fails closed before snapshot insertion", async () => {
+  execute.mockReset().mockResolvedValueOnce({ rows: [] });
+  await expect(createSnapshot("workspace", "version")).rejects.toMatchObject({ status: 503 });
+  expect(execute).toHaveBeenCalledTimes(1);
+});
+test("a pending experiment is frozen as the selected next test before unfinished challenge fallbacks", async () => {
   execute.mockReset()
     .mockResolvedValueOnce({ rows: [{ scopeSelections: true, scopeRecommendations: true, experiments: true }] })
     .mockResolvedValueOnce({ rows: [{ data }] });
   await createSnapshot("workspace", "version");
   const query = new PgDialect().sqlToQuery(execute.mock.calls[1][0]);
   expect(query.sql).toMatch(/from "experiments"/);
+  expect(query.sql).toMatch(/e\."result" is null/);
+  expect(query.sql).toMatch(/completed\."result" is not null/);
   expect(query.sql.indexOf('from "experiments"')).toBeLessThan(query.sql.indexOf('from "challenge_sessions" s'));
   expect(query.sql).toMatch(/scope_selections/);
 });
