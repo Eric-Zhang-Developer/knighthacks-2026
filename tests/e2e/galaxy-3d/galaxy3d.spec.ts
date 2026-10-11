@@ -62,9 +62,15 @@ test("the toggle flies every star to the other layout and updates the URL", asyn
 
   await page.getByRole("button", { name: "By meaning" }).click();
   await expect(page).toHaveURL(/layout=nebula/);
-  // Mid-flight the stars are in neither layout.
-  await expect.poll(() => canvas(page).evaluate((c) => (c as Canvas).starMorph.t)).toBeGreaterThan(0.2);
-  const mid = await now(page);
+  // Mid-flight the stars are in neither layout. Read t and the positions in one call, so a frame can't land between.
+  let mid: number[] = [];
+  await expect
+    .poll(async () => {
+      const m = await canvas(page).evaluate((c) => ({ t: (c as Canvas).starMorph.t, p: Array.from((c as Canvas).starMorph.current) }));
+      mid = m.p;
+      return m.t > 0.2 && m.t < 1;
+    }, { intervals: [50] })
+    .toBe(true);
   expect(maxDiff(mid, clouds)).toBeGreaterThan(0.01);
   expect(maxDiff(mid, real)).toBeGreaterThan(0.01);
   await page.screenshot({ path: info.outputPath("mid-flight.png") });
@@ -101,6 +107,9 @@ test("dragging turns the camera, not the stars", async ({ page }) => {
 });
 
 test("picking a project centres it; fit shows the galaxy in both layouts", async ({ page }, info) => {
+  // Software GL draws a few frames a second, so each click waits seconds for a stable frame; the 1.5 s bound below is
+  // still checked, this only stops the whole test running out of its 30 s.
+  test.slow();
   await page.goto("/?layout=clouds");
   const box = await ready(page);
   await expect(galaxy(page)).toHaveAttribute("data-classes", "ready");
@@ -120,7 +129,7 @@ test("picking a project centres it; fit shows the galaxy in both layouts", async
 
   for (const layout of ["By category", "By meaning"]) {
     await page.getByRole("button", { name: layout }).click();
-    await page.getByRole("button", { name: /fit/i }).click();
+    await page.getByRole("button", { name: "Show the whole map" }).click();
     await settled(page);
     const n = Number(await galaxy(page).getAttribute("data-star-count"));
     const all = await screenOf(page, Array.from({ length: n }, (_, i) => i));
