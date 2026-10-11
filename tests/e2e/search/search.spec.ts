@@ -29,6 +29,9 @@ test("type a query: results list; clear: list gone", async ({ page }) => {
   await expect(similar.getByRole("button").first()).toContainText(fixture[0].title);
   await page.screenshot({ path: test.info().outputPath("search-results.png") });
   await similar.getByRole("button").first().click();
+  // Picking a result folds the panel away (#457); a click on the box brings it back with that result marked.
+  await expect(page.getByLabel("Search results")).toHaveCount(0);
+  await box.click();
   await expect(similar.getByRole("button").first()).toHaveAttribute("aria-current", "true");
   await box.fill("");
   await expect(page.getByLabel("Search results")).toHaveCount(0);
@@ -42,4 +45,36 @@ test("meaning search down: title matches with a notice, not an error page", asyn
   await page.getByRole("searchbox", { name: "Search projects" }).fill("anything");
   await expect(page.getByText("Meaning search unavailable; showing title matches.")).toBeVisible();
   await expect(page.getByRole("list", { name: "Title matches" })).toContainText(fixture[0].title);
+});
+
+// UI only: fixed results, so it doesn't wait on the embedding API. The records are real (the drawer loads them).
+test("the results panel folds away on a pick, a click on the map, or Escape, and the box brings it back", async ({ page }) => {
+  test.setTimeout(60_000); // eleven steps; at load ~15 each click takes ~3 s
+  await page.route("**/api/search?*", (r) =>
+    r.fulfill({ json: { results: fixture.map((f, i) => ({ ...f, tagline: null, event: null, year: null, similarity: 0.9 - i / 10 })), textMatches: [], meaning: "ok" } }),
+  );
+  await page.goto("/");
+  const box = page.getByRole("searchbox", { name: "Search projects" });
+  const panel = page.getByLabel("Search results");
+  await box.fill("anything");
+  await page.getByRole("list", { name: "Similar projects" }).getByRole("button").first().click();
+  await expect(panel).toHaveCount(0);
+  await expect(box).toHaveValue("anything"); // folded, not cleared
+
+  await box.click();
+  await expect(panel).toBeVisible();
+  await expect(page.getByRole("list", { name: "Similar projects" }).getByRole("button").first()).toHaveAttribute("aria-current", "true");
+  const map = (await page.getByRole("main", { name: "Galaxy" }).boundingBox())!;
+  await page.mouse.click(map.x + map.width * 0.6, map.y + map.height * 0.6); // below the panel, above the voice bar
+  await expect(panel).toHaveCount(0);
+
+  await box.click();
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(box).toHaveValue("anything");
+  await page.keyboard.press("Escape"); // with the panel folded, Escape clears the query
+  await expect(box).toHaveValue("");
+  await box.fill("again");
+  await expect(panel).toBeVisible(); // typing shows it again
 });
