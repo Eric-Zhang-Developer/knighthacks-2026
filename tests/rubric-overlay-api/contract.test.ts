@@ -34,7 +34,11 @@ test("real quotes cite version intent; nonquotes and foreign speculation cannot 
 });
 test("bounded schema supports both providers and factual digits, but rejects scores and missing/duplicate tracks", () => {
   const schema = generatedSchema(["Use 36 hours to build a prototype", "The user states a 90% target, which is unverified intent"]);
-  expect(z.toJSONSchema(schema)).toHaveProperty("properties.tracks"); expect(zodOutputFormat(schema)).toHaveProperty("type", "json_schema");
+  const jsonSchema = z.toJSONSchema(schema);
+  expect(jsonSchema).toHaveProperty("properties.tracks");
+  expect(jsonSchema.properties?.tracks).not.toHaveProperty("minItems");
+  expect(jsonSchema.properties?.tracks).not.toHaveProperty("maxItems");
+  expect(zodOutputFormat(schema)).toHaveProperty("type", "json_schema");
   const generated = output(); generated.tracks[0].stated = [{ text: "Use 36 hours", label: "supported", sourceIds: [versionId] }];
   expect(schema.safeParse(generated).success).toBe(true);
   generated.tracks[0].stated[0].text = "90% target"; expect(schema.safeParse(generated).success).toBe(true);
@@ -42,6 +46,7 @@ test("bounded schema supports both providers and factual digits, but rejects sco
     generated.tracks[0].stated[0].text = text; expect(schema.safeParse(generated).success, text).toBe(false);
   }
   expect(schema.safeParse({ tracks: output().tracks.slice(1) }).success).toBe(false);
+  expect(schema.safeParse({ tracks: [...output().tracks, output().tracks[0]] }).success).toBe(false);
   const duplicate = output(); duplicate.tracks[0] = duplicate.tracks[1]; expect(schema.safeParse(duplicate).success).toBe(false);
   expect(schema.safeParse({ ...output(), score: 5 }).success).toBe(false);
 });

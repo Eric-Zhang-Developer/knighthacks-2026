@@ -9,8 +9,9 @@ export type Overlay = { versionId: string; tracks: TrackResult[] };
 export class RubricError extends Error { constructor(readonly status: number, message: string) { super(message); } }
 export function generatedSchema(fields: string[]) {
   const facts = [...fields, ...tracks.flatMap((track) => [track.name, ...(track.rewards ? [track.rewards] : [])])];
-  return z.object({ tracks: z.array(z.object({ trackId: z.enum(tracks.map((track) => track.id) as [string, ...string[]]), stated: z.array(claimSchema).max(1), speculative: z.array(claimSchema).max(1) }).strict()).length(tracks.length) }).strict().superRefine((value, ctx) => {
-    if (new Set(value.tracks.map((track) => track.trackId)).size !== tracks.length) ctx.addIssue({ code: "custom", message: "Include each catalog track exactly once" });
+  // Gemini rejects the fixed-length array keywords exported by Zod, so keep cardinality in server-side validation.
+  return z.object({ tracks: z.array(z.object({ trackId: z.enum(tracks.map((track) => track.id) as [string, ...string[]]), stated: z.array(claimSchema).max(1), speculative: z.array(claimSchema).max(1) }).strict()) }).strict().superRefine((value, ctx) => {
+    if (value.tracks.length !== tracks.length || new Set(value.tracks.map((track) => track.trackId)).size !== tracks.length) ctx.addIssue({ code: "custom", message: "Include each catalog track exactly once" });
     for (const track of value.tracks) for (const claim of [...track.stated, ...track.speculative]) {
       // Exact source quotations are factual input, not a generated score. Inspect all remaining prose.
       const quoted = claim.text.replace(/"([^"\n]+)"|“([^”\n]+)”/gu, (span, straight: string | undefined, curly: string | undefined) => facts.some((fact) => fact.includes(straight ?? curly ?? "")) ? " " : span);
