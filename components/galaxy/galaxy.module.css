@@ -131,8 +131,8 @@
   left: 0;
   top: 0;
   visibility: hidden;
-  margin: -0.6em 0 0 9px; /* beside the star, centred on it */
-  padding: 1px var(--space-1);
+  margin: -0.6em 0 0 var(--space-2); /* beside the star, centred on it */
+  padding: 0 var(--space-1);
   border: 0;
   border-radius: var(--radius-round);
   background: rgb(4 6 11 / 0.5);
