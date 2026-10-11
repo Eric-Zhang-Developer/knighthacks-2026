@@ -55,6 +55,7 @@ export default function Home() {
         {/* The idea path in brainstorming order: explore and grow before anything judges the idea (defer
             judgment), then test it, then decide and plan. Each group is one step in the step index. */}
         <div className={styles.ideaPath}>
+          <div id="mentor-evidence" />
           <div id="mentor-ideas" />
           <div id="step-idea">
             <Idea />

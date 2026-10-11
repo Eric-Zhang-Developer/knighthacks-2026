@@ -34,3 +34,16 @@ Use focused deterministic tests during edits; run the full required suite on the
 provider retries while permission/configuration is blocked. No extra worker beyond the local three-worker cap.
 Small bounded styling/test tasks may use a lower-cost model; authentication/session race review requires the
 stronger reviewer. Neither model choice nor delegation replaces independent evidence of the user's journey.
+
+## October 11 evidence visibility correction
+
+Retrieved conversation sources previously lived inside the optional, usually closed transcript. They now
+render in the idea/evidence panel independently, with excerpts, source links and project inspection. The
+explicit phrase "show related projects" opens already-retrieved sources without starting another search.
+An empty result is not presented as proof of originality. Source-card rendering, unsafe-link rejection and
+bounded command recognition have unit coverage; the full suite passes 545 tests with two skipped.
+Type checking and lint pass. These are automated/source receipts, not a new phone or audio verification.
+Fresh browser automation is blocked by the session's browser access policy; no alternate browser workaround
+was used. Human basic live audio was reported working, but the user explicitly has not tried the remaining
+real-evidence -> proposal -> explicit confirmed-save flow. Required live/phone and decision/share acceptance
+remain open; no completion note or production readiness is claimed.

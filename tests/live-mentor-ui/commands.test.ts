@@ -8,6 +8,9 @@ describe("explicit conversational controls", () => {
     expect(readCommand("Proceed with idea two")).toEqual({ kind: "prepare-save", index: 1 });
     expect(readCommand("Confirm save idea 2")).toEqual({ kind: "confirm-save", index: 1 });
     expect(readCommand("End the call")).toEqual({ kind: "end" });
+    expect(readCommand("Please show me the related projects.")).toEqual({ kind: "show-evidence" });
+    expect(readCommand("Open similar projects")).toEqual({ kind: "show-evidence" });
+    expect(readCommand("Don't show related projects")).toBeNull();
   });
   it.each(["yes", "that's a good idea", "don't save idea two", 'He said "save idea two"', "if I say save idea two", "save idea two and share it", "confirm save idea zero"])("does not treat ordinary or ambiguous prose as a command: %s", (text) => {
     expect(readCommand(text)).toBeNull();
