@@ -15,7 +15,8 @@ safe one. Feature IDs (F01–F32) refer to the catalog in `docs/UNCHARTED_V3_PLA
   brainstorming grounded in actual project evidence, user goals and relevant judging criteria. Start -> talk ->
   contextual spoken follow-up -> inspect evidence -> refine -> confirm -> save, with natural interruption and a
   complete text fallback. This supersedes push-to-talk-only as the product's voice goal. Windows owns the
-  authenticated session/grounded tool API; Mac owns conversation UI and seamless idea/evidence integration.
+  authenticated session/grounded tool API; the user's latest explicit reassignment gives conversation UI and
+  seamless idea/evidence integration to Windows worker codex-conversation-ui. Mac retains unrelated frontend work.
   The old cut short-read-back features do not satisfy it. Prioritize this ahead of optional expansion while
   preserving existing tests, schema/deployment coordination and the fixed freeze/hard stop.
 - **safe-demo** (no deadline; picked first): the bootstrap feature, then a galaxy of real projects you can explore and
